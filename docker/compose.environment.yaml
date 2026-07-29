@@ -9,6 +9,11 @@ services:
         WORDPRESS_IMAGE_TAG: ${WORDPRESS_IMAGE_TAG:?WORDPRESS_IMAGE_TAG is required}
     working_dir: /var/www/html
     environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      LOCALE: ${LOCALE:-ja_JP.UTF-8}
+      LANG: ${LOCALE:-ja_JP.UTF-8}
+      LC_ALL: ${LOCALE:-ja_JP.UTF-8}
+
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-wordpress}
       WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-wordpress}

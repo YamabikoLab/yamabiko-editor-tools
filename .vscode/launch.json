@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch WordPress (Chrome)",
+      "url": "http://localhost:8080",
+      "webRoot": "${workspaceFolder}/app",
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${workspaceFolder}/app/*",
+        "webpack:///*": "${workspaceFolder}/app/*",
+        "vite:///*": "${workspaceFolder}/app/*",
+        "/src/*": "${workspaceFolder}/app/*",
+        "/*": "${workspaceFolder}/*"
+      }
+    },
+    {
+      "type": "php",
+      "request": "launch",
+      "name": "Listen for Xdebug",
+      "port": 9003,
+      "pathMappings": {
+        "/var/www/html/wp-content/plugins/yamabiko-blocks": "${workspaceFolder}/app"
+      }
+    }
+  ]
+}

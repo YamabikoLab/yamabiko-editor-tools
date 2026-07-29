@@ -6,6 +6,14 @@ ARG WP_CLI_VERSION=2.12.0
 ARG XDEBUG_VERSION=3.4.5
 ARG TARGETARCH
 
+ARG LOCAL_UID=${LOCAL_UID:-1000}
+ARG LOCAL_GID=${LOCAL_GID:-1000}
+
+RUN groupmod --gid "${LOCAL_GID}" www-data \
+    && usermod --uid "${LOCAL_UID}" --gid "${LOCAL_GID}" www-data \
+    && mkdir -p /var/www/.vscode-server /var/www/.codex \
+    && chown -R www-data:www-data /var/www
+
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
@@ -21,6 +29,10 @@ RUN set -eux; \
         mariadb-client \
         unzip \
         xz-utils \
+        less \
+        vim \
+        gettext \
+        locales \
         zip; \
     architecture="${TARGETARCH:-$(dpkg --print-architecture)}"; \
     case "$architecture" in \
@@ -53,6 +65,47 @@ RUN set -eux; \
         docker-compose-plugin; \
     apt-get purge -y --auto-remove $PHPIZE_DEPS; \
     rm -rf /var/lib/apt/lists/* /tmp/pear ~/.pearrc
+
+# Locale settings
+ARG LOCALE=${LOCALE:-ja_JP.UTF-8}
+ARG TZ=${TZ:-Asia/Tokyo}
+ENV TZ=${TZ}
+
+RUN case "${LOCALE}" in \
+    ""|*[![:alnum:]_.@-]*) \
+    printf '%s\n' "Invalid LOCALE: ${LOCALE}" >&2; \
+    exit 1 ;; \
+    esac \
+    && printf '%s UTF-8\n' "${LOCALE}" > /etc/locale.gen \
+    && locale-gen
+
+# GitHub CLI
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+    && curl -fsSL \
+    https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && gh --version > /dev/null \
+    && mkdir -p /var/www/.config/gh \
+    && chown -R www-data:www-data /var/www/.config
+
+# Codex CLI
+ARG CODEX_CLI_VERSION=latest
+RUN npm install --global "@openai/codex@${CODEX_CLI_VERSION}" \
+    && codex --version > /dev/null
+
+COPY .devcontainer/scripts/devcontainer-entrypoint.sh \
+    /usr/local/bin/devcontainer-entrypoint
+
+RUN chmod 0755 /usr/local/bin/devcontainer-entrypoint
+
+ENTRYPOINT ["devcontainer-entrypoint"]
+CMD ["apache2-foreground"]
 
 # Keep the image startup directory at WordPress's document root.
 # The official entrypoint copies WordPress into the current directory.

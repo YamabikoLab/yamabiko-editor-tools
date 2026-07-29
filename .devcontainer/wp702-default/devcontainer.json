@@ -9,10 +9,54 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "openai.chatgpt",
         "xdebug.php-debug",
         "bmewburn.vscode-intelephense-client",
-        "openai.chatgpt"
-      ]
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "[php]": {
+          "editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[css]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[scss]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[markdown]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "editor.formatOnSave": true,
+        "files.eol": "\n",
+        "files.exclude": {
+          "**/.git": true,
+          "**/node_modules": true
+        },
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "php.validate.executablePath": "/usr/local/bin/php",
+        "intelephense.environment.phpVersion": "8.3",
+        "eslint.validate": [
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact"
+        ]
+      }
     }
-  }
+  },
+  "postCreateCommand": "bash .devcontainer/scripts/shell-setup.sh",
+  "remoteUser": "www-data"
 }
