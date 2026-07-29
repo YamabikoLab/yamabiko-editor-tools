@@ -9,8 +9,9 @@ Issue #1 の次の項目まで実装しています。
 1. WordPress主体の共通Dockerfile
 2. 共通Composeテンプレート
 3. 環境操作スクリプト
+4. Dev Containerで接続対象の環境を選択
 
-Dev Containerの接続環境選択、WordPress初期セットアップ、最小プラグインなどは後続手順で追加します。
+WordPress初期セットアップ、XdebugのVS Code待受設定、最小プラグインなどは後続手順で追加します。
 
 ## 基準環境
 
@@ -39,6 +40,39 @@ Docker EngineとDocker Compose v2が必要です。
 ```
 
 `setup` コマンドの入口もありますが、実処理を担う `scripts/setup-wordpress.sh` はIssue #1の手順7で追加します。それまでは説明付きで終了します。
+
+## Dev Containerで開く
+
+最初に、VS Codeが接続する環境を選択します。
+
+```bash
+./scripts/select-env.sh wp702-default
+```
+
+実行権限がローカルへ反映されていない場合は、次でも実行できます。
+
+```bash
+bash ./scripts/select-env.sh wp702-default
+```
+
+選択すると、対象の環境定義がGit管理外の `docker/.env` に反映されます。その後、VS Codeで次を実行します。
+
+1. コマンドパレットを開く
+2. `Dev Containers: Reopen in Container` を実行する
+
+VS Codeは選択したComposeプロジェクトの `wordpress` サービスへ接続し、リポジトリを `/workspaces/yamabiko-blocks` として開きます。
+
+接続先を変更するときは、いったんローカル側で別の環境を選び、コンテナを開き直します。
+
+```bash
+./scripts/select-env.sh wp683-iframe
+```
+
+`shutdownAction` は `none` です。VS Codeを閉じても検証環境は自動停止しません。停止するときは明示的に次を実行します。
+
+```bash
+./scripts/env.sh wp702-default down
+```
 
 ## 環境の追加
 
