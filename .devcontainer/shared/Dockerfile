@@ -101,17 +101,17 @@ RUN npm install --global "@openai/codex@${CODEX_CLI_VERSION}" \
 
 # Codex notification hook
 ARG CODEX_HOME=${CODEX_HOME:-/var/www/.codex}
-COPY .devcontainer/scripts/terminal-bell.sh \
+COPY .devcontainer/shared/scripts/terminal-bell.sh \
     "${CODEX_HOME}/hooks/terminal-bell.sh"
 RUN chmod +x "${CODEX_HOME}/hooks/terminal-bell.sh"
-COPY .devcontainer/hooks/hooks.json \
+COPY .devcontainer/shared/hooks/hooks.json \
     "${CODEX_HOME}/hooks.json"
 
 # Logcut
-COPY --chmod=0755 .devcontainer/bin/logcut /usr/local/bin/logcut
+COPY --chmod=0755 .devcontainer/shared/bin/logcut /usr/local/bin/logcut
 
 # Entry point script
-COPY .devcontainer/scripts/devcontainer-entrypoint.sh \
+COPY .devcontainer/shared/scripts/devcontainer-entrypoint.sh \
     /usr/local/bin/devcontainer-entrypoint
 
 
