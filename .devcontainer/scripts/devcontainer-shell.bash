@@ -1,6 +1,6 @@
 # Dev container shell customization
 
-__DEVCONTAINER_SHELL_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+__DEVCONTAINER_SHELL_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 __DEVCONTAINER_DEFAULT_WORKSPACE_DIR="$(cd -- "${__DEVCONTAINER_SHELL_DIR}/.." && pwd)"
 
 devcontainer_workspace_dir() {
@@ -52,20 +52,6 @@ cdplugins() {
     cd /var/www/html/wp-content/plugins
 }
 
-cdplugin() {
-    local wordpress_plugin_dir="/var/www/html/wp-content/plugins/${COMPOSE_PROJECT_NAME:-}"
-    local workspace_plugin_dir
-    workspace_plugin_dir="$(devcontainer_workspace_dir)/app/plugin"
-
-    if [[ -n "${COMPOSE_PROJECT_NAME:-}" && -d "${wordpress_plugin_dir}" ]]; then
-        cd "${wordpress_plugin_dir}"
-    elif [[ -d "${workspace_plugin_dir}" ]]; then
-        cd "${workspace_plugin_dir}"
-    else
-        cd /var/www/html/wp-content/plugins
-    fi
-}
-
 cdthemes() {
     cd /var/www/html/wp-content/themes
 }
@@ -75,3 +61,8 @@ cduploads() {
 }
 
 PS1='\u@\h:$(devcontainer_prompt_dir)\$ '
+
+# VS Code統合ターミナルのTTYをCodexフック用に記録する
+if [[ $- == *i* ]] && tty -s; then
+  tty > "${CODEX_HOME:-$HOME/.codex}/vscode-terminal"
+fi

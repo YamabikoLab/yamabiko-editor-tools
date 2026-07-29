@@ -1,0 +1,24 @@
+{
+  "chat.notifyWindowOnConfirmation": "always",
+  "chat.notifyWindowOnResponseReceived": "always",
+
+  "accessibility.signals.chatUserActionRequired": {
+    "sound": "on",
+    "announcement": "off"
+  },
+  "accessibility.signals.chatResponseReceived": {
+    "sound": "on"
+  },
+  "eslint.workingDirectories": [
+    {
+      "directory": "app",
+      "changeProcessCWD": true
+    }
+  ],
+  "intelephense.environment.includePaths": [
+    "/var/www/html",
+    "/var/www/html/wp-admin",
+    "/var/www/html/wp-includes",
+    "/var/www/html/wp-content/themes/twentytwentyfive"
+  ]
+}

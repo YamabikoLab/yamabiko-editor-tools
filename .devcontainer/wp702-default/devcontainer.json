@@ -57,6 +57,6 @@
       }
     }
   },
-  "postCreateCommand": "bash .devcontainer/scripts/shell-setup.sh",
+  "postCreateCommand": "bash .devcontainer/scripts/ai-tool-data.sh --restore && bash .devcontainer/scripts/shell-setup.sh",
   "remoteUser": "www-data"
 }

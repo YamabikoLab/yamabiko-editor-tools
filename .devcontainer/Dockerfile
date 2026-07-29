@@ -99,10 +99,19 @@ ARG CODEX_CLI_VERSION=latest
 RUN npm install --global "@openai/codex@${CODEX_CLI_VERSION}" \
     && codex --version > /dev/null
 
+# Codexからの通知
+ARG CODEX_HOME=${CODEX_HOME:-/var/www/.codex}
+COPY .devcontainer/scripts/terminal-bell.sh \
+    "${CODEX_HOME}/hooks/terminal-bell.sh"
+RUN chmod +x "${CODEX_HOME}/hooks/terminal-bell.sh"
+COPY .devcontainer/hooks/hooks.json \
+    "${CODEX_HOME}/hooks.json"
+
 COPY .devcontainer/scripts/devcontainer-entrypoint.sh \
     /usr/local/bin/devcontainer-entrypoint
 
-RUN chmod 0755 /usr/local/bin/devcontainer-entrypoint
+
+RUN chmod +x /usr/local/bin/devcontainer-entrypoint
 
 ENTRYPOINT ["devcontainer-entrypoint"]
 CMD ["apache2-foreground"]

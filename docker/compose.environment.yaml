@@ -21,6 +21,10 @@ services:
       ENVIRONMENT_NAME: ${ENVIRONMENT_NAME:?ENVIRONMENT_NAME is required}
       WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:?WORDPRESS_SITE_URL is required}
       EDITOR_MODE: ${EDITOR_MODE:-default}
+
+      AI_TOOL_DATA_DIR: ${AI_TOOL_DATA_DIR:-/var/www/.codex}
+      CODEX_HOME: ${AI_TOOL_DATA_DIR:-/var/www/.codex}
+      GH_CONFIG_DIR: /var/www/.config/gh
     ports:
       - "127.0.0.1:${WORDPRESS_PORT:?WORDPRESS_PORT is required}:80"
     volumes:
@@ -29,6 +33,8 @@ services:
       - ..:/workspaces/yamabiko-blocks
       - /var/run/docker.sock:/var/run/docker.sock
       - ../.devcontainer/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
+      - ai_tool_data:${AI_TOOL_DATA_DIR:-/var/www/.codex}
+      - gh_config:/var/www/.config/gh
     depends_on:
       db:
         condition: service_healthy
@@ -58,3 +64,5 @@ services:
 volumes:
   wordpress_data:
   db_data:
+  ai_tool_data:
+  gh_config:

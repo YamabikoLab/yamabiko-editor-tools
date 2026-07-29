@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/var/www/.codex/hooks/terminal-bell.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/var/www/.codex/hooks/terminal-bell.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/var/www/.codex/hooks/terminal-bell.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}
