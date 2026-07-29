@@ -21,7 +21,6 @@ services:
       - ..:/workspaces/yamabiko-blocks
       - /var/run/docker.sock:/var/run/docker.sock
       - ../.devcontainer/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
-    working_dir: /workspaces/yamabiko-blocks
     depends_on:
       db:
         condition: service_healthy
