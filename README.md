@@ -9,7 +9,7 @@ Issue #1 の次の項目まで実装しています。
 1. WordPress主体の共通Dockerfile
 2. 共通Composeテンプレート
 3. 環境操作スクリプト
-4. Dev Containerで接続対象の環境を選択
+4. VS Code標準機能によるDev Container接続環境の選択
 
 WordPress初期セットアップ、XdebugのVS Code待受設定、最小プラグインなどは後続手順で追加します。
 
@@ -43,32 +43,31 @@ Docker EngineとDocker Compose v2が必要です。
 
 ## Dev Containerで開く
 
-最初に、VS Codeが接続する環境を選択します。
+独自の環境選択スクリプトや `.env` の書き換えは使用しません。環境ごとのDev Container設定を、VS Code Dev Containersの標準構成で管理します。
 
-```bash
-./scripts/select-env.sh wp702-default
+基準環境の設定は次です。
+
+```text
+.devcontainer/wp702-default/
+├── devcontainer.json
+└── compose.yaml
 ```
 
-実行権限がローカルへ反映されていない場合は、次でも実行できます。
-
-```bash
-bash ./scripts/select-env.sh wp702-default
-```
-
-選択すると、対象の環境定義がGit管理外の `docker/.env` に反映されます。その後、VS Codeで次を実行します。
+初回はVS Codeで次を実行します。
 
 1. コマンドパレットを開く
 2. `Dev Containers: Reopen in Container` を実行する
+3. `Yamabiko Blocks: wp702-default` を選択する
+
+接続後、別の環境設定が追加されていれば、次で切り替えます。
+
+```text
+Dev Containers: Switch Container
+```
 
 VS Codeは選択したComposeプロジェクトの `wordpress` サービスへ接続し、リポジトリを `/workspaces/yamabiko-blocks` として開きます。
 
-接続先を変更するときは、いったんローカル側で別の環境を選び、コンテナを開き直します。
-
-```bash
-./scripts/select-env.sh wp683-iframe
-```
-
-`shutdownAction` は `none` です。VS Codeを閉じても検証環境は自動停止しません。停止するときは明示的に次を実行します。
+`shutdownAction` は `none` です。VS Codeを閉じても検証環境は自動停止しません。停止するときは明示的に実行します。
 
 ```bash
 ./scripts/env.sh wp702-default down
@@ -76,21 +75,26 @@ VS Codeは選択したComposeプロジェクトの `wordpress` サービスへ�
 
 ## 環境の追加
 
-`environments/wp702-default.env` をコピーし、少なくとも次を環境ごとに一意にします。
+新しい環境を追加するときは、次の2つを追加します。
+
+1. `environments/<environment>.env`
+2. `.devcontainer/<environment>/` の薄いDev Container設定
+
+環境定義では少なくとも次を一意にします。
 
 - `ENVIRONMENT_NAME`
 - `COMPOSE_PROJECT_NAME`
 - `WORDPRESS_PORT`
 - `WORDPRESS_SITE_URL`
 
-例:
+環境ごとの `compose.yaml` はDocker Compose標準の `include` と `env_file` で共通Composeを参照します。
 
-```bash
-cp environments/wp702-default.env environments/wp683-iframe.env
-./scripts/env.sh wp683-iframe config
-./scripts/env.sh wp683-iframe up
+```yaml
+include:
+  - path: ../../docker/compose.environment.yaml
+    env_file: ../../environments/wp702-default.env
 ```
 
-新しい環境を追加しても、Composeテンプレートや `scripts/env.sh` に条件分岐を追加する必要はありません。
+共通Compose、共通Dockerfile、`scripts/env.sh`、プラグインソースへ環境名ごとの分岐を追加する必要はありません。
 
 詳細は [`environments/README.md`](environments/README.md) を参照してください。
