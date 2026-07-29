@@ -1,0 +1,19 @@
+{
+  "name": "Yamabiko Blocks",
+  "dockerComposeFile": "../docker/compose.environment.yaml",
+  "service": "wordpress",
+  "runServices": ["db", "wordpress"],
+  "workspaceFolder": "/workspaces/yamabiko-blocks",
+  "shutdownAction": "none",
+  "overrideCommand": false,
+  "initializeCommand": "bash -lc 'test -f docker/.env || { echo \"No Dev Container environment is selected. Run: ./scripts/select-env.sh wp702-default\" >&2; exit 1; }'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "xdebug.php-debug",
+        "bmewburn.vscode-intelephense-client",
+        "openai.chatgpt"
+      ]
+    }
+  }
+}
