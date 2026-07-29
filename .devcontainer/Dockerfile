@@ -99,7 +99,7 @@ ARG CODEX_CLI_VERSION=latest
 RUN npm install --global "@openai/codex@${CODEX_CLI_VERSION}" \
     && codex --version > /dev/null
 
-# Codexからの通知
+# Codex notification hook
 ARG CODEX_HOME=${CODEX_HOME:-/var/www/.codex}
 COPY .devcontainer/scripts/terminal-bell.sh \
     "${CODEX_HOME}/hooks/terminal-bell.sh"
@@ -107,6 +107,10 @@ RUN chmod +x "${CODEX_HOME}/hooks/terminal-bell.sh"
 COPY .devcontainer/hooks/hooks.json \
     "${CODEX_HOME}/hooks.json"
 
+# Logcut
+COPY --chmod=0755 .devcontainer/bin/logcut /usr/local/bin/logcut
+
+# Entry point script
 COPY .devcontainer/scripts/devcontainer-entrypoint.sh \
     /usr/local/bin/devcontainer-entrypoint
 

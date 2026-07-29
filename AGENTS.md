@@ -4,6 +4,20 @@ These instructions apply to the entire repository. Keep this file focused on
 repository-wide rules; more specific guidance lives in nested `AGENTS.md`
 files.
 
+## Sources of truth and boundaries
+
+- Treat `docs/development/foundation.md` as the cross-cutting contract for
+  every implementation and review. Read the documents it routes to when they
+  apply to the task.
+- Keep the development workspace in `app/`.
+  Follow the additional instructions in those directories when
+  working below them.
+- Before implementing a feature, complete and obtain approval for a vertical-
+  slice plan based on `docs/plans/TEMPLATE.md`.
+- Do not add placeholder directories, empty feature classes, public hooks,
+  persistent data, network requests, or runtime assets without that approved
+  plan.
+
 ## Personal local environment data
 
 - Do not include personal local environment information in source code,
