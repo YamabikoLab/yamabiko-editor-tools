@@ -91,7 +91,6 @@ check_duplicate_ports() {
 
 compose() {
     docker compose \
-        --project-name "$COMPOSE_PROJECT_NAME" \
         --env-file "$ENVIRONMENT_FILE" \
         --file "$COMPOSE_FILE" \
         "$@"
