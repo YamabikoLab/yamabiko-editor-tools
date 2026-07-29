@@ -54,4 +54,6 @@ RUN set -eux; \
     apt-get purge -y --auto-remove $PHPIZE_DEPS; \
     rm -rf /var/lib/apt/lists/* /tmp/pear ~/.pearrc
 
-WORKDIR /workspaces/yamabiko-blocks
+# Keep the image startup directory at WordPress's document root.
+# The official entrypoint copies WordPress into the current directory.
+WORKDIR /var/www/html
