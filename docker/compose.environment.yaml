@@ -1,0 +1,53 @@
+services:
+  wordpress:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        WORDPRESS_IMAGE_TAG: ${WORDPRESS_IMAGE_TAG:?WORDPRESS_IMAGE_TAG is required}
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-wordpress}
+      ENVIRONMENT_NAME: ${ENVIRONMENT_NAME:?ENVIRONMENT_NAME is required}
+      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:?WORDPRESS_SITE_URL is required}
+      EDITOR_MODE: ${EDITOR_MODE:-default}
+    ports:
+      - "127.0.0.1:${WORDPRESS_PORT:?WORDPRESS_PORT is required}:80"
+    volumes:
+      - wordpress_data:/var/www/html
+      - ../app:/var/www/html/wp-content/plugins/yamabiko-blocks
+      - ..:/workspaces/yamabiko-blocks
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../.devcontainer/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
+    working_dir: /workspaces/yamabiko-blocks
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: ${WORDPRESS_DB_NAME:-wordpress}
+      MARIADB_USER: ${WORDPRESS_DB_USER:-wordpress}
+      MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-wordpress}
+      MARIADB_ROOT_PASSWORD: ${WORDPRESS_DB_ROOT_PASSWORD:-wordpress-root}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  wordpress_data:
+  db_data:
