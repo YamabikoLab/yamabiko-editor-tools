@@ -7,23 +7,20 @@ services:
       dockerfile: .devcontainer/shared/Dockerfile
       args:
         WORDPRESS_IMAGE_TAG: ${WORDPRESS_IMAGE_TAG:?WORDPRESS_IMAGE_TAG is required}
-    working_dir: /var/www/html
+        LOCAL_UID: ${LOCAL_UID:-1000}
+        LOCAL_GID: ${LOCAL_GID:-1000}
+        LOCALE: ${LOCALE:-ja_JP.UTF-8}
+        TZ: ${TZ:-Asia/Tokyo}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
-      LOCALE: ${LOCALE:-ja_JP.UTF-8}
       LANG: ${LOCALE:-ja_JP.UTF-8}
-      LC_ALL: ${LOCALE:-ja_JP.UTF-8}
 
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-wordpress}
       WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-wordpress}
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-wordpress}
-      ENVIRONMENT_NAME: ${ENVIRONMENT_NAME:?ENVIRONMENT_NAME is required}
-      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:?WORDPRESS_SITE_URL is required}
-      EDITOR_MODE: ${EDITOR_MODE:-default}
 
-      AI_TOOL_DATA_DIR: ${AI_TOOL_DATA_DIR:-/var/www/.codex}
-      CODEX_HOME: ${AI_TOOL_DATA_DIR:-/var/www/.codex}
+      CODEX_HOME: /var/www/.codex
       GH_CONFIG_DIR: /var/www/.config/gh
     ports:
       - "127.0.0.1:${WORDPRESS_PORT:?WORDPRESS_PORT is required}:80"
@@ -33,12 +30,11 @@ services:
       - ..:/workspaces/yamabiko-blocks
       - /var/run/docker.sock:/var/run/docker.sock
       - ../.devcontainer/shared/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
-      - ai_tool_data:${AI_TOOL_DATA_DIR:-/var/www/.codex}
+      - codex_data:/var/www/.codex
       - gh_config:/var/www/.config/gh
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
 
   db:
     image: mariadb:12.3
@@ -59,10 +55,9 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-    restart: unless-stopped
 
 volumes:
   wordpress_data:
   db_data:
-  ai_tool_data:
+  codex_data:
   gh_config:
