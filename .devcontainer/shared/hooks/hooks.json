@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/var/www/.codex/hooks/terminal-bell.sh",
+            "command": "/usr/local/share/codex-hooks/terminal-bell.sh",
             "timeout": 3
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/var/www/.codex/hooks/terminal-bell.sh",
+            "command": "/usr/local/share/codex-hooks/terminal-bell.sh",
             "timeout": 3
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/var/www/.codex/hooks/terminal-bell.sh",
+            "command": "/usr/local/share/codex-hooks/terminal-bell.sh",
             "timeout": 3
           }
         ]
