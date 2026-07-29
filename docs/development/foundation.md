@@ -11,7 +11,7 @@ routes, Ajax handlers, cron events, database tables, options, transients, meta,
 public hooks, or runtime JavaScript/CSS.
 
 Runtime PHP uses PHP 8.3. The main file
-`app/plugin/yamabiko-blocks.php` is deliberately limited to PHP 7.4 syntax
+`app/yamabiko-blocks.php` is deliberately limited to PHP 7.4 syntax
 so that it can reject an unsupported host before loading Composer or runtime
 code.
 Approved PLAN-002 selected WordPress 6.8 and PHP 8.3 as the first public
@@ -19,28 +19,28 @@ minimums. Publish those values in plugin metadata together with the PLAN-002
 runtime implementation; until then, do not infer published metadata from the
 development runtime alone.
 
-Feature code is co-located under `app/plugin/src/<Feature>/`. Do not create
+Feature code is co-located under `app/src/<Feature>/`. Do not create
 future feature directories, empty classes, or a `shared/` directory
 pre-emptively.
 Move code to `shared/` only after multiple real features use it.
 
 ## Stable identifiers
 
-| Surface | Required form |
-| --- | --- |
-| Plugin slug and text domain | `yamabiko-blocks` |
-| PHP namespace | `YamabikoLab\Blocks\` |
-| Global PHP function | `yamabiko_blocks_` |
-| PHP constant | `YAMABIKO_BLOCKS_` |
-| Option or transient | `yamabiko_blocks_` |
-| Private meta key | `_yamabiko_blocks_` |
-| Action or filter | `yamabiko-blocks/` |
-| REST namespace | `yamabiko-blocks/v1` |
-| Script or style handle | `yamabiko-blocks-` |
-| Block namespace | `yamabiko/` |
-| CSS class | `yamabiko-blocks-` |
-| HTML data attribute | `data-yamabiko-blocks-*` |
-| npm scope | `@yamabikolab` |
+| Surface                     | Required form            |
+| --------------------------- | ------------------------ |
+| Plugin slug and text domain | `yamabiko-blocks`        |
+| PHP namespace               | `YamabikoLab\Blocks\`    |
+| Global PHP function         | `yamabiko_blocks_`       |
+| PHP constant                | `YAMABIKO_BLOCKS_`       |
+| Option or transient         | `yamabiko_blocks_`       |
+| Private meta key            | `_yamabiko_blocks_`      |
+| Action or filter            | `yamabiko-blocks/`       |
+| REST namespace              | `yamabiko-blocks/v1`     |
+| Script or style handle      | `yamabiko-blocks-`       |
+| Block namespace             | `yamabiko/`              |
+| CSS class                   | `yamabiko-blocks-`       |
+| HTML data attribute         | `data-yamabiko-blocks-*` |
+| npm scope                   | `@yamabikolab`           |
 
 Do not introduce generic names or prefixes reserved by WordPress and other
 products, such as `wp_`. Namespaces are the primary PHP collision boundary.
