@@ -19,7 +19,7 @@ WordPress初期セットアップ、XdebugのVS Code待受設定、最小プラ�
 
 - WordPress 7.0.2
 - PHP 8.3 / Apache
-- MariaDB 11.4
+- MariaDB 12.3
 - Node.js 24.5.0
 - Composer 2
 - WP-CLI 2.12.0
