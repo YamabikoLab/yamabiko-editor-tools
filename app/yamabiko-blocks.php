@@ -8,22 +8,22 @@
  * Requires PHP: 8.1
  * Author: YamabikoLab
  * Text Domain: yamabiko-blocks
+ *
+ * @package YamabikoBlocks
  */
 
 declare(strict_types=1);
-
-namespace YamabikoLab\Blocks;
 
 if (! defined('ABSPATH')) {
     exit;
 }
 
-final class Plugin
-{
-    public static function init(): void
-    {
-        // Block registration will be added in a future issue.
-    }
+$yamabiko_blocks_autoloader = __DIR__ . '/vendor/autoload.php';
+
+if (! is_readable($yamabiko_blocks_autoloader)) {
+    return;
 }
 
-add_action('plugins_loaded', [Plugin::class, 'init']);
+require_once $yamabiko_blocks_autoloader;
+
+add_action('plugins_loaded', array('YamabikoLab\\Blocks\\Plugin', 'init'));
