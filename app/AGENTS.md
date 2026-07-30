@@ -16,8 +16,12 @@ The following documents are authoritative:
 
 - Run application commands from `app/`.
 - During implementation, run the narrowest relevant checks.
-- `npm test` is the current complete Node quality gate. It covers formatting,
-  ESLint, and TypeScript configuration checks.
+- `npm test` is the current complete Node quality gate for the first foundation
+  stage. It covers formatting, ESLint, and the Node-side TypeScript
+  configuration used by Vite and Playwright.
+- Add the application TypeScript configuration to the complete gate as soon as
+  the first real Notice entry exists in stage 2. Do not add placeholder source
+  files solely to satisfy TypeScript input discovery.
 - Inside the Dev Container, use `logcut npm test`. On the host, use `npm test`
   or invoke the selected environment container from the repository root.
 - After `npm test` succeeds, do not rerun its individual checks separately.
