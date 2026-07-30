@@ -5,7 +5,7 @@
       "type": "chrome",
       "request": "launch",
       "name": "Launch WordPress (Chrome)",
-      "url": "http://localhost:8080",
+      "url": "${env:WORDPRESS_SITE_URL}",
       "webRoot": "${workspaceFolder}/app",
       "sourceMapPathOverrides": {
         "webpack:///./*": "${workspaceFolder}/app/*",
