@@ -1,7 +1,6 @@
 # Foundation and cross-cutting development contract
 
-This document is the implementation contract established by PLAN-001. It
-applies to every later vertical slice.
+This document is the implementation contract for every later vertical slice.
 
 ## Boundaries
 
@@ -10,14 +9,15 @@ The Foundation itself registers no blocks, formats, editor plugins, REST
 routes, Ajax handlers, cron events, database tables, options, transients, meta,
 public hooks, or runtime JavaScript/CSS.
 
-Runtime PHP uses PHP 8.3. The main file
-`app/yamabiko-blocks.php` is deliberately limited to PHP 7.4 syntax
-so that it can reject an unsupported host before loading Composer or runtime
-code.
-Approved PLAN-002 selected WordPress 6.8 and PHP 8.3 as the first public
-minimums. Publish those values in plugin metadata together with the PLAN-002
-runtime implementation; until then, do not infer published metadata from the
-development runtime alone.
+The development runtime uses WordPress 7.0.2 and PHP 8.3. The published minimums
+are WordPress 6.8 and PHP 8.1, and those values must remain aligned with the
+plugin metadata in `app/yamabiko-blocks.php`.
+
+The main plugin file should remain parseable on PHP 7.4 where practical so that
+WordPress can read its metadata and reject activation on an unsupported host.
+The Foundation does not add a separate runtime PHP version check; WordPress
+plugin metadata is the authoritative activation gate. Runtime feature code may
+use PHP 8.1 syntax and APIs.
 
 Feature code is co-located under `app/src/<Feature>/`. Do not create
 future feature directories, empty classes, or a `shared/` directory
