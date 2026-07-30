@@ -86,9 +86,6 @@ data.
   produced, end the final response with a Japanese Markdown summary.
 - Do not add the structured summary to simple questions, explanations, or
   requests that do not perform repository work.
-- For implementation plans, keep the plan and final summary in separate
-  copyable Markdown blocks.
-- For other repository work, use one fenced `md` block for the summary.
 - Include `Work performed`, `Changed files`, `Commands run`, `Decision rationale`,
   `Open items`, and `Next steps`.
 - Under `Commands run`, list every shell command actually run and its result
