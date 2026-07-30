@@ -2,6 +2,9 @@
 .env.*
 !.env.example
 
+.devcontainer/shared/scripts/ai-tool-data-backup.tar.gz
+.devcontainer/shared/scripts/.ai-tool-data-backup.tar.gz.tmp.*
+
 .DS_Store
 Thumbs.db
 
