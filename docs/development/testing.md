@@ -6,8 +6,7 @@ commands from there.
 Related contracts:
 
 - `foundation.md`: runtime, security, compatibility, and dependency rules;
-- `source-organization.md`: ownership and test placement;
-- `release.md`: distribution and archive inspection.
+- `source-organization.md`: ownership and test placement.
 
 ## Principles
 
@@ -30,111 +29,87 @@ Commit `composer.lock` or `package-lock.json` when its dependency definition
 changes. Local development uses `app/vendor/`; there is no nested
 `app/plugin/vendor/`.
 
-## Complete gates
+## Current Node gate
 
-PHP or shared plugin changes:
-
-```bash
-composer check
-```
-
-TypeScript, TSX, SCSS, Vite, or build changes:
+The complete Node gate currently available is:
 
 ```bash
 npm test
 ```
 
-Distribution-related changes:
+Inside the Dev Container, use:
 
 ```bash
-npm run dist
-npm run inspect:dist
+logcut npm test
 ```
 
-Inside the Dev Container, prefix complete gates with `logcut` when
-available. Do not rerun their individual checks after the complete gate passes.
+It currently runs:
 
-`composer check` should cover PHP syntax, WordPress Coding Standards, PHPUnit,
-and any configured static analysis or contract checks.
+- `npm run format:check`;
+- `npm run lint`;
+- `npm run typecheck`.
 
-`npm test` should cover Prettier, ESLint, TypeScript, Vitest, the production
-Vite build, and manifest or artifact assertions.
+The WordPress-oriented Vite build, unit tests, changed-file test selection, and
+E2E tests are not complete gates yet. Add them only with the implementation and
+tests that make those commands meaningful.
 
-Expected test placement:
-
-```text
-src/<Feature>/**/*.test.{ts,tsx}
-tests/php/<Feature>/
-tests/e2e/
-```
-
-The build must verify that React, ReactDOM, the JSX runtime, and
-WordPress-provided packages remain external.
-
-## Targeted iteration
-
-Use these only while implementing:
+Use these file-oriented commands only while iterating:
 
 ```bash
 npm run format:files -- <files...>
 npm run lint:files -- <files...>
-npm run test:related -- <files...>
-npm run test:changed -- <commit>
 ```
 
-They are not complete quality gates, and file-oriented commands require an
-explicit argument.
+They require explicit file arguments and are not complete quality gates.
+
+## PHP checks
+
+PHPUnit, PHPStan, PHPCS, and WordPress Coding Standards will be introduced with
+the PHP testing foundation. Until then, lint each changed PHP file directly:
+
+```bash
+php -l path/to/changed-file.php
+```
+
+Do not document or invoke `composer check` until that Composer script and its
+underlying tools exist.
 
 ## Bootstrap compatibility
 
 The main plugin file is `yamabiko-blocks.php`.
 
-It must:
+It should:
 
-- parse on PHP 7.4;
-- reject unsupported hosts before loading Composer or PHP 8.3 runtime classes;
+- remain parseable on PHP 7.4 where practical;
 - return safely when `ABSPATH` is undefined;
-- avoid a fatal error when the production autoloader is missing.
+- avoid a fatal error when the production autoloader is missing;
+- load runtime classes that support the published PHP 8.1 minimum.
 
-Runtime classes and the normal PHPUnit suite use PHP 8.3.
-
-```bash
-php -l yamabiko-blocks.php
-```
-
-CI should separately exercise isolated PHP 7.4 bootstrap scenarios without
-loading the normal Composer runtime.
+WordPress plugin metadata is the authoritative activation gate. Do not add a
+separate runtime PHP version check without changing the approved compatibility
+contract.
 
 ## Notice reference feature
 
 Issue #4 establishes `yamabiko/notice` as the first reference feature.
 
-### TypeScript
-
-Test that:
+When its automated tests are added, verify that:
 
 - `info`, `tip`, and `warning` are accepted;
 - unsupported values fall back to `info`;
 - values and display labels remain aligned;
-- tone logic runs without WordPress, React, DOM, or network access.
-
-### PHP and WordPress
-
-Test that:
-
+- pure tone logic runs without WordPress, React, DOM, or network access;
 - the block registers on the intended hook;
 - `block.json` attributes match PHP behavior;
-- valid attributes produce the expected HTML;
-- invalid tones fall back safely;
-- unsafe HTML is removed or neutralized;
-- allowed inline markup is retained;
+- unsafe HTML is removed or neutralized while permitted inline markup remains;
 - wrapper attributes and tone classes are present;
 - user-facing strings are translatable;
 - missing build output does not cause a fatal error.
 
-PHP tests belong under `tests/php/Notice/`.
+TypeScript tests belong beside their source. PHP tests belong under
+`tests/php/<Feature>/`.
 
-### Manual acceptance
+## Manual Notice acceptance
 
 Until equivalent E2E coverage exists:
 
@@ -146,94 +121,40 @@ Until equivalent E2E coverage exists:
 6. Check keyboard operation, focus, and meaning without color.
 7. Inspect `wp-content/debug.log`.
 
-## Vite and HMR
+## WordPress smoke check
 
-Automated tests cover entries, manifests, dependency metadata,
-externalization, and production artifacts.
-
-A real Gutenberg browser must still verify:
-
-1. Run `npm run dev` from `app/`.
-2. Change editor SCSS in an iframe environment and confirm HMR.
-3. Repeat in a configured non-iframe environment.
-4. Change TypeScript and confirm HMR or a clean reload.
-5. Change PHP or `block.json` and confirm a clean reload.
-6. Confirm content, selection, and focus are not unnecessarily lost.
-7. Stop Vite and confirm safe production fallback.
-8. Remove production output and confirm the feature stops safely.
-
-Production output must contain no Vite client, development-server URL, or
-bundled WordPress runtime package.
-
-## Playwright E2E
-
-Playwright is separate from Vitest and is not part of `npm test` unless the
-repository explicitly changes that contract.
-
-When the E2E foundation is enabled:
+From the Dev Container:
 
 ```bash
-npm run test:e2e
+wp plugin activate yamabiko-blocks
+wp eval "var_export( WP_Block_Type_Registry::get_instance()->is_registered( 'yamabiko/notice' ) );"
+wp plugin deactivate yamabiko-blocks
 ```
 
-Use uncommitted credentials for an isolated administrator:
-
-```dotenv
-E2E_WP_ADMIN_USER=<administrator-login>
-E2E_WP_ADMIN_PASSWORD=<administrator-password>
-```
-
-E2E rules:
-
-- run serially when sharing a WordPress database;
-- derive the origin from the configured WordPress host and port;
-- do not hard-code host-only, container-only, or default-port URLs;
-- keep auth state, reports, traces, screenshots, videos, and results outside Git;
-- keep package, CLI, browser, and container versions aligned;
-- do not download browsers during an ordinary test run.
-
-If Playwright setup is split from Issue #4, the manual Notice procedure remains
-required.
-
-## WordPress smoke test
-
-From the repository root after starting WordPress:
+From the host, select the intended environment explicitly:
 
 ```bash
-docker compose exec --user www-data wordpress   wp plugin activate yamabiko-blocks
-
-docker compose exec --user www-data wordpress   wp eval "var_export( WP_Block_Type_Registry::get_instance()->is_registered( 'yamabiko/notice' ) );"
-
-docker compose exec --user www-data wordpress   wp plugin deactivate yamabiko-blocks
+docker compose -f .devcontainer/<environment-name>/compose.yaml exec --user www-data wordpress \
+  wp plugin activate yamabiko-blocks
 ```
 
-The registry check must output `true`. Inspect `wp-content/debug.log` for
-warnings, notices, and fatal errors.
+The registry check must output `true` after the Notice block exists. Inspect
+`wp-content/debug.log` for warnings, notices, and fatal errors.
 
-## Distribution inspection
+## Vite and E2E status
 
-`npm run inspect:dist` must reject development files and allow only approved
-runtime files.
+The current Vite configuration is still the React template baseline. Do not
+treat `npm run build` as a WordPress production quality gate until entries,
+externalization, generated metadata, output rules, and assertions are
+implemented.
 
-Exclude at minimum:
-
-- TypeScript, TSX, SCSS, tests, and development documentation;
-- Vite development runtime and development-server references;
-- unapproved source maps, caches, and development dependencies.
-
-Allow compiled assets, required PHP files, `block.json`, runtime metadata,
-translations, and approved production dependencies.
+Playwright is installed, but `npm run test:e2e` is intentionally absent until a
+real test, authentication setup, and environment-aware base URL exist. The
+manual Notice procedure remains required until then.
 
 ## CI policy
 
 Full CI is manually dispatched rather than running on every branch push.
-
-Before merging to `main`:
-
-- run the pre-merge workflow against the latest commit;
-- require all applicable gates to pass;
-- rerun it after the commit changes;
-- record manual browser checks separately.
-
-A green workflow does not prove iframe HMR, non-iframe behavior, keyboard
-interaction, or visual accessibility.
+Before merging to `main`, run the pre-merge workflow against the latest commit
+once the workflow contains all applicable implemented gates. Record manual
+browser checks separately.
