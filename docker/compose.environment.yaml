@@ -64,7 +64,7 @@ services:
 
       - type: bind
         source: ../.devcontainer/shared/php/php.ini
-        target: /usr/local/etc/php/conf.d/00-development.ini
+        target: /usr/local/etc/php/conf.d/zz-development.ini
         read_only: true
         bind:
           create_host_path: false
