@@ -98,7 +98,7 @@ final class AssetLoader
         }
 
         $status = wp_remote_retrieve_response_code($response);
-        return $status >= 200 && $status < 400;
+        return $status >= 200 && $status < 300;
     }
 
     /** @param array{origin: string, client: string, entries: array<string, string>} $development */
