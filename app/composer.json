@@ -1,0 +1,20 @@
+{
+  "name": "yamabikolab/yamabiko-blocks",
+  "description": "A WordPress plugin providing intuitive blocks for content editing.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "authors": [
+    {
+      "name": "YamabikoLab",
+      "email": "yamabiko.ocarina@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "YamabikoLab\\Blocks\\": "src/"
+    }
+  }
+}
