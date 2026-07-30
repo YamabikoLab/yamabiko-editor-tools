@@ -13,8 +13,14 @@ Thumbs.db
 node_modules/
 vendor/
 
+# Generated application output
+app/dist/
+app/artifacts/
+app/coverage/
+
 # Playwright
 app/playwright-report/
 app/test-results/
 app/blob-report/
+app/playwright/.cache/
 app/playwright/.auth/
