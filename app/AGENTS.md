@@ -10,21 +10,22 @@ The following documents are authoritative:
   review;
 - `../docs/development/source-organization.md` for Feature First ownership,
   dependency direction, DnD, API boundaries, entries, and test placement;
-- `../docs/development/testing.md` for quality gates;
-- `../docs/development/release.md` for distribution and inspection rules.
+- `../docs/development/testing.md` for currently available quality commands.
 
 ## Quality gates
 
 - Run application commands from `app/`.
 - During implementation, run the narrowest relevant checks.
-- `npm test` is the complete Node quality gate. It covers formatting, ESLint,
-  TypeScript, unit tests, the production build, and Vite fixture verification.
-- Inside the Dev Container, use `logcut npm test`. On the host, use
-  `npm test` or invoke the container from the repository root.
+- `npm test` is the current complete Node quality gate. It covers formatting,
+  ESLint, and TypeScript configuration checks.
+- Inside the Dev Container, use `logcut npm test`. On the host, use `npm test`
+  or invoke the selected environment container from the repository root.
 - After `npm test` succeeds, do not rerun its individual checks separately.
 - When it fails, rerun only the failing subcommand while fixing it, then run
   `npm test` once more before handoff.
-- PHP or shared application changes require the applicable Composer checks.
+- PHP quality commands will be added with the PHP testing foundation. Until
+  then, run `php -l` for each changed PHP file and perform the documented
+  WordPress smoke check when plugin behavior changes.
 - Documentation-only changes do not require application test suites unless
   code or configuration also changed.
 - Never report a check as passed unless it actually ran successfully.
@@ -34,20 +35,17 @@ Use targeted Node commands only for iteration:
 ```bash
 npm run format:files -- <files...>
 npm run lint:files -- <files...>
-npm run test:related -- <files...>
-npm run test:changed -- <commit>
 ```
 
-These are not complete quality gates.
+These are not complete quality gates and require explicit file arguments.
 
 ## Runtime and identifiers
 
-- Preserve PHP 7.4 parsing and safe-stop behavior in `yamabiko-blocks.php`.
-- The bootstrap must reject unsupported hosts before loading Composer or
-  runtime code.
-- Runtime PHP classes require PHP 8.3.
-- Published WordPress and PHP metadata follows the approved release contract;
-  do not derive it only from the development environment.
+- Preserve PHP 7.4 parsing and safe-stop behavior in `yamabiko-blocks.php` where
+  practical so WordPress can read plugin metadata on an unsupported host.
+- Published and runtime PHP code supports PHP 8.1 or later.
+- WordPress plugin metadata is the authoritative activation gate; do not add a
+  separate runtime PHP version check without an approved compatibility change.
 - Runtime classes belong to the `YamabikoLab\Blocks\` namespace.
 - Use `yamabiko-blocks` as the plugin slug and text domain.
 - Prefix unavoidable global functions with `yamabiko_blocks_` and constants
@@ -97,16 +95,14 @@ These are not complete quality gates.
 - Do not solve development dependency conflicts by bundling duplicate
   WordPress-provided runtime packages.
 
-## Assets and distribution
+## Assets
 
 - Keep editor-parent, editor-canvas, front-end, and administrative assets
   separate, and load each only where required.
 - Keep React, ReactDOM, the JSX runtime, and WordPress-provided JavaScript
-  packages external to production bundles.
+  packages external to production bundles once the WordPress Vite build is
+  implemented.
 - Asset-loading failures must disable the affected feature safely rather than
   breaking the editor or site.
-- Never commit `node_modules/`, generated `vendor/`, caches, test output, build
-  output, or release archives.
-- Do not ship development-server references, source maps, uncompiled source,
-  tests, or development dependencies.
-- Treat release archives as disposable build artifacts.
+- Never commit `node_modules/`, generated `vendor/`, caches, test output, or
+  build output.
