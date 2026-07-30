@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "format:check": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --check package.json tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js vite.config.ts playwright.config.ts \"src/**/*.{ts,tsx,css,scss,json}\" \"tests/**/*.{ts,tsx,css,scss,json}\" \"../.github/**/*.yml\"",
+    "format:write": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --write package.json tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js vite.config.ts playwright.config.ts \"src/**/*.{ts,tsx,css,scss,json}\" \"tests/**/*.{ts,tsx,css,scss,json}\" \"../.github/**/*.yml\"",
+    "format:files": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --write",
+    "lint": "eslint . --max-warnings 0",
+    "lint:files": "eslint --max-warnings 0",
+    "typecheck": "tsc --noEmit --project tsconfig.node.json",
+    "test": "npm run format:check && npm run lint && npm run typecheck",
     "preview": "vite preview"
   },
   "dependencies": {
