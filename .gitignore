@@ -12,3 +12,9 @@ Thumbs.db
 
 node_modules/
 vendor/
+
+# Playwright
+app/playwright-report/
+app/test-results/
+app/blob-report/
+app/playwright/.auth/

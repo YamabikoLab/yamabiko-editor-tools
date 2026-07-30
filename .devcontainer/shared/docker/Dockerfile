@@ -2,6 +2,7 @@ ARG WORDPRESS_IMAGE_TAG=7.0.2-php8.3-apache
 FROM wordpress:${WORDPRESS_IMAGE_TAG}
 
 ARG NODE_VERSION=24.5.0
+ARG PLAYWRIGHT_VERSION=1.62.0
 ARG WP_CLI_VERSION=2.12.0
 ARG XDEBUG_VERSION=3.4.5
 ARG CODEX_CLI_VERSION=0.145.0
@@ -12,7 +13,8 @@ ARG TZ=Asia/Tokyo
 ARG TARGETARCH
 
 ENV TZ=${TZ} \
-    LANG=${LOCALE}
+    LANG=${LOCALE} \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN groupmod --gid "${LOCAL_GID}" www-data \
     && usermod --uid "${LOCAL_UID}" --gid "${LOCAL_GID}" www-data \
@@ -82,6 +84,15 @@ RUN case "${LOCALE}" in \
     esac \
     && printf '%s UTF-8\n' "${LOCALE}" > /etc/locale.gen \
     && locale-gen
+
+# Install Chromium and its operating system dependencies for Playwright.
+RUN npx --yes "playwright@${PLAYWRIGHT_VERSION}" \
+        install --with-deps --no-shell chromium \
+    && chown -R www-data:www-data "${PLAYWRIGHT_BROWSERS_PATH}" \
+    && rm -rf \
+        /root/.npm/_npx \
+        /root/.npm/_logs \
+        /var/lib/apt/lists/*
 
 RUN npm install --global "@openai/codex@${CODEX_CLI_VERSION}" \
     && codex --version > /dev/null
