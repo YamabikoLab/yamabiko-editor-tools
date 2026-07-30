@@ -66,3 +66,17 @@ PS1='\u@\h:$(devcontainer_prompt_dir)\$ '
 if [[ $- == *i* ]] && tty -s; then
   tty > "${CODEX_HOME:-$HOME/.codex}/vscode-terminal"
 fi
+
+codex-dev() {
+    if [[ -S /var/run/docker.sock ]]; then
+        printf '%s\n' \
+            'codex-dev: refusing to start because /var/run/docker.sock is mounted.' \
+            >&2
+        return 1
+    fi
+
+    command codex \
+        --sandbox danger-full-access \
+        --ask-for-approval on-request \
+        "$@"
+}

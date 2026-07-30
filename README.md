@@ -30,7 +30,7 @@ WordPressブロックエディターの構造編集を改善するプラグイ�
 | Composer | 2.8 |
 | WP-CLI | 2.12.0 |
 | Xdebug | 3.4.5 |
-| Codex CLI | 0.145.0 |
+| Codex CLI | 0.146.0 |
 | URL | `http://127.0.0.1:8080` |
 | タイムゾーン | `Asia/Tokyo` |
 | ロケール | `ja_JP.UTF-8` |
