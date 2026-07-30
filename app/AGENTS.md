@@ -19,7 +19,7 @@ The following documents are authoritative:
 - During implementation, run the narrowest relevant checks.
 - `npm test` is the complete Node quality gate. It covers formatting, ESLint,
   TypeScript, unit tests, the production build, and Vite fixture verification.
-- Inside the Dev Container, use `quiet-run npm test`. On the host, use
+- Inside the Dev Container, use `logcut npm test`. On the host, use
   `npm test` or invoke the container from the repository root.
 - After `npm test` succeeds, do not rerun its individual checks separately.
 - When it fails, rerun only the failing subcommand while fixing it, then run
@@ -110,6 +110,3 @@ These are not complete quality gates.
 - Do not ship development-server references, source maps, uncompiled source,
   tests, or development dependencies.
 - Treat release archives as disposable build artifacts.
-- Before handing off a distribution change, run `npm run dist` and
-  `npm run inspect:dist` in addition to the applicable quality gates.
-- The allowlist and inspection rules in `release.md` are authoritative.

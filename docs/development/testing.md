@@ -51,7 +51,7 @@ npm run dist
 npm run inspect:dist
 ```
 
-Inside the Dev Container, prefix complete gates with `quiet-run` when
+Inside the Dev Container, prefix complete gates with `logcut` when
 available. Do not rerun their individual checks after the complete gate passes.
 
 `composer check` should cover PHP syntax, WordPress Coding Standards, PHPUnit,
