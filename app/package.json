@@ -1,5 +1,5 @@
 {
-  "name": "app",
+  "name": "yamabiko-blocks",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,14 +11,9 @@
     "format:files": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --write",
     "lint": "eslint . --max-warnings 0",
     "lint:files": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit --project tsconfig.node.json",
+    "typecheck": "tsc --noEmit --project tsconfig.app.json && tsc --noEmit --project tsconfig.node.json",
     "test": "npm run format:check && npm run lint && npm run typecheck",
     "preview": "vite preview"
-  },
-  "dependencies": {
-    "@wordpress/data": "^10.52.0",
-    "@wordpress/element": "^8.4.0",
-    "@wordpress/i18n": "^6.25.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -27,6 +22,9 @@
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "@wordpress/data": "^10.52.0",
+    "@wordpress/element": "^8.4.0",
+    "@wordpress/i18n": "^6.25.0",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
