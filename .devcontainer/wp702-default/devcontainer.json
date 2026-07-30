@@ -12,7 +12,8 @@
         "openai.chatgpt",
         "xdebug.php-debug",
         "bmewburn.vscode-intelephense-client",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "ms-playwright.playwright"
       ],
       "settings": {
         "[php]": {
