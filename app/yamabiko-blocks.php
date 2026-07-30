@@ -20,10 +20,10 @@ if (! defined('ABSPATH')) {
 
 $yamabiko_blocks_autoloader = __DIR__ . '/vendor/autoload.php';
 
-if (! is_readable($yamabiko_blocks_autoloader)) {
-    return;
+if (is_readable($yamabiko_blocks_autoloader)) {
+    require_once $yamabiko_blocks_autoloader;
+} else {
+    require_once __DIR__ . '/src/Plugin.php';
 }
-
-require_once $yamabiko_blocks_autoloader;
 
 add_action('plugins_loaded', array('YamabikoLab\\Blocks\\Plugin', 'init'));
