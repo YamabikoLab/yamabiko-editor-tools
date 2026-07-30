@@ -42,8 +42,7 @@ final class AssetLoader
     {
         $development = $this->read_development_descriptor();
 
-        if (null !== $development && $this->development_server_is_available($development['origin'])) {
-            $this->enqueue_development_entries($development);
+        if (null !== $development && $this->enqueue_development_entries($development)) {
             return;
         }
 
@@ -87,10 +86,10 @@ final class AssetLoader
         );
     }
 
-    private function development_server_is_available(string $origin): bool
+    private function development_resource_is_available(string $url): bool
     {
         $response = wp_remote_get(
-            $origin . '/@vite/client',
+            $url,
             array('redirection' => 0, 'timeout' => 0.5)
         );
 
@@ -103,31 +102,45 @@ final class AssetLoader
     }
 
     /** @param array{origin: string, client: string, entries: array<string, string>} $development */
-    private function enqueue_development_entries(array $development): void
+    private function enqueue_development_entries(array $development): bool
     {
         if (! function_exists('wp_enqueue_script_module')) {
-            return;
+            return false;
         }
 
-        wp_enqueue_script_module(
-            'yamabiko-blocks-vite-client',
-            $development['origin'] . $development['client'],
-            array(),
-            null
+        $modules = array();
+
+        if (! $this->development_resource_is_available($development['origin'] . $development['client'])) {
+            return false;
+        }
+
+        $modules[] = array(
+            'handle' => 'yamabiko-blocks-vite-client',
+            'url' => $development['origin'] . $development['client'],
         );
 
         foreach ($this->editor_parent_entries as $entry_key => $handle) {
             if (! isset($development['entries'][$entry_key])) {
-                continue;
+                return false;
             }
 
-            wp_enqueue_script_module(
-                $handle,
-                $development['origin'] . $development['entries'][$entry_key],
-                array(),
-                null
+            $url = $development['origin'] . $development['entries'][$entry_key];
+
+            if (! $this->development_resource_is_available($url)) {
+                return false;
+            }
+
+            $modules[] = array(
+                'handle' => $handle,
+                'url' => $url,
             );
         }
+
+        foreach ($modules as $module) {
+            wp_enqueue_script_module($module['handle'], $module['url'], array(), null);
+        }
+
+        return true;
     }
 
     private function enqueue_production_entries(): void
@@ -181,11 +194,17 @@ final class AssetLoader
             return;
         }
 
+        $css_files = array();
+
         foreach ($entry['css'] as $index => $css_file) {
             if (! is_string($css_file) || null === $this->resolve_dist_file($css_file)) {
                 return;
             }
 
+            $css_files[] = $css_file;
+        }
+
+        foreach ($css_files as $index => $css_file) {
             wp_enqueue_style(
                 $entry['handle'] . '-style-' . ($index + 1),
                 $this->plugin_url . 'dist/' . $css_file,
