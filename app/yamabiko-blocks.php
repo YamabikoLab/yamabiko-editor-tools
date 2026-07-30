@@ -4,6 +4,7 @@
  * Plugin Name: Yamabiko Blocks
  * Description: A foundation plugin for YamabikoLab block development.
  * Version: 0.1.0
+ * Requires at least: 6.8
  * Requires PHP: 8.1
  * Author: YamabikoLab
  * Text Domain: yamabiko-blocks
@@ -11,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace YamabikoLab\YamabikoBlocks;
+namespace YamabikoLab\Blocks;
 
 if (! defined('ABSPATH')) {
     exit;
