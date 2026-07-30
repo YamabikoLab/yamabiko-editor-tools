@@ -4,7 +4,7 @@ services:
   wordpress:
     build:
       context: ..
-      dockerfile: .devcontainer/shared/Dockerfile
+      dockerfile: .devcontainer/shared/docker/Dockerfile
       args:
         WORDPRESS_IMAGE_TAG: ${WORDPRESS_IMAGE_TAG:?WORDPRESS_IMAGE_TAG is required}
         LOCAL_UID: ${LOCAL_UID:-1000}
@@ -25,13 +25,49 @@ services:
     ports:
       - "127.0.0.1:${WORDPRESS_PORT:?WORDPRESS_PORT is required}:80"
     volumes:
-      - wordpress_data:/var/www/html
-      - ../app:/var/www/html/wp-content/plugins/yamabiko-blocks
-      - ..:/workspaces/yamabiko-blocks
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ../.devcontainer/shared/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
-      - codex_data:/var/www/.codex
-      - gh_config:/var/www/.config/gh
+      - type: volume
+        source: wordpress_data
+        target: /var/www/html
+
+      - type: bind
+        source: ../app
+        target: /var/www/html/wp-content/plugins/yamabiko-blocks
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ..
+        target: /workspaces/yamabiko-blocks
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ../.devcontainer/shared/php/xdebug.ini
+        target: /usr/local/etc/php/conf.d/99-xdebug.ini
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: volume
+        source: codex_data
+        target: /var/www/.codex
+
+      - type: volume
+        source: gh_config
+        target: /var/www/.config/gh
+
+      - type: bind
+        source: ../.devcontainer/shared/php/php.ini
+        target: /usr/local/etc/php/conf.d/00-development.ini
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       db:
         condition: service_healthy
