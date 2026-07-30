@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+**/node_modules
+**/vendor
+**/dist
+**/build
+**/coverage
+**/*.log
+.devcontainer/shared/scripts/ai-tool-data-backup.tar.gz
+.devcontainer/shared/scripts/.ai-tool-data-backup.tar.gz.tmp.*
