@@ -16,5 +16,10 @@
     "psr-4": {
       "YamabikoLab\\Blocks\\": "src/"
     }
+  },
+  "require-dev": {
+    "php-stubs/wordpress-stubs": "^6.8",
+    "phpstan/phpstan": "^2.2",
+    "phpunit/phpunit": "^10.5"
   }
 }
