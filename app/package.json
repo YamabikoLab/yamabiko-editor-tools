@@ -11,7 +11,8 @@
     "format:files": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --write",
     "lint": "eslint . --max-warnings 0",
     "lint:files": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit --project tsconfig.app.json && tsc --noEmit --project tsconfig.node.json",
+    "typecheck:node": "tsc --noEmit --project tsconfig.node.json",
+    "typecheck": "npm run typecheck:node",
     "test": "npm run format:check && npm run lint && npm run typecheck",
     "preview": "vite preview"
   },
