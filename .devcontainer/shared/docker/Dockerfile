@@ -55,8 +55,9 @@ RUN set -eux; \
     architecture="${TARGETARCH:-$(dpkg --print-architecture)}"; \
     case "$architecture" in \
         amd64) node_arch='x64' ;; \
-        arm64) node_arch='arm64' ;; \
-        *) echo "Unsupported architecture: $architecture" >&2; exit 1 ;; \
+        *) \
+            echo "Unsupported architecture: $architecture. The bundled logcut binary currently requires amd64." >&2; \
+            exit 1 ;; \
     esac; \
     node_archive="node-v${NODE_VERSION}-linux-${node_arch}.tar.xz"; \
     curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${node_archive}"; \
