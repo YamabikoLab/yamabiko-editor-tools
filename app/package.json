@@ -5,15 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
-    "format:check": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --check package.json tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js vite.config.ts playwright.config.ts \"src/**/*.{ts,tsx,css,scss,json}\" \"tests/**/*.{ts,tsx,css,scss,json}\" \"../.github/**/*.yml\"",
-    "format:write": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --write package.json tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js vite.config.ts playwright.config.ts \"src/**/*.{ts,tsx,css,scss,json}\" \"tests/**/*.{ts,tsx,css,scss,json}\" \"../.github/**/*.yml\"",
+    "build": "tsc -b && vite build && npm run check:build",
+    "check:build": "node scripts/check-build.mjs",
+    "format:check": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --check package.json tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js vite.config.ts playwright.config.ts \"scripts/**/*.{js,mjs,ts}\" \"src/**/*.{ts,tsx,css,scss,json}\" \"tests/**/*.{ts,tsx,css,scss,json}\" \"../.github/**/*.yml\"",
+    "format:write": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --write package.json tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js vite.config.ts playwright.config.ts \"scripts/**/*.{js,mjs,ts}\" \"src/**/*.{ts,tsx,css,scss,json}\" \"tests/**/*.{ts,tsx,css,scss,json}\" \"../.github/**/*.yml\"",
     "format:files": "prettier --ignore-path ../.gitignore --no-error-on-unmatched-pattern --write",
     "lint": "eslint . --max-warnings 0",
     "lint:files": "eslint --max-warnings 0",
+    "test:asset-loader": "php tests/php/AssetLoaderSmokeTest.php",
+    "typecheck:app": "tsc --noEmit --project tsconfig.app.json",
     "typecheck:node": "tsc --noEmit --project tsconfig.node.json",
-    "typecheck": "npm run typecheck:node",
-    "test": "npm run format:check && npm run lint && npm run typecheck",
+    "typecheck": "npm run typecheck:app && npm run typecheck:node",
+    "test": "npm run format:check && npm run lint && npm run typecheck && npm run test:asset-loader",
     "preview": "vite preview"
   },
   "devDependencies": {

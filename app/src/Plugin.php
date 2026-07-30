@@ -14,6 +14,13 @@ final class Plugin
 {
     public static function init(): void
     {
-        // Block registration will be added in a future issue.
+        $asset_loader = new AssetLoader(
+            dirname(__DIR__),
+            plugin_dir_url(dirname(__DIR__) . '/yamabiko-blocks.php'),
+            array(
+                'notice/entries/notice-block' => 'yamabiko-blocks-notice-block-editor',
+            )
+        );
+        $asset_loader->register_hooks();
     }
 }

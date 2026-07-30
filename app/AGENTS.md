@@ -16,17 +16,19 @@ The following documents are authoritative:
 
 - Run application commands from `app/`.
 - During implementation, run the narrowest relevant checks.
-- `npm test` is the current complete Node quality gate for the first foundation
-  stage. It covers formatting, ESLint, and the Node-side TypeScript
-  configuration used by Vite and Playwright.
-- Add the application TypeScript configuration to the complete gate as soon as
-  the first real Notice entry exists in stage 2. Do not add placeholder source
-  files solely to satisfy TypeScript input discovery.
-- Inside the Dev Container, use `logcut npm test`. On the host, use `npm test`
-  or invoke the selected environment container from the repository root.
-- After `npm test` succeeds, do not rerun its individual checks separately.
-- When it fails, rerun only the failing subcommand while fixing it, then run
-  `npm test` once more before handoff.
+- `npm test` is the current complete source quality gate. It covers formatting,
+  ESLint, application and Node-side TypeScript, and the focused PHP
+  missing-asset smoke check.
+- `npm run build` is the complete production asset gate. It builds the real
+  Notice entry, emits both manifests, and rejects invalid metadata, bundled
+  WordPress runtimes, Vite development code, and development-server URLs.
+- Inside the Dev Container, use `logcut npm test` and
+  `logcut npm run build`. On the host, run the normal commands or invoke the
+  selected environment container from the repository root.
+- After a complete gate succeeds, do not rerun its individual checks
+  separately.
+- When a gate fails, rerun only the failing subcommand while fixing it, then run
+  the complete gate once more before handoff.
 - PHP quality commands will be added with the PHP testing foundation. Until
   then, run `php -l` for each changed PHP file and perform the documented
   WordPress smoke check when plugin behavior changes.
@@ -104,8 +106,7 @@ These are not complete quality gates and require explicit file arguments.
 - Keep editor-parent, editor-canvas, front-end, and administrative assets
   separate, and load each only where required.
 - Keep React, ReactDOM, the JSX runtime, and WordPress-provided JavaScript
-  packages external to production bundles once the WordPress Vite build is
-  implemented.
+  packages external to production bundles.
 - Asset-loading failures must disable the affected feature safely rather than
   breaking the editor or site.
 - Never commit `node_modules/`, generated `vendor/`, caches, test output, or

@@ -29,9 +29,9 @@ Commit `composer.lock` or `package-lock.json` when its dependency definition
 changes. Local development uses `app/vendor/`; there is no nested
 `app/plugin/vendor/`.
 
-## Current Node gate
+## Current source and asset gates
 
-The complete Node gate currently available for the first foundation stage is:
+The complete source gate is:
 
 ```bash
 npm test
@@ -43,25 +43,36 @@ Inside the Dev Container, use:
 logcut npm test
 ```
 
-It currently runs:
+It runs:
 
 - `npm run format:check`;
 - `npm run lint`;
-- `npm run typecheck`, which currently delegates to `npm run typecheck:node`.
+- `npm run typecheck`, covering both `tsconfig.app.json` and
+  `tsconfig.node.json`;
+- `npm run test:asset-loader`, a focused missing-build-output smoke check that
+  does not establish the stage 4 PHP quality foundation.
 
-The Node-side typecheck covers `vite.config.ts` and `playwright.config.ts` through
-`tsconfig.node.json`. The application-side `tsconfig.app.json` is intentionally
-not part of the stage 1 gate because no real TypeScript or TSX entry exists yet.
-Do not add an empty placeholder solely to avoid `TS18003`.
+The complete production asset gate is:
 
-At the start of stage 2, add the real Notice entry required by the Vite input.
-Immediately add `tsconfig.app.json` back to the complete typecheck and run
-`logcut npm test` so the application source is covered before continuing with
-asset loading.
+```bash
+npm run build
+```
 
-The WordPress-oriented Vite build, unit tests, changed-file test selection, and
-E2E tests are not complete gates yet. Add them only with the implementation and
-tests that make those commands meaningful.
+Inside the Dev Container, use:
+
+```bash
+logcut npm run build
+```
+
+It type-checks, builds the normalized Notice entry, emits Vite and
+WordPress-facing metadata, and runs `npm run check:build`. The inspection
+validates emitted files, content versions, dependency mappings, and the absence
+of Vite development code, development URLs, and bundled WordPress-provided
+React runtimes.
+
+Unit tests, changed-file test selection, and E2E tests are not complete gates
+yet. Add them only with the implementation and tests that make those commands
+meaningful.
 
 Use these file-oriented commands only while iterating:
 
@@ -153,11 +164,12 @@ The registry check must output `true` after the Notice block exists. Inspect
 
 ## Vite and E2E status
 
-The current Vite configuration is still the React template baseline. Stage 2
-must first add a real Notice entry, then configure it as the Vite input together
-with externalization, generated metadata, output rules, PHP asset loading, and
-assertions. Do not treat `npm run build` as a WordPress production quality gate
-until those pieces exist.
+Stage 2 configures Vite as the WordPress asset builder. The production gate
+externalizes WordPress-provided packages, emits `manifest.json` and
+`asset-manifest.json`, and validates the output. Local development writes an
+ignored `dist/.vite/dev-server.json` descriptor while Vite is listening; PHP
+uses it only for a reachable loopback server and otherwise falls back to
+production metadata.
 
 Stage 3 completes the `yamabiko/notice` block implementation that the stage 2
 entry loads, including attributes, editor UI, and saved or rendered markup.
