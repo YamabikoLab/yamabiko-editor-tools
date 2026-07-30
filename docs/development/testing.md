@@ -31,7 +31,7 @@ changes. Local development uses `app/vendor/`; there is no nested
 
 ## Current Node gate
 
-The complete Node gate currently available is:
+The complete Node gate currently available for the first foundation stage is:
 
 ```bash
 npm test
@@ -47,7 +47,17 @@ It currently runs:
 
 - `npm run format:check`;
 - `npm run lint`;
-- `npm run typecheck`.
+- `npm run typecheck`, which currently delegates to `npm run typecheck:node`.
+
+The Node-side typecheck covers `vite.config.ts` and `playwright.config.ts` through
+`tsconfig.node.json`. The application-side `tsconfig.app.json` is intentionally
+not part of the stage 1 gate because no real TypeScript or TSX entry exists yet.
+Do not add an empty placeholder solely to avoid `TS18003`.
+
+At the start of stage 2, add the real Notice entry required by the Vite input.
+Immediately add `tsconfig.app.json` back to the complete typecheck and run
+`logcut npm test` so the application source is covered before continuing with
+asset loading.
 
 The WordPress-oriented Vite build, unit tests, changed-file test selection, and
 E2E tests are not complete gates yet. Add them only with the implementation and
@@ -143,10 +153,14 @@ The registry check must output `true` after the Notice block exists. Inspect
 
 ## Vite and E2E status
 
-The current Vite configuration is still the React template baseline. Do not
-treat `npm run build` as a WordPress production quality gate until entries,
-externalization, generated metadata, output rules, and assertions are
-implemented.
+The current Vite configuration is still the React template baseline. Stage 2
+must first add a real Notice entry, then configure it as the Vite input together
+with externalization, generated metadata, output rules, PHP asset loading, and
+assertions. Do not treat `npm run build` as a WordPress production quality gate
+until those pieces exist.
+
+Stage 3 completes the `yamabiko/notice` block implementation that the stage 2
+entry loads, including attributes, editor UI, and saved or rendered markup.
 
 Playwright is installed, but `npm run test:e2e` is intentionally absent until a
 real test, authentication setup, and environment-aware base URL exist. The
