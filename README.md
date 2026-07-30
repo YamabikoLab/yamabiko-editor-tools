@@ -37,10 +37,13 @@ WordPressブロックエディターの構造編集を改善するプラグイ�
 
 ## 必要なもの
 
+- x86_64 / amd64環境
 - Docker Engine
-- Docker Compose v2
+- Docker Compose 2.20.0以上
 - Visual Studio Code
 - VS Code Dev Containers拡張機能
+
+同梱している`logcut`が現在x86_64 Linuxバイナリのため、Dev Containerイメージもamd64を対象とします。ARM64対応は、`logcut`のARM64バイナリを用意した時点で追加します。
 
 Windowsでは、WSL2上のリポジトリをVS Codeで開く構成を想定しています。
 
@@ -270,3 +273,11 @@ include:
 - [`docs/plans/TEMPLATE.md`](docs/plans/TEMPLATE.md)
 
 Docker socketをコンテナへmountしているため、Dev Container内のプロセスはhost Dockerを操作できる強い権限を持ちます。この構成はローカル開発用途に限定してください。
+
+コンテナ内では、entrypointがDocker socketのGIDを確認し、必要に応じて`www-data`を対応するgroupへ追加します。接続後は次で利用可否を確認できます。
+
+```bash
+docker version
+docker compose version
+docker ps
+```
