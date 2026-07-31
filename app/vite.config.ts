@@ -1,8 +1,9 @@
+import { wordpressPlugin } from "@roots/vite-plugin";
+import react from "@vitejs/plugin-react";
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
-import { defineConfig, type Plugin } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig, transformWithEsbuild, type Plugin } from "vite";
 
 interface EntryDefinition {
   source: string;
@@ -107,93 +108,6 @@ const fixedExternalMappings = new Map<string, ExternalMapping>([
       handle: "react-jsx-runtime",
     },
   ],
-  [
-    "react/jsx-dev-runtime",
-    {
-      request: "react/jsx-dev-runtime",
-      global: "ReactJSXRuntime",
-      handle: "react-jsx-runtime",
-    },
-  ],
-]);
-
-const developmentExternalExports = new Map<string, readonly string[]>([
-  [
-    "react",
-    [
-      "Children",
-      "Component",
-      "Fragment",
-      "PureComponent",
-      "StrictMode",
-      "Suspense",
-      "cloneElement",
-      "createContext",
-      "createElement",
-      "createRef",
-      "forwardRef",
-      "lazy",
-      "memo",
-      "startTransition",
-      "useCallback",
-      "useContext",
-      "useDebugValue",
-      "useDeferredValue",
-      "useEffect",
-      "useId",
-      "useImperativeHandle",
-      "useInsertionEffect",
-      "useLayoutEffect",
-      "useMemo",
-      "useReducer",
-      "useRef",
-      "useState",
-      "useSyncExternalStore",
-      "useTransition",
-    ],
-  ],
-  [
-    "react-dom",
-    [
-      "createPortal",
-      "findDOMNode",
-      "flushSync",
-      "hydrate",
-      "render",
-      "unmountComponentAtNode",
-      "unstable_batchedUpdates",
-    ],
-  ],
-  ["react-dom/client", ["createRoot", "hydrateRoot"]],
-  ["react/jsx-runtime", ["Fragment", "jsx", "jsxs"]],
-  ["react/jsx-dev-runtime", ["Fragment", "jsxDEV"]],
-  ["@wordpress/blocks", ["createBlock", "getBlockType", "registerBlockType"]],
-  [
-    "@wordpress/block-editor",
-    ["InspectorControls", "RichText", "useBlockProps"],
-  ],
-  ["@wordpress/components", ["PanelBody", "RadioControl"]],
-  [
-    "@wordpress/element",
-    [
-      "Component",
-      "Fragment",
-      "createContext",
-      "createElement",
-      "createRef",
-      "forwardRef",
-      "memo",
-      "useCallback",
-      "useContext",
-      "useEffect",
-      "useLayoutEffect",
-      "useMemo",
-      "useReducer",
-      "useRef",
-      "useState",
-    ],
-  ],
-  ["@wordpress/i18n", ["__", "_n", "_nx", "sprintf"]],
 ]);
 
 const toCamelCase = (value: string): string =>
@@ -230,53 +144,48 @@ const resolveExternal = (request: string): ExternalMapping | undefined => {
   };
 };
 
-const developmentExternalId = "\0yamabiko-blocks-development-external:";
-
-const developmentExternalPlugin = (): Plugin => ({
-  name: "yamabiko-blocks-development-externals",
-  apply: "serve",
+const wordpressJsxRuntime = (): Plugin => ({
+  name: "yamabiko-blocks-wordpress-jsx-runtime",
   enforce: "pre",
-  resolveId(request) {
-    const external = resolveExternal(request);
+  async transform(code, id) {
+    const cleanId = id.split("?")[0];
 
-    if (!external) {
-      return undefined;
+    if (!cleanId?.endsWith(".tsx")) {
+      return null;
     }
 
-    if (!developmentExternalExports.has(request)) {
-      throw new Error(
-        `Add development exports for WordPress external: ${request}`,
-      );
-    }
-
-    return `${developmentExternalId}${request}`;
+    return transformWithEsbuild(code, cleanId, {
+      jsx: "automatic",
+      jsxDev: false,
+      loader: "tsx",
+      sourcemap: true,
+    });
   },
-  load(id) {
-    if (!id.startsWith(developmentExternalId)) {
-      return undefined;
-    }
+});
 
-    const request = id.slice(developmentExternalId.length);
-    const external = resolveExternal(request);
-    const exports = developmentExternalExports.get(request);
-
-    if (!external || !exports) {
-      throw new Error(`Unknown development external: ${request}`);
-    }
-
-    const moduleExports = exports
-      .map((name) => `export const ${name} = runtime.${name};`)
-      .join("\n");
-
-    return [
-      `const runtime = globalThis.${external.global};`,
-      `if (!runtime) throw new Error(${JSON.stringify(
-        `Missing WordPress runtime global for ${external.request}: ${external.global}`,
-      )});`,
-      "export default runtime;",
-      moduleExports,
-    ].join("\n");
-  },
+const developmentWordPressPlugin = (): Plugin => ({
+  ...wordpressPlugin({
+    jsx: false,
+    externalMappings: {
+      react: { global: ["React"], handle: "react" },
+      "react-dom": { global: ["ReactDOM"], handle: "react-dom" },
+      "react-dom/client": {
+        global: ["ReactDOM"],
+        handle: "react-dom",
+      },
+      "react/jsx-runtime": {
+        global: ["ReactJSXRuntime"],
+        handle: "react-jsx-runtime",
+      },
+    },
+    hmr: {
+      enabled: true,
+      editorPattern: /Notice|editor/i,
+      iframeName: "editor-canvas",
+    },
+  }),
+  name: "yamabiko-blocks-wordpress-development",
+  apply: "serve",
 });
 
 const sourceManifestKey = (source: string): string =>
@@ -399,14 +308,12 @@ const productionMetadataPlugin = (): Plugin => {
 
 export default defineConfig({
   plugins: [
-    developmentExternalPlugin(),
+    wordpressJsxRuntime(),
+    developmentWordPressPlugin(),
     react(),
     developmentDescriptorPlugin(),
     productionMetadataPlugin(),
   ],
-  optimizeDeps: {
-    exclude: [...developmentExternalExports.keys()],
-  },
   server: {
     host: "0.0.0.0",
     port: 5173,
