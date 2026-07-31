@@ -1,118 +1,249 @@
-# 第3段階「お知らせブロック本体」実装専用プランの作成
+# PLAN-004: Stage 3 Notice block
 
-## Summary
+## 目的
 
-- `docs/plans/PLAN-004-stage-3-notice-block.md` のみを新規作成し、Issue #4、PR #5、承認済み4段階方針、最新HEAD `524b90b` を根拠として第3段階の実装契約を確定する。
-- お知らせブロック本体、依存関係、設定、テストコードは今回は変更しない。
-- 設計上の未決定事項は残さない。計画作成後、対象Markdownのみ整形し、`git diff --check` を通してからPR #5へ結果をコメントする。
+Issue #4 の初期仕様どおり、`yamabiko/notice` をエディターで編集でき、PHPで安全に動的レンダリングできる状態にする。
 
-## プランで確定する実装契約
+Stage 2で完成したVite entry、external化、manifest、`AssetLoader`はそのまま利用する。Stage 3ではアセット基盤を再設計しない。
 
-### ブロックとエディター
+## 実装範囲
 
-| 項目       | 契約                                                                                                      |
-| ---------- | --------------------------------------------------------------------------------------------------------- |
-| ブロック名 | `yamabiko/notice`                                                                                         |
-| `message`  | `string`、既定値 `""`。許可済みインラインHTMLを含む文字列としてブロックコメントJSONへ保存                 |
-| `tone`     | `string`、`enum: ["info", "tip", "warning"]`、既定値 `info`                                               |
-| 保存       | `save: () => null` の動的ブロック。保存HTMLは持たず、属性のみ自己終了形式のブロックコメントへ保存         |
-| メタデータ | `apiVersion: 3`、category `text`、icon `info`、`supports.html: false`、text domain `yamabiko-blocks`      |
-| 正本       | PHPは `register_block_type(__DIR__)`、TypeScriptは同じ `block.json` をimport                              |
-| 空本文     | エディターではプレースホルダーを表示。PHPは可視文字が空なら空文字を返し、フロントへ空のNoticeを出力しない |
+- 属性は`message`と`tone`のみ
+- `tone`は`info`、`tip`、`warning`
+- 見出しは属性にせず、toneから導出する
+- 本文は`RichText`で直接編集する
+- toneはInspector Controlsの`RadioControl`で変更する
+- PHPによる動的レンダリングを使う
+- フロントエンドJavaScriptは追加しない
+- TypeScriptでtoneの正規化を単体テストする
+- 共通スタイルとエディター専用スタイルをWordPressのblock metadataから読み込む
 
-- `RichText` で本文を直接編集し、`allowedFormats` は `core/bold`、`core/italic`、`core/link` に限定する。
-- `InspectorControls`、`PanelBody`、`RadioControl` を使う。3択の排他的選択と標準キーボード操作を理由に `RadioControl` を採用する。
-- tone変更ではRichTextを再マウントせず、`message`、選択、フォーカスを保持する。壊れたtoneは表示上 `info` として扱うが、エディターを開いただけで投稿を自動更新しない。
-- 独立したReact root、`index.html`、`App.tsx` は作成しない。
+## 変更しないもの
 
-### tone、ラベル、HTML、アクセシビリティ
+Stage 3では次を変更しない。
 
-| tone      | 可視ラベル | 装飾アイコン | modifier          |
-| --------- | ---------- | ------------ | ----------------- |
-| `info`    | お知らせ   | `ℹ`          | `is-tone-info`    |
-| `tip`     | ヒント     | `✓`          | `is-tone-tip`     |
-| `warning` | 注意       | `⚠`          | `is-tone-warning` |
+- `AssetLoader`の責務、constructor、manifest schema
+- `vite.config.ts`のentry、external、development descriptor
+- Viteのvirtual moduleや独自HMR bridge
+- Script Modules APIの追加設計
+- iframe向けCSS HMRの追加実装
+- PHPUnit、PHPStan、PHPCS、WPCSの基盤
+- E2E基盤、README、配布基盤
 
-- `heading` 属性は追加しない。Issue画像どおりラベルをtoneから導出する。
-- 文書アウトライン上の適切な見出しレベルを判断できないため `h2`～`h6` は使わず、可視ラベルを `<strong>` で表す。
-- アイコンは `aria-hidden="true"` の装飾とし、意味は必ず可視ラベルから伝える。通常のお知らせに `role="alert"` は付けない。
-- エディターとPHPは次の同一構造を使用する。
+iframe／非iframe、development／productionの横断確認とHMRの仕上げはStage 4で行う。
+
+## ファイル構成
+
+```text
+app/src/Notice/
+├── Block.php
+├── block.json
+├── render.php
+├── entries/
+│   └── notice-block.entry.ts
+├── editor/
+│   └── Edit.tsx
+├── editor.css
+├── style.css
+├── tone.ts
+└── tone.test.ts
+```
+
+初期実装ではSassを追加しない。スタイル量が少ないため、WordPressが直接読み込めるCSSを使用する。
+
+## block.json
+
+`block.json`は次の契約を正本とする。
+
+```json
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "yamabiko/notice",
+  "title": "お知らせ",
+  "category": "text",
+  "icon": "info",
+  "description": "本文と表示種別を設定できるお知らせです。",
+  "textdomain": "yamabiko-blocks",
+  "attributes": {
+    "message": {
+      "type": "string",
+      "default": ""
+    },
+    "tone": {
+      "type": "string",
+      "enum": ["info", "tip", "warning"],
+      "default": "info"
+    }
+  },
+  "supports": {
+    "html": false
+  },
+  "style": "file:./style.css",
+  "editorStyle": "file:./editor.css",
+  "render": "file:./render.php"
+}
+```
+
+`editorScript`は指定しない。Stage 2で実装済みの`AssetLoader`が`notice-block.entry.ts`をブロックエディターへ読み込む。
+
+## TypeScriptとエディターUI
+
+### tone.ts
+
+WordPress、React、DOMに依存しない純粋モジュールとする。
+
+- `NoticeTone`型を定義する
+- 対応toneの一覧を定義する
+- `normalizeTone(value: unknown)`を実装する
+- 未対応値や文字列以外は`info`へフォールバックする
+
+表示ラベルは翻訳が必要なため、`Edit.tsx`で定義する。
+
+| tone | ラベル |
+| --- | --- |
+| `info` | お知らせ |
+| `tip` | ヒント |
+| `warning` | 注意 |
+
+### notice-block.entry.ts
+
+entryは次だけを担当する。
+
+- `block.json`を読み込む
+- `Edit`を読み込む
+- `registerBlockType()`で登録する
+- `save`は`null`を返す
+
+entryへtoneロジックや表示処理を置かない。
+
+### Edit.tsx
+
+- `useBlockProps()`を使用する
+- `RichText`で`message`を直接編集する
+- 許可するformatは`core/bold`、`core/italic`、`core/link`
+- `InspectorControls`、`PanelBody`、`RadioControl`でtoneを変更する
+- 不正なtoneは表示上のみ`info`として扱い、エディターを開いただけで属性を書き換えない
+- tone変更で`RichText`を再マウントしない
+- ユーザー向け文字列は`@wordpress/i18n`で翻訳する
+
+独立したReact root、`index.html`、`App.tsx`は作成しない。
+
+## PHP登録とレンダリング
+
+### Block.php
+
+`YamabikoLab\Blocks\Notice\Block`を追加する。
+
+- `register_hooks()`で`init`へ登録処理を追加する
+- 登録処理は`register_block_type(__DIR__)`だけを行う
+- enqueueやレンダリング処理を持たない
+
+`Plugin.php`で`Block`を生成し、`register_hooks()`を呼ぶ。
+
+Composer autoloaderがない場合にも動くよう、`yamabiko-blocks.php`のfallback requireへ`src/Notice/Block.php`を追加する。
+
+### render.php
+
+- `tone`をPHP側でも正規化し、不正値は`info`にする
+- toneから翻訳済みラベルを選ぶ
+- `message`を許可HTMLで`wp_kses()`する
+- 可視文字が空なら空文字を返す
+- wrapperは`get_block_wrapper_attributes()`を使う
+- 通常のお知らせへ`role="alert"`を付けない
+- フック、グローバル関数、JavaScriptを追加しない
+
+許可する本文マークアップは次に限定する。
+
+- `strong`
+- `em`
+- `br`
+- `a`: `href`、`title`、`target`、`rel`、`data-type`、`data-id`
+
+出力構造はエディターとフロントエンドでそろえる。
 
 ```html
 <div class="wp-block-yamabiko-notice yamabiko-blocks-notice is-tone-info">
   <div class="yamabiko-blocks-notice__label">
-    <span class="yamabiko-blocks-notice__icon" aria-hidden="true">ℹ</span>
     <strong>お知らせ</strong>
   </div>
   <div class="yamabiko-blocks-notice__message">お知らせ本文</div>
 </div>
 ```
 
-- `wp-block-yamabiko-notice` はWordPress標準クラス、独自クラスはFoundation契約に従い `yamabiko-blocks-` を接頭辞とする。
-- PHPは `get_block_wrapper_attributes()` へ基本クラスと正規化済みmodifierを渡し、WordPressの追加class/support属性と統合する。
-- 本文の許可HTMLは `<strong>`、`<em>`、`<br>`、`<a>` のみ。リンク属性は `href`、`title`、`target`、`rel`、`data-type`、`data-id`、protocolは `http`、`https`、`mailto`、`tel` に限定する。
-- `wp_kses()` を最終HTML境界で使い、script、iframe、画像、style/class/id、イベント属性、危険なURL schemeを除去する。ラベルとアイコンは `esc_html()`、wrapperはWordPress APIへ委任する。
-- `tone.ts` はWordPress・React・DOM非依存とし、tone正規化、任意の翻訳済みラベル集合からの選択、アイコン対応を提供する。翻訳リテラルは `Edit.tsx` の `__()` とPHPの `__()` に置く。
+色だけに依存せず、可視ラベルでtoneを伝える。初期実装では独自アイコンを追加しない。
 
-### PHP登録、CSS surface、Vite
+## スタイル
 
-- `Notice\Block` は `init` でのメタデータ登録だけを担当し、`Plugin.php` が `AssetLoader` とともに組み立てる。Composer不在時のbootstrap fallbackへ `Notice/Block.php` を追加する。
-- `render.php` は一回のrenderに必要な属性検証、tone正規化、翻訳済みpresentation選択、本文KSES、wrapper生成だけを担当し、フック・enqueue・グローバル関数を定義しない。
-- build成果物がなくてもブロック登録と安全な動的HTMLは維持する。挿入UIやCSSが使えない場合もfatal errorにせず、既存コンテンツを意味の通る非装飾HTMLとしてrenderする。
+- `style.css`はwrapper、tone、ラベル、本文、リンクを担当する
+- `editor.css`はプレースホルダーや編集時にだけ必要な調整を担当する
+- WordPress標準のフォーカス表示とリンクの下線を消さない
+- toneごとに背景色だけでなく、境界線と可視ラベルも使用する
+- `block.json`の`style`と`editorStyle`に読み込みを委ねる
 
-| CSS handle                      | Vite key               | surface                          |
-| ------------------------------- | ---------------------- | -------------------------------- |
-| `yamabiko-blocks-notice-editor` | `notice/editor/editor` | `editor-parent`, `editor-canvas` |
-| `yamabiko-blocks-notice`        | `notice/style`         | `editor-canvas`, `front-end`     |
+## テスト
 
-- `editor/editor.scss` はエディター専用のプレースホルダー、選択・フォーカス表示を所有する。
-- `style.scss` はwrapper、tone色、ラベル、本文、リンクを所有し、エディターキャンバスとフロントエンドで共有する。
-- toneごとに明色背景、十分に暗いaccent、可視ラベルを併用する。リンクの下線とWordPress標準フォーカス表示を消さない。
-- `block.json` の `editorStyle` と `style` は上記stable handleを参照する。[WordPressのblock metadata](https://developer.wordpress.org/block-editor/reference-guides/block-api/block-metadata/) に従い、iframe・非iframe・フロントエンドへの配置をWordPressへ委任する。
-- asset-manifest schema version 1は維持し、後方互換な任意の `styles` セクションを追加する。各recordはkey、handle、file、version、明示的surface配列を持つ。
-- style.scssとeditor.scssを独立したVite CSS inputにし、CSS用JavaScriptを生成・enqueueしない。`sass` をdevDependencyとして追加することは第3段階実装に含め、`package-lock.json` を同時更新する。
-- `AssetLoader` はproduction styleを登録するがenqueueを所有しない。block metadataが必要なsurfaceだけenqueueする。
-- developmentではVite client、editor entry、両CSS URLがすべて2xxのときだけ、editor request内のstable style handlesをVite URLへ切り替える。一つでも欠ければ全体をproductionへ戻し、dev/prodを混在させない。フロントエンドはVite clientやNotice JavaScriptを一切読み込まない。
-- Vite dev serverでもWordPress提供runtimeを複製しない。Viteのserve専用virtual adapterで使用するnamed exportを `window.wp.*`、`ReactJSXRuntime` へ接続し、dev descriptorに必要なclassic dependency handlesを明記してmoduleより先にenqueueする。productionの既存external契約は維持する。
-- iframe CSS HMRはDOMやiframeを直接検索せず、`editor/development-styles.ts` が `?inline` CSSと公開 `core/block-editor` storeの `updateSettings({ styles })` を使って、専用marker付きstyleだけを追加・交換・disposeする。これによりCSS更新でブロック登録やRichTextを再生成しない。
-- production scriptには `wp_set_script_translations()`、WordPress 7.0以降のdevelopment moduleには利用可能な場合のみ `wp_set_script_module_translations()` を設定する。WordPress 6.8最小要件は変更しない。
+`tone.test.ts`で少なくとも次を確認する。
 
-## 実装順序として文書化する内容
+- `info`、`tip`、`warning`をそのまま返す
+- 未対応文字列を`info`へフォールバックする
+- `null`、数値、配列などを`info`へフォールバックする
 
-1. **依存・公開契約**
-   - 対象: `package.json`/lock、`block.json`、`tone.ts`/test。
-   - 最小検証: tone用Vitest、対象format/lint/typecheck。
-   - 完了: 属性、fallback、表示対応が純粋テストで固定。
-   - 戻し方: package定義とlockを対で戻し、未参照metadataを削除。
+`package.json`へ次を追加する。
 
-2. **Vite metadataとAssetLoader**
-   - 対象: Vite設定、build inspector、AssetLoaderと既存smoke test。
-   - 最小検証: AssetLoader smoke、`npm run build`。
-   - 完了: 2つのCSS record、stable handles、全体fallback、CSS用JS不在を検査。
-   - 戻し方: optional `styles` 拡張を外せばstage 2 schema 1 entry契約へ戻せる。
+- `test:unit`: `vitest run`
+- `test:watch`: `vitest`
+- `npm test`へ`test:unit`を組み込む
 
-3. **エディターUIとHMR**
-   - 対象: entry、`Edit.tsx`、development style bridge、editor/common SCSS。
-   - 最小検証: Vitest、targeted lint/typecheck、development手動HMR。
-   - 完了: 挿入・直接編集・tone切替、iframe/noniframe CSS、内容・選択・フォーカス保持。
-   - 戻し方: entryをstage 2 placeholderへ戻す。永続データ変更はない。
+Stage 3では新しいPHPテスト基盤を作らない。変更したPHPファイルへ`php -l`を実行し、PHPUnitによる登録・render・securityテストはStage 4へ残す。
 
-4. **PHP登録とrender**
-   - 対象: `Block.php`、`render.php`、Plugin/bootstrap。
-   - 最小検証: 変更PHPすべての `php -l`、WP-CLI登録smoke。
-   - 完了: metadata登録、動的render、KSES、空本文、asset欠落時safe fallback。
-   - 戻し方: Plugin compositionを外せば機能を無効化でき、DB・migration・uninstall処理は不要。
+## 実装順序
 
-5. **品質ゲートと受け入れ**
-   - `test:unit` とwatch scriptを追加し、`npm test` に `vitest run` を統合する。
-   - `docs/development/testing.md` は新たに実在するVitest commandだけ最小更新し、READMEなどの完成作業は第4段階へ残す。
-   - 完了前に `logcut npm test`、`logcut npm run build`、全変更PHPのlint、`composer validate`、`git diff --check` を各一度実行する。
+1. `block.json`、`tone.ts`、`tone.test.ts`を追加する
+2. `notice-block.entry.ts`と`Edit.tsx`を実装する
+3. `Block.php`、`Plugin.php`、bootstrap fallbackを更新する
+4. `render.php`を実装する
+5. `style.css`と`editor.css`を追加する
+6. Vitest scriptsを追加し、品質ゲートを実行する
+7. WordPress上で手動確認する
 
-## テスト・受け入れ・段階境界
+## 完了前の検証
 
-- Vitest: 全正常tone、文字列以外・未知値・大文字の `info` fallback、toneとラベルfixture・アイコンの対応、WordPress/React/DOM/network非依存。
-- AssetLoader smoke: production style登録、dev style全体切替、不完全・404・redirect時のproduction fallback、欠落metadataでfatalなし。
-- Build inspection: CSS handles/surfaces/hash、CSS inputからJSが出ないこと、WordPress runtime・Vite client・HMR marker・development URLがproductionにないこと。
-- PHP behaviorは第3段階では変更ファイルのsyntax checkと実WordPress手動確認を必須にする。KSESを不正確なstubで再現する新規PHP smokeは追加せず、PHPUnitによる登録・render・security自動テストは第4段階へ残す。
-- 手動確認は依頼された17項目を、development/production × iframe/noniframeに分けて記録する。不正toneはコードエディターで改変し、危険HTMLと許可format、空本文、debug log、console、network、フロントエンドNotice JS不在を確認する。
-- 対象外: 新しい属性、閉じるボタン、アニメーション、カラーピッカー、アイコン選択、期限条件、REST/DB、フロントReact、大規模E2E、PHPUnit/PHPStan/PHPCS完成、包括的README・第4段階文書。
+Dev Containerの`app/`で実行する。
+
+```bash
+logcut npm test
+logcut npm run build
+php -l src/Notice/Block.php
+php -l src/Notice/render.php
+php -l src/Plugin.php
+php -l yamabiko-blocks.php
+composer validate
+git diff --check
+```
+
+手動確認:
+
+1. お知らせブロックを挿入できる
+2. 本文を直接編集できる
+3. 3種類のtoneを切り替えられる
+4. 保存と再読み込みで本文とtoneが保持される
+5. フロントエンドでPHPレンダリングされる
+6. 不正なtoneが`info`になる
+7. 許可formatが残り、危険なHTMLが出力されない
+8. フロントエンドでNotice用JavaScriptが読み込まれない
+9. console error、PHP warning、fatal errorがない
+
+## Stage 3の完了条件
+
+- `yamabiko/notice`の編集、保存、動的レンダリングが動く
+- tone、翻訳、サニタイズ、アクセシビリティの基本契約を満たす
+- Node品質ゲートと変更PHPのsyntax checkが成功する
+- Stage 2のVite／AssetLoader契約を壊していない
+
+## Stage 4へ残す内容
+
+- iframe／非iframeでのHMR確認と必要な改善
+- development／productionの横断確認
+- PHPUnit、PHPStan、PHPCS、WPCS
+- E2E、README、開発文書、配布物の完成確認
