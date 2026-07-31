@@ -24,6 +24,7 @@ if (is_readable($yamabiko_blocks_autoloader)) {
     require_once $yamabiko_blocks_autoloader;
 } else {
     require_once __DIR__ . '/src/AssetLoader.php';
+    require_once __DIR__ . '/src/Notice/Block.php';
     require_once __DIR__ . '/src/Plugin.php';
 }
 

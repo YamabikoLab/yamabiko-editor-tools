@@ -1,7 +1,10 @@
-/**
- * Stage 2 establishes the real Vite entry. Notice registration and UI arrive
- * in stage 3.
- */
-if (import.meta.hot) {
-  import.meta.hot.accept();
-}
+import { registerBlockType, type BlockConfiguration } from "@wordpress/blocks";
+
+import metadata from "../block.json";
+import { Edit } from "../editor/Edit";
+
+registerBlockType(metadata.name, {
+  ...metadata,
+  edit: Edit,
+  save: () => null,
+} as unknown as BlockConfiguration);

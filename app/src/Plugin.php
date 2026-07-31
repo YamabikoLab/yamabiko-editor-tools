@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace YamabikoLab\Blocks;
 
+use YamabikoLab\Blocks\Notice\Block;
+
 final class Plugin
 {
     public static function init(): void
@@ -22,5 +24,8 @@ final class Plugin
             )
         );
         $asset_loader->register_hooks();
+
+        $notice_block = new Block();
+        $notice_block->register_hooks();
     }
 }
