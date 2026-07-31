@@ -6,6 +6,19 @@ Issue #4 の初期仕様どおり、`yamabiko/notice` をエディターで編�
 
 Stage 2で完成したVite entry、external化、manifest、`AssetLoader`はそのまま利用する。Stage 3ではアセット基盤を再設計しない。
 
+## 開発モードの修正
+
+PR #5 の開発モード確認で、ViteがWordPress提供パッケージを開発サーバーから解決しようとし、エントリーが
+`registerBlockType()`まで到達しない問題が見つかった。この修正はStage 2の公開契約を保ったまま、Stage 3の完了条件に含める。
+
+- `@wordpress/*`、React、ReactDOM、JSX runtimeをNode.js polyfillで補わない。
+- production build用のexternal mappingを正本として、Vite serve時も同じglobalへのvirtual module adapterを使う。
+- adapterは現在利用するnamed exportだけを公開し、未登録のWordPress externalは明示的に失敗させる。
+- `@vitejs/plugin-react/preamble`をentryで読み込み、React Fast Refreshのpreamble検出エラーを残さない。
+- NoticeのCSSは開発時にViteからも読み込み、通常のCSS HMRで更新する。production CSSと`AssetLoader`の公開契約は変更しない。
+
+開発サーバーが利用できない場合は、既存のdevelopment descriptor検査によってproduction assetsへ安全にfallbackする。
+
 ## 実装範囲
 
 - 属性は`message`と`tone`のみ
@@ -23,8 +36,8 @@ Stage 2で完成したVite entry、external化、manifest、`AssetLoader`はそ�
 Stage 3では次を変更しない。
 
 - `AssetLoader`の責務、constructor、manifest schema
-- `vite.config.ts`のentry、external、development descriptor
-- Viteのvirtual moduleや独自HMR bridge
+- `vite.config.ts`のentry、development descriptor
+- development external adapter以外のVite設定
 - Script Modules APIの追加設計
 - iframe向けCSS HMRの追加実装
 - PHPUnit、PHPStan、PHPCS、WPCSの基盤
@@ -233,6 +246,8 @@ git diff --check
 7. 許可formatが残り、危険なHTMLが出力されない
 8. フロントエンドでNotice用JavaScriptが読み込まれない
 9. console error、PHP warning、fatal errorがない
+10. `npm run dev`中にブロックが登録され、Node.js built-in module、`source-map-js`、React preambleのconsole errorがない
+11. 開発サーバー経由のTypeScriptまたはCSS更新が投稿編集画面へ反映される
 
 ## Stage 3の完了条件
 

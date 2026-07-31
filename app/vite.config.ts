@@ -117,6 +117,85 @@ const fixedExternalMappings = new Map<string, ExternalMapping>([
   ],
 ]);
 
+const developmentExternalExports = new Map<string, readonly string[]>([
+  [
+    "react",
+    [
+      "Children",
+      "Component",
+      "Fragment",
+      "PureComponent",
+      "StrictMode",
+      "Suspense",
+      "cloneElement",
+      "createContext",
+      "createElement",
+      "createRef",
+      "forwardRef",
+      "lazy",
+      "memo",
+      "startTransition",
+      "useCallback",
+      "useContext",
+      "useDebugValue",
+      "useDeferredValue",
+      "useEffect",
+      "useId",
+      "useImperativeHandle",
+      "useInsertionEffect",
+      "useLayoutEffect",
+      "useMemo",
+      "useReducer",
+      "useRef",
+      "useState",
+      "useSyncExternalStore",
+      "useTransition",
+    ],
+  ],
+  [
+    "react-dom",
+    [
+      "createPortal",
+      "findDOMNode",
+      "flushSync",
+      "hydrate",
+      "render",
+      "unmountComponentAtNode",
+      "unstable_batchedUpdates",
+    ],
+  ],
+  ["react-dom/client", ["createRoot", "hydrateRoot"]],
+  ["react/jsx-runtime", ["Fragment", "jsx", "jsxs"]],
+  ["react/jsx-dev-runtime", ["Fragment", "jsxDEV"]],
+  ["@wordpress/blocks", ["createBlock", "getBlockType", "registerBlockType"]],
+  [
+    "@wordpress/block-editor",
+    ["InspectorControls", "RichText", "useBlockProps"],
+  ],
+  ["@wordpress/components", ["PanelBody", "RadioControl"]],
+  [
+    "@wordpress/element",
+    [
+      "Component",
+      "Fragment",
+      "createContext",
+      "createElement",
+      "createRef",
+      "forwardRef",
+      "memo",
+      "useCallback",
+      "useContext",
+      "useEffect",
+      "useLayoutEffect",
+      "useMemo",
+      "useReducer",
+      "useRef",
+      "useState",
+    ],
+  ],
+  ["@wordpress/i18n", ["__", "_n", "_nx", "sprintf"]],
+]);
+
 const toCamelCase = (value: string): string =>
   value.replace(/-([a-z0-9])/g, (_match, character: string) =>
     character.toUpperCase(),
@@ -150,6 +229,55 @@ const resolveExternal = (request: string): ExternalMapping | undefined => {
     handle: `wp-${packageName}`,
   };
 };
+
+const developmentExternalId = "\0yamabiko-blocks-development-external:";
+
+const developmentExternalPlugin = (): Plugin => ({
+  name: "yamabiko-blocks-development-externals",
+  apply: "serve",
+  enforce: "pre",
+  resolveId(request) {
+    const external = resolveExternal(request);
+
+    if (!external) {
+      return undefined;
+    }
+
+    if (!developmentExternalExports.has(request)) {
+      throw new Error(
+        `Add development exports for WordPress external: ${request}`,
+      );
+    }
+
+    return `${developmentExternalId}${request}`;
+  },
+  load(id) {
+    if (!id.startsWith(developmentExternalId)) {
+      return undefined;
+    }
+
+    const request = id.slice(developmentExternalId.length);
+    const external = resolveExternal(request);
+    const exports = developmentExternalExports.get(request);
+
+    if (!external || !exports) {
+      throw new Error(`Unknown development external: ${request}`);
+    }
+
+    const moduleExports = exports
+      .map((name) => `export const ${name} = runtime.${name};`)
+      .join("\n");
+
+    return [
+      `const runtime = globalThis.${external.global};`,
+      `if (!runtime) throw new Error(${JSON.stringify(
+        `Missing WordPress runtime global for ${external.request}: ${external.global}`,
+      )});`,
+      "export default runtime;",
+      moduleExports,
+    ].join("\n");
+  },
+});
 
 const sourceManifestKey = (source: string): string =>
   relative(root, source).split(sep).join("/");
@@ -270,7 +398,15 @@ const productionMetadataPlugin = (): Plugin => {
 };
 
 export default defineConfig({
-  plugins: [react(), developmentDescriptorPlugin(), productionMetadataPlugin()],
+  plugins: [
+    developmentExternalPlugin(),
+    react(),
+    developmentDescriptorPlugin(),
+    productionMetadataPlugin(),
+  ],
+  optimizeDeps: {
+    exclude: [...developmentExternalExports.keys()],
+  },
   server: {
     host: "0.0.0.0",
     port: 5173,
