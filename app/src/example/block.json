@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "yamabiko-blocks/example",
+	"version": "0.1.0",
+	"title": "Yamabiko Example",
+	"category": "widgets",
+	"icon": "smiley",
+	"description": "A minimal block for verifying the development foundation.",
+	"textdomain": "yamabiko-blocks",
+	"editorScript": "file:./index.js",
+	"supports": {
+		"html": false
+	}
+}

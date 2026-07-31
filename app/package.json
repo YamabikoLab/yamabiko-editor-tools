@@ -1,20 +1,26 @@
 {
-  "name": "yamabiko-blocks",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {},
-  "devDependencies": {
-    "@wordpress/eslint-plugin": "^25.8.0",
-    "@wordpress/scripts": "^34.0.0",
-    "typescript": "^6.0.3"
-  },
-  "dependencies": {
-    "@wordpress/block-editor": "^16.1.0",
-    "@wordpress/blocks": "^15.25.0",
-    "@wordpress/components": "^38.0.0",
-    "@wordpress/data": "^10.52.0",
-    "@wordpress/element": "^8.4.0",
-    "@wordpress/i18n": "^6.25.0",
-    "@wordpress/icons": "^15.3.0"
-  }
+	"name": "yamabiko-blocks",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"start": "wp-scripts start --hot --blocks-manifest",
+		"build": "wp-scripts build --blocks-manifest",
+		"format": "wp-scripts format",
+		"lint:js": "wp-scripts lint-js"
+	},
+	"devDependencies": {
+		"@wordpress/eslint-plugin": "^25.8.0",
+		"@wordpress/scripts": "^34.0.0",
+		"prettier": "npm:wp-prettier@^3.0.3",
+		"typescript": "^6.0.3"
+	},
+	"dependencies": {
+		"@wordpress/block-editor": "^16.1.0",
+		"@wordpress/blocks": "^15.25.0",
+		"@wordpress/components": "^38.0.0",
+		"@wordpress/data": "^10.52.0",
+		"@wordpress/element": "^8.4.0",
+		"@wordpress/i18n": "^6.25.0",
+		"@wordpress/icons": "^15.3.0"
+	}
 }

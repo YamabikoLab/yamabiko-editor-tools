@@ -11,3 +11,4 @@ Thumbs.db
 .vscode/*.log
 
 node_modules/
+app/build/
