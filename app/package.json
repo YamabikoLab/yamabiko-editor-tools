@@ -1,0 +1,27 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@wordpress/eslint-plugin": "^25.8.0",
+    "@wordpress/scripts": "^34.0.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@wordpress/block-editor": "^16.1.0",
+    "@wordpress/blocks": "^15.25.0",
+    "@wordpress/components": "^38.0.0",
+    "@wordpress/data": "^10.52.0",
+    "@wordpress/element": "^8.4.0",
+    "@wordpress/i18n": "^6.25.0",
+    "@wordpress/icons": "^15.3.0"
+  }
+}
