@@ -9,6 +9,7 @@
 		"lint:js": "wp-scripts lint-js"
 	},
 	"devDependencies": {
+		"@types/wordpress__block-editor": "^15.0.6",
 		"@wordpress/eslint-plugin": "^25.8.0",
 		"@wordpress/scripts": "^34.0.0",
 		"prettier": "npm:wp-prettier@^3.0.3",

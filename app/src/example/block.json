@@ -8,6 +8,7 @@
 	"icon": "smiley",
 	"description": "A minimal block for verifying the development foundation.",
 	"textdomain": "yamabiko-blocks",
+	"attributes": {},
 	"editorScript": "file:./index.js",
 	"supports": {
 		"html": false

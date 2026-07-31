@@ -20,7 +20,7 @@ function save() {
 	);
 }
 
-registerBlockType( metadata.name, {
+registerBlockType( metadata, {
 	edit: Edit,
 	save,
 } );

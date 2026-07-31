@@ -22,7 +22,22 @@ final class Plugin
 {
     public static function init(): void
     {
-        // Block registration will be added in a future issue.
+        add_action('init', [self::class, 'registerBlocks']);
+    }
+
+    public static function registerBlocks(): void
+    {
+        $buildPath = __DIR__ . '/build';
+        $manifestPath = $buildPath . '/blocks-manifest.php';
+
+        if (! is_readable($manifestPath)) {
+            return;
+        }
+
+        wp_register_block_types_from_metadata_collection(
+            $buildPath,
+            $manifestPath
+        );
     }
 }
 
