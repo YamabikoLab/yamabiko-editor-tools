@@ -6,7 +6,8 @@
 		"start": "wp-scripts start --hot --blocks-manifest",
 		"build": "wp-scripts build --blocks-manifest",
 		"format": "wp-scripts format",
-		"lint:js": "wp-scripts lint-js"
+		"lint:js": "wp-scripts lint-js",
+		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"@types/wordpress__block-editor": "^15.0.6",
