@@ -10,15 +10,15 @@
 
 ### ブロックとエディター
 
-| 項目 | 契約 |
-|---|---|
-| ブロック名 | `yamabiko/notice` |
-| `message` | `string`、既定値 `""`。許可済みインラインHTMLを含む文字列としてブロックコメントJSONへ保存 |
-| `tone` | `string`、`enum: ["info", "tip", "warning"]`、既定値 `info` |
-| 保存 | `save: () => null` の動的ブロック。保存HTMLは持たず、属性のみ自己終了形式のブロックコメントへ保存 |
-| メタデータ | `apiVersion: 3`、category `text`、icon `info`、`supports.html: false`、text domain `yamabiko-blocks` |
-| 正本 | PHPは `register_block_type(__DIR__)`、TypeScriptは同じ `block.json` をimport |
-| 空本文 | エディターではプレースホルダーを表示。PHPは可視文字が空なら空文字を返し、フロントへ空のNoticeを出力しない |
+| 項目       | 契約                                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------------------- |
+| ブロック名 | `yamabiko/notice`                                                                                         |
+| `message`  | `string`、既定値 `""`。許可済みインラインHTMLを含む文字列としてブロックコメントJSONへ保存                 |
+| `tone`     | `string`、`enum: ["info", "tip", "warning"]`、既定値 `info`                                               |
+| 保存       | `save: () => null` の動的ブロック。保存HTMLは持たず、属性のみ自己終了形式のブロックコメントへ保存         |
+| メタデータ | `apiVersion: 3`、category `text`、icon `info`、`supports.html: false`、text domain `yamabiko-blocks`      |
+| 正本       | PHPは `register_block_type(__DIR__)`、TypeScriptは同じ `block.json` をimport                              |
+| 空本文     | エディターではプレースホルダーを表示。PHPは可視文字が空なら空文字を返し、フロントへ空のNoticeを出力しない |
 
 - `RichText` で本文を直接編集し、`allowedFormats` は `core/bold`、`core/italic`、`core/link` に限定する。
 - `InspectorControls`、`PanelBody`、`RadioControl` を使う。3択の排他的選択と標準キーボード操作を理由に `RadioControl` を採用する。
@@ -27,11 +27,11 @@
 
 ### tone、ラベル、HTML、アクセシビリティ
 
-| tone | 可視ラベル | 装飾アイコン | modifier |
-|---|---|---|---|
-| `info` | お知らせ | `ℹ` | `is-tone-info` |
-| `tip` | ヒント | `✓` | `is-tone-tip` |
-| `warning` | 注意 | `⚠` | `is-tone-warning` |
+| tone      | 可視ラベル | 装飾アイコン | modifier          |
+| --------- | ---------- | ------------ | ----------------- |
+| `info`    | お知らせ   | `ℹ`          | `is-tone-info`    |
+| `tip`     | ヒント     | `✓`          | `is-tone-tip`     |
+| `warning` | 注意       | `⚠`          | `is-tone-warning` |
 
 - `heading` 属性は追加しない。Issue画像どおりラベルをtoneから導出する。
 - 文書アウトライン上の適切な見出しレベルを判断できないため `h2`～`h6` は使わず、可視ラベルを `<strong>` で表す。
@@ -60,10 +60,10 @@
 - `render.php` は一回のrenderに必要な属性検証、tone正規化、翻訳済みpresentation選択、本文KSES、wrapper生成だけを担当し、フック・enqueue・グローバル関数を定義しない。
 - build成果物がなくてもブロック登録と安全な動的HTMLは維持する。挿入UIやCSSが使えない場合もfatal errorにせず、既存コンテンツを意味の通る非装飾HTMLとしてrenderする。
 
-| CSS handle | Vite key | surface |
-|---|---|---|
+| CSS handle                      | Vite key               | surface                          |
+| ------------------------------- | ---------------------- | -------------------------------- |
 | `yamabiko-blocks-notice-editor` | `notice/editor/editor` | `editor-parent`, `editor-canvas` |
-| `yamabiko-blocks-notice` | `notice/style` | `editor-canvas`, `front-end` |
+| `yamabiko-blocks-notice`        | `notice/style`         | `editor-canvas`, `front-end`     |
 
 - `editor/editor.scss` はエディター専用のプレースホルダー、選択・フォーカス表示を所有する。
 - `style.scss` はwrapper、tone色、ラベル、本文、リンクを所有し、エディターキャンバスとフロントエンドで共有する。
@@ -116,51 +116,3 @@
 - PHP behaviorは第3段階では変更ファイルのsyntax checkと実WordPress手動確認を必須にする。KSESを不正確なstubで再現する新規PHP smokeは追加せず、PHPUnitによる登録・render・security自動テストは第4段階へ残す。
 - 手動確認は依頼された17項目を、development/production × iframe/noniframeに分けて記録する。不正toneはコードエディターで改変し、危険HTMLと許可format、空本文、debug log、console、network、フロントエンドNotice JS不在を確認する。
 - 対象外: 新しい属性、閉じるボタン、アニメーション、カラーピッカー、アイコン選択、期限条件、REST/DB、フロントReact、大規模E2E、PHPUnit/PHPStan/PHPCS完成、包括的README・第4段階文書。
-
-## プランファイル作成とPR報告
-
-- `apply_patch` で上記契約、各工程の対象ファイル・最小検証・完了判定・rollback、手動確認表を `docs/plans/PLAN-004-stage-3-notice-block.md` へ記載する。
-- `app/` から `npm run format:files -- ../docs/plans/PLAN-004-stage-3-notice-block.md` を実行後、`git diff --check` を実行する。
-- 差分がプランファイルだけであることを確認してから、PR #5への書き込み対象を明示し、作成ファイル、主要判断、未決定事項なし、実装開始可能、検証結果、コード未実装を含むコメントを投稿する。
-
-## Assumptions
-
-- Issue本文と承認済み公開契約を画像より優先する。画像は「tone由来の可視ラベルと装飾アイコン」を確認する参考として使用済み。
-- 最新ローカルHEADとPR headはともに `524b90b` で、作業ツリーはclean。
-- 設計上の未決定事項はなし。実装開始には、このプランファイルを作成して承認する必要がある。
-
-## 作業サマリー
-
-### Work performed
-
-- 添付要件、Issue #4、PR #5、4段階方針、Issue画像、最新HEAD、リポジトリ契約、stage 2実装を読み取り、上記の決定済みプランを作成した。
-- Plan Modeのため、ファイル作成とPRコメント投稿は未実施。
-
-### Changed files
-
-None
-
-### Commands run
-
-- 添付・契約・実装の `sed -n ...` 読み取り — success。ただし最初の添付読み取り1回はsandbox namespaceエラーで failure、権限付き再実行は success。
-- `git status --short --branch`、`git log -5 --oneline --decorate`、`git diff --stat origin/main...HEAD`、`rg --files ...` — success。
-- 関連ファイルの `wc -l ...` と、設定・文書・PHP/TypeScriptソースの限定範囲読み取り — success。
-- Issue画像の直接 `curl` — 404で failure。
-- `gh api graphql ...` と認証済み添付URLへの `curl` — success。
-- 画像確認用の `od`、`php -m`、GDによる一時縮小、`base64` 読み込み — success。
-- `file /tmp/yamabiko-notice-issue-4.png` — command未導入で failure。
-- `command -v convert` — ImageMagick CLI未導入で failure。
-
-### Decision rationale
-
-- `block.json`、WordPress標準Block API、動的PHP render、stable style handlesを中心に据え、stage 2のasset contractを後方互換に拡張する。
-- 可視ラベルを意味の正本とし、装飾アイコンや色だけへ依存しない。
-- フロントエンドJavaScriptを追加せず、editor iframe HMRだけを公開Block Editor store経由で補完する。
-
-### Open items
-
-- Plan Mode解除後のプランファイル作成、検証、PR #5コメント投稿。
-
-### Next steps
-
-- 本計画どおり `docs/plans/PLAN-004-stage-3-notice-block.md` のみを作成し、検証後にPR #5へ結果を報告する。
