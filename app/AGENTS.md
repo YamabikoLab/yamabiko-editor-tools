@@ -1,4 +1,4 @@
-# Yamabiko Blocks plugin instructions
+# Yamabiko Editor Tools plugin instructions
 
 These instructions apply to the WordPress plugin under `app/`.
 
@@ -11,8 +11,7 @@ These instructions apply to the WordPress plugin under `app/`.
 ## Implementation rules
 
 - Prefer public WordPress APIs, hooks, components, and data stores.
-- Keep block code together under `src/blocks/<block-name>/` and follow `../docs/development/source-organization.md`.
-- Add organization rules for non-block extensions only when the first real implementation requires them.
+- Keep each block under `src/blocks/<block-name>/` and each non-block editor extension under its owning feature directory, following `../docs/development/source-organization.md`.
 - Do not create `shared/`, `utils/`, or `helpers/` until multiple real features need the same code.
 - Keep entry files small. They should register or compose a feature, not contain unrelated implementation details.
 - Treat saved block markup, attributes, identifiers, hooks, and persisted data as compatibility contracts.
@@ -28,7 +27,7 @@ These instructions apply to the WordPress plugin under `app/`.
 
 ## Internationalization and accessibility
 
-- Translate user-visible strings with the `yamabiko-blocks` text domain.
+- Translate user-visible strings with the `yamabiko-editor-tools` text domain.
 - Use semantic HTML and WordPress UI primitives where practical.
 - Support keyboard operation and visible focus for interactive controls.
 - Do not communicate meaning through color alone.
