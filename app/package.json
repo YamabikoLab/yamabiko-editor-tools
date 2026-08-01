@@ -3,7 +3,6 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"prestart": "wp config set SCRIPT_DEBUG true --raw --path=/var/www/html --quiet",
 		"start": "wp-scripts start --hot --blocks-manifest",
 		"build": "wp-scripts build --blocks-manifest",
 		"format": "wp-scripts format",
