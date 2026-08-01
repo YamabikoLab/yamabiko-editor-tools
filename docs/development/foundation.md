@@ -26,6 +26,8 @@ Use these identifiers consistently:
 | Block namespace | `yamabiko-editor-tools/` |
 | CSS class prefix | `yamabiko-editor-tools-` |
 
+Project-owned CSS class names must use the `yamabiko-editor-tools-` prefix and lowercase kebab-case. Do not rename classes owned by WordPress or third-party dependencies. When an external class does not satisfy the configured Stylelint naming rule, disable only the affected selector with a short explanation.
+
 Released block names, attributes, saved markup, persisted keys, and public hooks are compatibility contracts. Change them only with an explicit migration or compatibility decision.
 
 ## WordPress lifecycle
