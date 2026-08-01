@@ -37,12 +37,12 @@ export function Edit( { attributes, setAttributes }: BlockEditProps< NoticeAttri
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>
-				<div className="yamabiko-editor-tools-notice__label">
+				<div className="yamabiko-editor-tools-notice-label">
 					<strong>{ toneLabels[ tone ] }</strong>
 				</div>
 				<RichText
 					allowedFormats={ [ 'core/bold', 'core/italic', 'core/link' ] }
-					className="yamabiko-editor-tools-notice__message"
+					className="yamabiko-editor-tools-notice-message"
 					onChange={ ( message: string ) => setAttributes( { message } ) }
 					placeholder={ __( 'お知らせ本文を入力…', 'yamabiko-editor-tools' ) }
 					tagName="div"
