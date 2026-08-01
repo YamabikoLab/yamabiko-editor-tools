@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: Yamabiko Editor Tools
  * Description: Editor tools for intuitive content structure editing.
@@ -10,6 +9,8 @@
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: yamabiko-editor-tools
+ *
+ * @package YamabikoEditorTools
  */
 
 declare(strict_types=1);
@@ -20,12 +21,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Initializes the plugin and registers its blocks.
+ */
 final class Plugin {
 
+	/**
+	 * Registers plugin hooks.
+	 */
 	public static function init(): void {
 		add_action( 'init', array( self::class, 'register_blocks' ) );
 	}
 
+	/**
+	 * Registers blocks from the generated block manifest.
+	 */
 	public static function register_blocks(): void {
 		$blocks_path   = __DIR__ . '/build/blocks';
 		$manifest_path = __DIR__ . '/build/blocks-manifest.php';
