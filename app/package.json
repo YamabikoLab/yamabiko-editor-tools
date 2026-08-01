@@ -6,8 +6,8 @@
 		"start": "wp-scripts start --hot --blocks-manifest",
 		"build": "wp-scripts build --blocks-manifest",
 		"format": "wp-scripts format",
-		"format:check": "prettier --check .",
-		"lint:js": "wp-scripts lint-js",
+		"format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,yml,yaml}\"",
+		"lint:js": "wp-scripts lint-js .",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
