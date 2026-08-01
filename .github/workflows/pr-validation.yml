@@ -95,7 +95,7 @@ jobs:
 
       - name: Check PHP syntax
         working-directory: app
-        run: php -l yamabiko-blocks.php
+        run: php -l yamabiko-editor-tools.php
 
       - name: Check PHP coding standards
         working-directory: app
