@@ -1,119 +1,70 @@
-# Foundation and cross-cutting development contract
+# Development foundation
 
-This document is the implementation contract for every later vertical slice.
+This document defines the cross-cutting rules for Yamabiko Blocks. Working instructions live in `AGENTS.md` files; validation commands live in `testing.md`; source placement lives in `source-organization.md`.
 
-## Boundaries
+## Product boundary
 
-The plugin supports intuitive structure editing in the WordPress block editor.
-The Foundation itself registers no blocks, formats, editor plugins, REST
-routes, Ajax handlers, cron events, database tables, options, transients, meta,
-public hooks, or runtime JavaScript/CSS.
+Yamabiko Blocks improves content structure editing in the WordPress block editor.
 
-The development runtime uses WordPress 7.0.2 and PHP 8.3. The published minimums
-are WordPress 6.8 and PHP 8.1, and those values must remain aligned with the
-plugin metadata in `app/yamabiko-blocks.php`.
+`app/` is the WordPress plugin root. The current development environment uses WordPress 7.0.2 and PHP 8.3. Published minimum versions must stay aligned with the metadata in `app/yamabiko-blocks.php`.
 
-The main plugin file should remain parseable on PHP 7.4 where practical so that
-WordPress can read its metadata and reject activation on an unsupported host.
-The Foundation does not add a separate runtime PHP version check; WordPress
-plugin metadata is the authoritative activation gate. Runtime feature code may
-use PHP 8.1 syntax and APIs.
-
-Feature code is co-located under `app/src/<Feature>/`. Do not create
-future feature directories, empty classes, or a `shared/` directory
-pre-emptively.
-Move code to `shared/` only after multiple real features use it.
+Do not document or implement future systems such as drag-and-drop, REST endpoints, custom HMR, persistence, telemetry, or distribution flows until an issue requires them.
 
 ## Stable identifiers
 
-| Surface                     | Required form            |
-| --------------------------- | ------------------------ |
-| Plugin slug and text domain | `yamabiko-blocks`        |
-| PHP namespace               | `YamabikoLab\Blocks\`    |
-| Global PHP function         | `yamabiko_blocks_`       |
-| PHP constant                | `YAMABIKO_BLOCKS_`       |
-| Option or transient         | `yamabiko_blocks_`       |
-| Private meta key            | `_yamabiko_blocks_`      |
-| Action or filter            | `yamabiko-blocks/`       |
-| REST namespace              | `yamabiko-blocks/v1`     |
-| Script or style handle      | `yamabiko-blocks-`       |
-| Block namespace             | `yamabiko/`              |
-| CSS class                   | `yamabiko-blocks-`       |
-| HTML data attribute         | `data-yamabiko-blocks-*` |
-| npm scope                   | `@yamabikolab`           |
+Use these identifiers consistently:
 
-Do not introduce generic names or prefixes reserved by WordPress and other
-products, such as `wp_`. Namespaces are the primary PHP collision boundary.
-Do not silently suppress duplicate declarations belonging to this plugin.
+| Surface | Form |
+| --- | --- |
+| Plugin slug and text domain | `yamabiko-blocks` |
+| PHP namespace | `YamabikoLab\Blocks\` |
+| Global PHP function prefix | `yamabiko_blocks_` |
+| PHP constant prefix | `YAMABIKO_BLOCKS_` |
+| Action and filter prefix | `yamabiko-blocks/` |
+| REST namespace | `yamabiko-blocks/v1` |
+| Script and style handle prefix | `yamabiko-blocks-` |
+| Block namespace | `yamabiko-blocks/` |
+| CSS class prefix | `yamabiko-blocks-` |
 
-After release, block names and attributes, saved HTML, option and meta names,
-and public hooks are compatibility contracts. A breaking change requires an
-explicit deprecation, migration, or compatibility decision.
+Released block names, attributes, saved markup, persisted keys, and public hooks are compatibility contracts. Change them only with an explicit migration or compatibility decision.
 
 ## WordPress lifecycle
 
-- Prefer public WordPress APIs, actions, and filters. Do not alter core, themes,
-  or another plugin's state.
-- Register initialization and feature work on the narrowest suitable hook.
-- Separate editor, front-end, and admin responsibilities and load assets only
-  on screens that need them.
-- Activation does the minimum necessary initialization. Deactivation never
-  deletes durable data. Durable deletion belongs exclusively to uninstall.
-- The Foundation stores nothing, so it has no activation/deactivation handlers
-  and no `uninstall.php`.
+- Prefer public WordPress APIs, actions, filters, components, and data stores.
+- Register work on the narrowest suitable hook.
+- Load editor, front-end, and admin assets only where needed.
+- Keep activation minimal.
+- Do not delete durable data during deactivation. Durable deletion belongs to uninstall.
 
 ## Security and privacy
 
-- Treat request, REST, database, option, meta, and decoded external values as
-  untrusted.
-- Validate expected type, shape, allowed value, identifier, and range before
-  relying on input. Sanitize and normalize separately with functions
-  appropriate to the data and storage context.
-- Sanitization does not replace validation, authorization, or output escaping.
-- Every privileged custom mutation requires authorization appropriate to the
-  affected object. Use the relevant capability check when the operation is
-  user-authorized.
-- Verify a nonce at cookie-authenticated browser boundaries where WordPress
-  requires CSRF protection or confirmation of user intent, including applicable
-  forms, `admin-post`, Ajax, and REST requests. Do not impose a nonce on
-  authentication methods such as application passwords that do not use one.
-- A nonce is not authorization and never replaces a capability check or REST
-  permission decision.
-- Every REST route requires a meaningful `permission_callback`; validate and
-  authorize mutations inside the route's actual request context.
-- Escape at the final HTML, attribute, URL, JavaScript, JSON, or other output
-  boundary for that context.
-- Prefer WordPress data APIs. If direct SQL is unavoidable, use
-  `$wpdb->prepare()` for variables.
+- Treat request, stored, decoded, and external values as untrusted.
+- Validate expected values, sanitize for storage, authorize privileged operations, and escape at the final output boundary.
+- Use nonces where WordPress requires CSRF protection. Nonces do not replace capability checks.
+- Give every REST route a meaningful `permission_callback`.
+- Prefer WordPress data APIs. Use `$wpdb->prepare()` when variable SQL is unavoidable.
 - Do not use `eval` or unsafe deserialization.
-- The default product performs no telemetry or external communication and loads
-  no remote fonts or JavaScript. A later plan must document destination,
-  purpose, and exact data before adding an external service.
-- Never expose secrets, credentials, personal data, stack traces, internal
-  paths, or exception details in production UI or logs.
+- Do not expose secrets, credentials, personal data, stack traces, or local paths.
+- Do not add telemetry, remote code, remote fonts, or external services without an explicit requirement and review.
 
-## Internationalization, accessibility, and errors
+## Internationalization and accessibility
 
-- Translate every user-visible string with text domain
-  `yamabiko-blocks`. Put dynamic values in placeholders and escape the
-  translated result for its output context.
-- Prefer WordPress UI primitives and semantic HTML. Keyboard operation is
-  required, and meaning cannot rely on color alone.
-- Verify UI behavior in both editor and front end when both are applicable.
-- Separate user-safe messages from developer diagnostics. Do not swallow
-  failures; use `WP_Error` for recoverable errors where it fits the API.
+- Translate user-visible strings with the `yamabiko-blocks` text domain.
+- Put dynamic values in placeholders and escape output for its final context.
+- Prefer semantic HTML and WordPress UI primitives.
+- Support keyboard operation and visible focus.
+- Do not rely on color alone to communicate meaning.
 
 ## Dependencies and assets
 
-- Add a dependency only after checking need, maintenance, license, known
-  vulnerabilities, and overlap with WordPress.
-- Separate runtime and development dependencies and commit both lockfiles.
-- WordPress-provided React, ReactDOM, JSX runtime, and `@wordpress/*` packages
-  remain external and resolve through WordPress script handles.
-- Record licenses for code and assets included in the release. Do not ship
-  remote or unlicensed fonts, images, or scripts.
+- Add a dependency only for a current need after checking maintenance, license, security, and overlap with WordPress.
+- Keep runtime and development dependencies separate.
+- Commit `package-lock.json` and `composer.lock` when their dependency files change.
+- Keep WordPress-provided JavaScript runtimes external to production bundles.
+- Do not commit generated dependencies, caches, or build output.
 
-## Review gate for later plans
+## Source and validation
 
-Every vertical-slice plan must complete `docs/plans/TEMPLATE.md`, identify any
-new stable surface or persisted data, and explicitly confirm this contract.
+- Follow `source-organization.md` for Feature First ownership, entries, tests, and shared code.
+- Follow `testing.md` for the commands that currently exist.
+- Update these documents when the actual structure or command surface changes.

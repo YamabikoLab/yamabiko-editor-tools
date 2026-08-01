@@ -1,69 +1,36 @@
 # PLAN-NNN: Feature name
 
-## Outcome and boundaries
+## Goal
 
-- User outcome:
-- Included:
-- Explicitly excluded:
-- Supported WordPress/PHP APIs and resulting minimum versions:
+Describe the outcome this work should achieve.
 
-## Foundation conformance
+## Scope
 
-- [ ] `docs/development/foundation.md` has been reviewed.
-- [ ] New identifiers follow the namespace and prefix table.
-- [ ] Stable public hooks, block names/attributes, saved HTML, options, and meta
-      are listed below.
-- [ ] Lifecycle and side effects run on appropriate WordPress hooks.
-- [ ] Input validation, capabilities, nonces, output escaping, and REST
-      permissions are specified.
-- [ ] External communication, personal data, retention, export, and deletion are
-      either absent or fully documented.
-- [ ] User-visible strings are translatable with the correct text domain.
-- [ ] Keyboard, focus, announcements, semantic HTML, contrast, editor, and
-      front-end accessibility checks are defined where applicable.
-- [ ] WordPress-provided JavaScript remains external.
-- [ ] Every third-party dependency has a need, maintenance, license, security,
-      duplication, and redistribution review.
-- [ ] Compatibility, migration, deprecation, and uninstall impact are defined.
+### Included
 
-### UI vertical-slice required acceptance checks
+- What this plan will implement or change.
 
-Every UI vertical slice must include these as mandatory acceptance criteria,
-not optional manual notes:
+### Not included
 
-- [ ] Editor CSS HMR works inside the Gutenberg Editor iframe.
-- [ ] Applying a CSS change through HMR does not unnecessarily lose block
-      content, selection, focus, or other editing state.
-- [ ] When HMR is unavailable, the fallback reload behavior is verified and
-      fails safely.
-- [ ] The production build contains no Vite client or development-server URL.
+- What is intentionally outside this plan.
 
-## Interfaces and data
+## Approach
 
-List block metadata, saved markup, REST routes, hooks, options, meta, tables,
-script/style handles, CSS classes, and data attributes. State “none” for each
-surface that is not introduced.
+Describe the implementation direction and any important decisions.
 
-## Implementation phases
+## Tasks
 
-1. Vertical skeleton:
-2. Primary behavior:
-3. Accessibility and failure behavior:
-4. Integration and release:
+- [ ] Implement the required changes.
+- [ ] Add or update applicable tests.
+- [ ] Update relevant documentation when needed.
 
-## Tests and acceptance
+## Validation
 
-- Unit:
-- WordPress integration:
-- Editor/browser:
-- Security and privacy:
-- Performance:
-- Internationalization:
-- Accessibility:
-- Distribution and compatibility:
+List the commands and manual checks needed to verify the work.
 
-## Rollout and recovery
+- Command or check:
+- Expected result:
 
-- Migration/deprecation:
-- Failure visibility:
-- Rollback:
+## Notes
+
+Add constraints, risks, dependencies, or unresolved questions only when they are relevant.
