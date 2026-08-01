@@ -11,7 +11,8 @@ These instructions apply to the WordPress plugin under `app/`.
 ## Implementation rules
 
 - Prefer public WordPress APIs, hooks, components, and data stores.
-- Keep feature code together under `src/<feature>/` and follow `../docs/development/source-organization.md`.
+- Keep block code together under `src/blocks/<block-name>/` and follow `../docs/development/source-organization.md`.
+- Add organization rules for non-block extensions only when the first real implementation requires them.
 - Do not create `shared/`, `utils/`, or `helpers/` until multiple real features need the same code.
 - Keep entry files small. They should register or compose a feature, not contain unrelated implementation details.
 - Treat saved block markup, attributes, identifiers, hooks, and persisted data as compatibility contracts.
