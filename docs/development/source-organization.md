@@ -11,18 +11,42 @@ Keep the structure concrete and small. Add a directory only when current impleme
 ```text
 app/
 ├── src/
-│   ├── blocks/
-│   │   └── notice/
-│   └── example/
+│   └── blocks/
+│       └── notice/
 ├── build/              # generated, not committed
 ├── package.json
 ├── composer.json
 └── yamabiko-editor-tools.php
 ```
 
-`app/src/example/` exists only to verify the current `@wordpress/scripts` build and registration foundation. It is an existing exception, not the standard location for future product features. Do not move or expand it as part of unrelated work.
+`app/src/blocks/notice/` is the current reference implementation for a small dynamic block. It keeps metadata, registration, editor UI, rendering, styles, and focused tests together without adding feature-specific PHP registration classes or custom build configuration.
 
-`app/src/blocks/notice/` is the first product block and the current reference implementation for a small dynamic block. It keeps metadata, registration, editor UI, rendering, styles, and focused tests together without adding feature-specific PHP registration classes or custom build configuration.
+## Notice block example
+
+The notice block uses the following structure:
+
+```text
+src/blocks/notice/
+├── block.json
+├── index.tsx
+├── edit.tsx
+├── render.php
+├── editor.scss
+├── style.scss
+├── tone.ts
+└── tone.test.ts
+```
+
+- `block.json` defines metadata, attributes, assets, and the dynamic render file.
+- `index.tsx` is the thin registration entry point.
+- `edit.tsx` owns the editor UI and attribute updates.
+- `render.php` validates attributes and renders the front end.
+- `editor.scss` contains editor-only styles.
+- `style.scss` contains shared editor and front-end styles.
+- `tone.ts` owns the focused tone normalization logic.
+- `tone.test.ts` verifies that focused logic beside its source.
+
+Use this as a reference for responsibility placement, not as mandatory scaffolding for every block.
 
 ## Feature directories
 
