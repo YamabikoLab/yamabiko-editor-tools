@@ -8,9 +8,11 @@
 		"format": "wp-scripts format",
 		"format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,yml,yaml}\"",
 		"lint:js": "wp-scripts lint-js .",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test:unit": "wp-scripts test-unit-js"
 	},
 	"devDependencies": {
+		"@types/jest": "^30.0.0",
 		"@types/wordpress__block-editor": "^15.0.6",
 		"@wordpress/eslint-plugin": "^25.8.0",
 		"@wordpress/prettier-config": "^4.52.0",

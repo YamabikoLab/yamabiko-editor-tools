@@ -28,6 +28,12 @@ Check TypeScript types:
 npm run typecheck
 ```
 
+Run focused JavaScript and TypeScript unit tests:
+
+```bash
+npm run test:unit
+```
+
 Create the production build:
 
 ```bash
@@ -64,6 +70,12 @@ Check WordPress coding standards:
 composer lint:php
 ```
 
+Run PHPStan:
+
+```bash
+composer analyse:php
+```
+
 Use `composer format:php` only when intentionally applying automatic fixes.
 
 ## Repository checks
@@ -87,8 +99,8 @@ The manually triggered `.github/workflows/pr-validation.yml` workflow runs the c
 ## Which checks to run
 
 - Documentation-only changes: `git diff --check origin/main...HEAD`.
-- JavaScript, TypeScript, JSON, or block metadata changes: formatting check, lint, typecheck, and build.
-- PHP or Composer changes: Composer validation, PHP syntax, and PHP coding standards.
+- JavaScript, TypeScript, JSON, or block metadata changes: formatting check, lint, typecheck, unit tests, and build.
+- PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
 - Docker or Dev Container changes: Docker Compose validation plus any focused checks required by the changed files.
 - Mixed changes: combine the applicable groups.
 
