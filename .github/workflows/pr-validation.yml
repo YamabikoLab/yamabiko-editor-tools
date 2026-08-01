@@ -27,9 +27,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 24.5.0
           cache: npm
           cache-dependency-path: app/package-lock.json
+
+      - name: Verify npm version
+        run: |
+          expected_npm_version="11.5.1"
+          actual_npm_version="$(npm --version)"
+
+          if [ "${actual_npm_version}" != "${expected_npm_version}" ]; then
+            echo "::error::Expected npm ${expected_npm_version}, but found ${actual_npm_version}."
+            exit 1
+          fi
 
       - name: Install dependencies
         working-directory: app
