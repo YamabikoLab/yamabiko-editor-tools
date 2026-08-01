@@ -1,4 +1,4 @@
-# Yamabiko Blocks development
+# Yamabiko Editor Tools development
 
 Run the following commands from the `app/` directory.
 
@@ -22,7 +22,7 @@ The local WordPress container enables `SCRIPT_DEBUG`, and `wp-scripts start --ho
 npm run build
 ```
 
-Build output is written to `build/`. The generated block manifest is loaded by `yamabiko-blocks.php`.
+Build output is written to `build/`. The generated block manifest is loaded by `yamabiko-editor-tools.php`.
 
 ## Check the code
 
@@ -49,4 +49,4 @@ src/
 
 The build command discovers block metadata under `src/` and generates the files required for WordPress registration.
 
-After building, activate **Yamabiko Blocks** in WordPress and confirm that the block is available in the block editor.
+After building, activate **Yamabiko Editor Tools** in WordPress and confirm that the block is available in the block editor.
