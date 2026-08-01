@@ -1,6 +1,6 @@
 # Source organization
 
-Yamabiko Blocks is a block collection. The source tree uses a simple Feature First structure in which each block owns its metadata, editor code, rendering, styles, and focused tests.
+Yamabiko Blocks is a block collection. Each real block should own its metadata, editor code, rendering, styles, and focused tests in one feature directory.
 
 Keep the structure concrete and small. Add a directory only when current implementation requires it.
 
@@ -8,32 +8,31 @@ Keep the structure concrete and small. Add a directory only when current impleme
 
 `app/` is the WordPress plugin root.
 
+The current source tree contains the foundation verification example:
+
 ```text
 app/
 ├── src/
-│   └── blocks/
-│       └── <block-name>/
+│   └── example/
 ├── build/              # generated, not committed
 ├── package.json
 ├── composer.json
 └── yamabiko-blocks.php
 ```
 
-Block source belongs under `app/src/blocks/`. Use a lowercase kebab-case directory name that matches the block's product identity.
+`app/src/example/` exists only to verify the current `@wordpress/scripts` build and block registration foundation. It is an existing exception, not the standard location for future product blocks. Do not move or expand it as part of unrelated work.
+
+When the first real block is implemented, place it under `app/src/blocks/<block-name>/`. Use a lowercase kebab-case directory name that matches the block's product identity.
 
 ```text
-src/blocks/
-├── notice/
-├── accordion/
-├── balloon/
-└── step/
+app/src/blocks/<block-name>/
 ```
 
-Do not organize block implementation into language-oriented trees such as `php/`, `js/`, `styles/`, or `includes/`. A developer should be able to find everything owned by one block in one place.
+Do not create `app/src/blocks/` before a real block implementation needs it. Do not organize block implementation into language-oriented trees such as `php/`, `js/`, `styles/`, or `includes/`. A developer should be able to find everything owned by one block in one place.
 
 ## Standard block shape
 
-A block may use the following files when its implementation needs them:
+A future block may use the following files when its implementation needs them:
 
 ```text
 src/blocks/<block-name>/
@@ -55,7 +54,7 @@ This is a list of permitted responsibilities, not mandatory scaffolding. Do not 
 A static block normally owns a `save.tsx` implementation that produces saved markup.
 
 ```text
-src/blocks/accordion/
+src/blocks/<static-block>/
 ├── block.json
 ├── index.tsx
 ├── edit.tsx
@@ -69,7 +68,7 @@ src/blocks/accordion/
 A dynamic block normally returns `null` from its JavaScript save function and renders through `render.php`.
 
 ```text
-src/blocks/notice/
+src/blocks/<dynamic-block>/
 ├── block.json
 ├── index.tsx
 ├── edit.tsx
@@ -80,34 +79,7 @@ src/blocks/notice/
 
 Do not add a PHP registration class to every block by default. The current plugin registers generated block metadata from `app/build/`. Add block-specific PHP classes only when a real responsibility cannot remain clear and testable inside `render.php` or another focused file.
 
-## Notice reference block
-
-The Notice block is the first reference implementation for the collection.
-
-```text
-src/blocks/notice/
-├── block.json
-├── index.tsx
-├── edit.tsx
-├── render.php
-├── tone.ts
-├── tone.test.ts
-├── editor.scss
-└── style.scss
-```
-
-| Path | Responsibility |
-| --- | --- |
-| `block.json` | Block identity, attributes, supports, assets, and render metadata |
-| `index.tsx` | Imports and block registration |
-| `edit.tsx` | Block Editor UI and Inspector Controls |
-| `render.php` | Dynamic front-end markup for one render invocation |
-| `tone.ts` | Supported tone values, fallback behavior, and display mapping |
-| `tone.test.ts` | Focused tests for the tone contract |
-| `editor.scss` | Editor-only presentation |
-| `style.scss` | Presentation shared by the editor and front end |
-
-The reference block is an example, not a template that every later block must copy in full.
+Document block-specific files only in the Issue or pull request that introduces the implementation. Do not describe an unimplemented block as the repository's current reference implementation.
 
 ## Entry files
 
@@ -149,17 +121,17 @@ Use semantic markup and ensure that meaning is not communicated by color alone.
 Keep a small block flat. Introduce responsibility directories only after multiple related files make the boundary useful.
 
 ```text
-src/blocks/balloon/
+src/blocks/<block-name>/
 ├── block.json
 ├── index.tsx
 ├── edit.tsx
 ├── save.tsx
 ├── components/
-│   ├── BalloonPreview.tsx
-│   └── CharacterSelector.tsx
+│   ├── BlockPreview.tsx
+│   └── ItemSelector.tsx
 ├── hooks/
-│   └── use-character.ts
-├── character.ts
+│   └── use-item.ts
+├── item.ts
 ├── editor.scss
 └── style.scss
 ```
@@ -171,7 +143,7 @@ Do not create `components/`, `hooks/`, `utils/`, or `helpers/` for a single file
 Blocks that form one product feature may remain grouped when the child exists only for its parent.
 
 ```text
-src/blocks/step/
+src/blocks/<feature-name>/
 ├── parent/
 │   ├── block.json
 │   ├── index.tsx
@@ -192,7 +164,7 @@ The repository may later contain extensions that are not blocks. Add their top-l
 
 ```text
 src/
-├── blocks/
+├── blocks/             # real product blocks, when implemented
 ├── formats/            # rich-text formats, when implemented
 ├── editor-plugins/     # editor plugins, when implemented
 └── shared/             # proven cross-feature code only
