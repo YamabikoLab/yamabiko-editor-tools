@@ -101,6 +101,10 @@ jobs:
         working-directory: app
         run: composer lint:php
 
+      - name: Run PHPStan
+        working-directory: app
+        run: composer analyse:php
+
   repository:
     name: Repository
     runs-on: ubuntu-latest
