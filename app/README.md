@@ -14,7 +14,7 @@ npm install
 npm start
 ```
 
-`wp-scripts start --hot` watches files under `src/` and rebuilds blocks when they change.
+`npm start` enables `SCRIPT_DEBUG` in the local WordPress installation, then starts `wp-scripts` with hot reloading. Files under `src/` are rebuilt when they change.
 
 ## Create a production build
 
