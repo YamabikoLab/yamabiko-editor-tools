@@ -5,6 +5,7 @@
 	<file>.</file>
 
 	<arg name="extensions" value="php"/>
+	<config name="minimum_wp_version" value="6.8"/>
 
 	<exclude-pattern>*/build/*</exclude-pattern>
 	<exclude-pattern>*/dist/*</exclude-pattern>
