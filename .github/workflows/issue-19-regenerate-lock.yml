@@ -1,0 +1,43 @@
+name: Regenerate Issue 19 lockfile
+
+on:
+  push:
+    branches:
+      - 19-add-prettier-config
+    paths:
+      - app/package.json
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Set up npm 11.17.0
+        run: npm install --global npm@11.17.0
+
+      - name: Regenerate lockfile and format files
+        working-directory: app
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+          npm run format
+          npm run format:check
+
+      - name: Commit generated files
+        run: |
+          rm .github/workflows/issue-19-regenerate-lock.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: regenerate package lock and format files"
+          git push
