@@ -5,12 +5,31 @@
 	<file>.</file>
 
 	<arg name="extensions" value="php"/>
+	<config name="minimum_wp_version" value="6.8"/>
 
 	<exclude-pattern>*/build/*</exclude-pattern>
+	<exclude-pattern>*/dist/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 
-	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="yamabiko-editor-tools"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="yamabiko_editor_tools"/>
+				<element value="YamabikoLab"/>
+			</property>
+		</properties>
+	</rule>
 
 	<rule ref="WordPress.Files.FileName">
 		<properties>

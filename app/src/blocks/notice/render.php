@@ -7,20 +7,20 @@
 
 declare( strict_types = 1 );
 
-$tone          = isset( $attributes['tone'] ) && is_string( $attributes['tone'] )
+$yamabiko_editor_tools_tone          = isset( $attributes['tone'] ) && is_string( $attributes['tone'] )
 	? $attributes['tone']
 	: 'info';
-$allowed_tones = array( 'info', 'tip', 'warning' );
+$yamabiko_editor_tools_allowed_tones = array( 'info', 'tip', 'warning' );
 
-if ( ! in_array( $tone, $allowed_tones, true ) ) {
-	$tone = 'info';
+if ( ! in_array( $yamabiko_editor_tools_tone, $yamabiko_editor_tools_allowed_tones, true ) ) {
+	$yamabiko_editor_tools_tone = 'info';
 }
 
-$message = isset( $attributes['message'] ) && is_string( $attributes['message'] )
+$yamabiko_editor_tools_message = isset( $attributes['message'] ) && is_string( $attributes['message'] )
 	? $attributes['message']
 	: '';
-$message = wp_kses(
-	$message,
+$yamabiko_editor_tools_message = wp_kses(
+	$yamabiko_editor_tools_message,
 	array(
 		'strong' => array(),
 		'em'     => array(),
@@ -36,17 +36,17 @@ $message = wp_kses(
 	)
 );
 
-if ( '' === trim( wp_strip_all_tags( $message ) ) ) {
+if ( '' === trim( wp_strip_all_tags( $yamabiko_editor_tools_message ) ) ) {
 	return;
 }
 
-$labels             = array(
+$yamabiko_editor_tools_labels             = array(
 	'info'    => __( 'お知らせ', 'yamabiko-editor-tools' ),
 	'tip'     => __( 'ヒント', 'yamabiko-editor-tools' ),
 	'warning' => __( '注意', 'yamabiko-editor-tools' ),
 );
-$wrapper_attributes = get_block_wrapper_attributes(
-	array( 'class' => 'yamabiko-editor-tools-notice is-tone-' . $tone )
+$yamabiko_editor_tools_wrapper_attributes = get_block_wrapper_attributes(
+	array( 'class' => 'yamabiko-editor-tools-notice is-tone-' . $yamabiko_editor_tools_tone )
 );
 ?>
-<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><div class="yamabiko-editor-tools-notice__label"><strong><?php echo esc_html( $labels[ $tone ] ); ?></strong></div><div class="yamabiko-editor-tools-notice__message"><?php echo $message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div></div>
+<div <?php echo $yamabiko_editor_tools_wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><div class="yamabiko-editor-tools-notice__label"><strong><?php echo esc_html( $yamabiko_editor_tools_labels[ $yamabiko_editor_tools_tone ] ); ?></strong></div><div class="yamabiko-editor-tools-notice__message"><?php echo $yamabiko_editor_tools_message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div></div>

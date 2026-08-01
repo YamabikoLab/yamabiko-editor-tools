@@ -7,7 +7,9 @@
 		"build": "wp-scripts build --blocks-manifest",
 		"format": "wp-scripts format",
 		"format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,yml,yaml}\"",
-		"lint:js": "wp-scripts lint-js .",
+		"lint:js": "wp-scripts lint-js . --max-warnings=0",
+		"lint:css": "wp-scripts lint-style \"src/**/*.{css,scss}\"",
+		"format:css": "wp-scripts lint-style \"src/**/*.{css,scss}\" --fix",
 		"typecheck": "tsc --noEmit",
 		"test:unit": "wp-scripts test-unit-js"
 	},
