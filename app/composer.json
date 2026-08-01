@@ -1,0 +1,20 @@
+{
+    "name": "yamabikolab/yamabiko-blocks",
+    "description": "WordPress blocks for intuitive content structure editing.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.13.5",
+        "wp-coding-standards/wpcs": "^3.4"
+    },
+    "scripts": {
+        "lint:php": "phpcs --standard=phpcs.xml.dist",
+        "format:php": "phpcbf --standard=phpcs.xml.dist"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "sort-packages": true
+    }
+}
