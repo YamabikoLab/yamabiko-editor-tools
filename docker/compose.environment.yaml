@@ -38,13 +38,13 @@ services:
 
       - type: bind
         source: ../app
-        target: /var/www/html/wp-content/plugins/yamabiko-blocks
+        target: /var/www/html/wp-content/plugins/yamabiko-editor-tools
         bind:
           create_host_path: false
 
       - type: bind
         source: ..
-        target: /workspaces/yamabiko-blocks
+        target: /workspaces/yamabiko-editor-tools
         bind:
           create_host_path: false
 
