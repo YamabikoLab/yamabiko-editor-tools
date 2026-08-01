@@ -21,7 +21,7 @@
       "name": "Listen for Xdebug",
       "port": 9003,
       "pathMappings": {
-        "/var/www/html/wp-content/plugins/yamabiko-blocks": "${workspaceFolder}/app"
+        "/var/www/html/wp-content/plugins/yamabiko-editor-tools": "${workspaceFolder}/app"
       }
     }
   ]
