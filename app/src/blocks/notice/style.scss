@@ -20,18 +20,18 @@
 	border-color: #9b5c00;
 }
 
-.yamabiko-editor-tools-notice-label {
+.yamabiko-editor-tools-notice__label {
 	margin-block-end: 0.5rem;
 }
 
-.yamabiko-editor-tools-notice-message > :first-child {
+.yamabiko-editor-tools-notice__message > :first-child {
 	margin-block-start: 0;
 }
 
-.yamabiko-editor-tools-notice-message > :last-child {
+.yamabiko-editor-tools-notice__message > :last-child {
 	margin-block-end: 0;
 }
 
-.yamabiko-editor-tools-notice-message a {
+.yamabiko-editor-tools-notice__message a {
 	text-decoration: underline;
 }
