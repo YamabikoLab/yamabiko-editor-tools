@@ -1,0 +1,29 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "yamabiko-editor-tools/notice",
+	"version": "0.1.0",
+	"title": "お知らせ",
+	"category": "text",
+	"icon": "info",
+	"description": "本文と表示種別を設定できるお知らせです。",
+	"textdomain": "yamabiko-editor-tools",
+	"attributes": {
+		"message": {
+			"type": "string",
+			"default": ""
+		},
+		"tone": {
+			"type": "string",
+			"enum": [ "info", "tip", "warning" ],
+			"default": "info"
+		}
+	},
+	"supports": {
+		"html": false
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"render": "file:./render.php"
+}
