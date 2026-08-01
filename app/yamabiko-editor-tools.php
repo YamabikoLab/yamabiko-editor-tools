@@ -1,17 +1,17 @@
 <?php
 /**
- * Plugin Name: Yamabiko Blocks
- * Description: A foundation plugin for YamabikoLab block development.
+ * Plugin Name: Yamabiko Editor Tools
+ * Description: Editor tools for intuitive content structure editing.
  * Version: 0.1.0
  * Requires at least: 6.8
  * Requires PHP: 8.1
  * Author: YamabikoLab
- * Text Domain: yamabiko-blocks
+ * Text Domain: yamabiko-editor-tools
  */
 
 declare( strict_types = 1 );
 
-namespace YamabikoLab\Blocks;
+namespace YamabikoLab\EditorTools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

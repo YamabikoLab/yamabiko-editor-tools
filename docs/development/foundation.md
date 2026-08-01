@@ -1,12 +1,12 @@
 # Development foundation
 
-This document defines the cross-cutting rules for Yamabiko Blocks. Working instructions live in `AGENTS.md` files; validation commands live in `testing.md`; source placement lives in `source-organization.md`.
+This document defines the cross-cutting rules for Yamabiko Editor Tools. Working instructions live in `AGENTS.md` files; validation commands live in `testing.md`; source placement lives in `source-organization.md`.
 
 ## Product boundary
 
-Yamabiko Blocks improves content structure editing in the WordPress block editor.
+Yamabiko Editor Tools is a WordPress plugin for site creators. It complements Gutenberg with blocks and editor extensions that improve content creation. The first product area is document structure and outline improvement.
 
-`app/` is the WordPress plugin root. The current development environment uses WordPress 7.0.2 and PHP 8.3. Published minimum versions must stay aligned with the metadata in `app/yamabiko-blocks.php`.
+`app/` is the WordPress plugin root. The current development environment uses WordPress 7.0.2 and PHP 8.3. Published minimum versions must stay aligned with the metadata in `app/yamabiko-editor-tools.php`.
 
 Do not document or implement future systems such as drag-and-drop, REST endpoints, custom HMR, persistence, telemetry, or distribution flows until an issue requires them.
 
@@ -16,15 +16,15 @@ Use these identifiers consistently:
 
 | Surface | Form |
 | --- | --- |
-| Plugin slug and text domain | `yamabiko-blocks` |
-| PHP namespace | `YamabikoLab\Blocks\` |
-| Global PHP function prefix | `yamabiko_blocks_` |
-| PHP constant prefix | `YAMABIKO_BLOCKS_` |
-| Action and filter prefix | `yamabiko-blocks/` |
-| REST namespace | `yamabiko-blocks/v1` |
-| Script and style handle prefix | `yamabiko-blocks-` |
-| Block namespace | `yamabiko-blocks/` |
-| CSS class prefix | `yamabiko-blocks-` |
+| Plugin slug and text domain | `yamabiko-editor-tools` |
+| PHP namespace | `YamabikoLab\EditorTools\` |
+| Global PHP function prefix | `yamabiko_editor_tools_` |
+| PHP constant prefix | `YAMABIKO_EDITOR_TOOLS_` |
+| Action and filter prefix | `yamabiko-editor-tools/` |
+| REST namespace | `yamabiko-editor-tools/v1` |
+| Script and style handle prefix | `yamabiko-editor-tools-` |
+| Block namespace | `yamabiko-editor-tools/` |
+| CSS class prefix | `yamabiko-editor-tools-` |
 
 Released block names, attributes, saved markup, persisted keys, and public hooks are compatibility contracts. Change them only with an explicit migration or compatibility decision.
 
@@ -49,7 +49,7 @@ Released block names, attributes, saved markup, persisted keys, and public hooks
 
 ## Internationalization and accessibility
 
-- Translate user-visible strings with the `yamabiko-blocks` text domain.
+- Translate user-visible strings with the `yamabiko-editor-tools` text domain.
 - Put dynamic values in placeholders and escape output for its final context.
 - Prefer semantic HTML and WordPress UI primitives.
 - Support keyboard operation and visible focus.
@@ -65,6 +65,6 @@ Released block names, attributes, saved markup, persisted keys, and public hooks
 
 ## Source and validation
 
-- Follow `source-organization.md` for Feature First ownership, entries, tests, and shared code.
+- Follow `source-organization.md` for feature ownership, entries, tests, and shared code.
 - Follow `testing.md` for the commands that currently exist.
 - Update these documents when the actual structure or command surface changes.

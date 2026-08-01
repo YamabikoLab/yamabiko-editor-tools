@@ -1,6 +1,6 @@
 {
-	"name": "yamabikolab/yamabiko-blocks",
-	"description": "WordPress blocks for intuitive content structure editing.",
+	"name": "yamabikolab/yamabiko-editor-tools",
+	"description": "WordPress editor tools for intuitive content structure editing.",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
 	"require-dev": {
