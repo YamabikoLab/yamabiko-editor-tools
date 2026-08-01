@@ -55,7 +55,7 @@ composer validate --strict
 Check the main plugin file for syntax errors:
 
 ```bash
-php -l yamabiko-blocks.php
+php -l yamabiko-editor-tools.php
 ```
 
 Check WordPress coding standards:
