@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="Yamabiko Blocks">
-	<description>WordPress Coding Standards for Yamabiko Blocks.</description>
+<ruleset name="Yamabiko Editor Tools">
+	<description>WordPress Coding Standards for Yamabiko Editor Tools.</description>
 
 	<file>.</file>
 
