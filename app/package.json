@@ -6,6 +6,7 @@
 		"start": "wp-scripts start --hot --blocks-manifest",
 		"build": "wp-scripts build --blocks-manifest",
 		"format": "wp-scripts format",
+		"format:check": "prettier --check .",
 		"lint:js": "wp-scripts lint-js",
 		"typecheck": "tsc --noEmit"
 	},
