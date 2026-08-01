@@ -49,4 +49,4 @@ $wrapper_attributes = get_block_wrapper_attributes(
 	array( 'class' => 'yamabiko-editor-tools-notice is-tone-' . $tone )
 );
 ?>
-<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><div class="yamabiko-editor-tools-notice__label"><strong><?php echo esc_html( $labels[ $tone ] ); ?></strong></div><div class="yamabiko-editor-tools-notice__message"><?php echo $message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div></div>
+<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><div class="yamabiko-editor-tools-notice-label"><strong><?php echo esc_html( $labels[ $tone ] ); ?></strong></div><div class="yamabiko-editor-tools-notice-message"><?php echo $message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div></div>
