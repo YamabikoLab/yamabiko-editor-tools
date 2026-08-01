@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const appDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packagePath = path.join(appDirectory, 'package.json');
+const packageLockPath = path.join(appDirectory, 'package-lock.json');
 const pluginPath = path.join(appDirectory, 'yamabiko-editor-tools.php');
 const blocksDirectory = path.join(appDirectory, 'src', 'blocks');
 const versionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
@@ -28,6 +29,7 @@ async function findBlockMetadata(directory) {
 
 async function readVersions() {
 	const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
+	const packageLock = JSON.parse(await readFile(packageLockPath, 'utf8'));
 	const pluginContents = await readFile(pluginPath, 'utf8');
 	const pluginMatch = pluginContents.match(/^ \* Version: (.+)$/m);
 
@@ -37,6 +39,8 @@ async function readVersions() {
 
 	const versions = new Map([
 		['package.json', packageJson.version],
+		['package-lock.json', packageLock.version],
+		['package-lock.json packages root', packageLock.packages?.['']?.version],
 		['yamabiko-editor-tools.php', pluginMatch[1]],
 	]);
 
@@ -73,6 +77,11 @@ async function setVersion(version) {
 	const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
 	packageJson.version = version;
 	await writeFile(packagePath, `${JSON.stringify(packageJson, null, '\t')}\n`);
+
+	const packageLock = JSON.parse(await readFile(packageLockPath, 'utf8'));
+	packageLock.version = version;
+	packageLock.packages[''].version = version;
+	await writeFile(packageLockPath, `${JSON.stringify(packageLock, null, '\t')}\n`);
 
 	const pluginContents = await readFile(pluginPath, 'utf8');
 	await writeFile(
