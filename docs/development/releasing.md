@@ -15,6 +15,7 @@ Choose the next version according to the change:
 The following version fields must match:
 
 - `app/package.json`
+- `app/package-lock.json`
 - `app/yamabiko-editor-tools.php`
 - every `app/src/**/block.json`
 
