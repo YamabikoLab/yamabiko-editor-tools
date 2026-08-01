@@ -15,6 +15,7 @@ These instructions apply to the entire repository.
 - Read `docs/development/source-organization.md` before adding or moving source files.
 - Read `docs/development/testing.md` before selecting validation commands.
 - Read `docs/development/github-cli.md` when using GitHub CLI.
+- Read `docs/development/releasing.md` before updating versions or creating a release tag.
 - Use `docs/plans/TEMPLATE.md` for features or changes that require multiple implementation steps or important design decisions.
 - Simple fixes and documentation-only changes do not require a plan.
 

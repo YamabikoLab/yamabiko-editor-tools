@@ -39,9 +39,12 @@ npm run plugin-zip
 
 `build/` の生成後、`app/yamabiko-editor-tools.zip` が作成されます。
 
+公開時は、バージョンタグを作成するとGitHub ActionsがZIPを生成し、GitHub Releaseへ添付します。手順は[リリース方法](docs/development/releasing.md)を参照してください。
+
 ## ドキュメント
 
 - [開発方針](docs/development/foundation.md)
 - [ソース構成](docs/development/source-organization.md)
 - [検証方法](docs/development/testing.md)
 - [GitHub CLI](docs/development/github-cli.md)
+- [リリース方法](docs/development/releasing.md)
