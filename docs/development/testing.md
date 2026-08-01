@@ -22,6 +22,12 @@ Lint JavaScript and TypeScript:
 npm run lint:js
 ```
 
+Lint CSS and SCSS:
+
+```bash
+npm run lint:css
+```
+
 Check TypeScript types:
 
 ```bash
@@ -40,7 +46,7 @@ Create the production build:
 npm run build
 ```
 
-Use `npm run format` only when intentionally formatting files. It modifies source files and is not a validation command.
+Use `npm run format` or `npm run format:css` only when intentionally formatting files. They modify source files and are not validation commands.
 
 Use `npm start` for the watch-based local development build. It is long-running and is not a completion check.
 
@@ -99,7 +105,7 @@ The manually triggered `.github/workflows/pr-validation.yml` workflow runs the c
 ## Which checks to run
 
 - Documentation-only changes: `git diff --check origin/main...HEAD`.
-- JavaScript, TypeScript, JSON, or block metadata changes: formatting check, lint, typecheck, unit tests, and build.
+- JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes: formatting check, JavaScript lint, style lint, typecheck, unit tests, and build.
 - PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
 - Docker or Dev Container changes: Docker Compose validation plus any focused checks required by the changed files.
 - Mixed changes: combine the applicable groups.
