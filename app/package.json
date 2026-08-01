@@ -2,9 +2,14 @@
 	"name": "yamabiko-editor-tools",
 	"version": "0.1.0",
 	"private": true,
+	"files": [
+		"build/",
+		"yamabiko-editor-tools.php"
+	],
 	"scripts": {
 		"start": "wp-scripts start --hot --blocks-manifest",
 		"build": "wp-scripts build --blocks-manifest",
+		"plugin-zip": "npm run build && wp-scripts plugin-zip",
 		"format": "wp-scripts format",
 		"format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,yml,yaml}\"",
 		"lint:js": "wp-scripts lint-js . --max-warnings=0",
