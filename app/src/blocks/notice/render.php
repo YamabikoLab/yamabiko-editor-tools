@@ -7,7 +7,7 @@
 
 declare( strict_types = 1 );
 
-$tone = isset( $attributes['tone'] ) && is_string( $attributes['tone'] )
+$tone          = isset( $attributes['tone'] ) && is_string( $attributes['tone'] )
 	? $attributes['tone']
 	: 'info';
 $allowed_tones = array( 'info', 'tip', 'warning' );
@@ -40,7 +40,7 @@ if ( '' === trim( wp_strip_all_tags( $message ) ) ) {
 	return;
 }
 
-$labels = array(
+$labels             = array(
 	'info'    => __( 'お知らせ', 'yamabiko-editor-tools' ),
 	'tip'     => __( 'ヒント', 'yamabiko-editor-tools' ),
 	'warning' => __( '注意', 'yamabiko-editor-tools' ),
