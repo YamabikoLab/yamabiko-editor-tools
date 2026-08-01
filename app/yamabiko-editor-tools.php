@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: Yamabiko Editor Tools
  * Description: Editor tools for intuitive content structure editing.
@@ -9,7 +10,7 @@
  * Text Domain: yamabiko-editor-tools
  */
 
-declare( strict_types = 1 );
+declare(strict_types=1);
 
 namespace YamabikoLab\EditorTools;
 
@@ -18,20 +19,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Plugin {
+
 	public static function init(): void {
 		add_action( 'init', array( self::class, 'register_blocks' ) );
 	}
 
 	public static function register_blocks(): void {
-		$build_path    = __DIR__ . '/build';
-		$manifest_path = $build_path . '/blocks-manifest.php';
+		$blocks_path   = __DIR__ . '/build/blocks';
+		$manifest_path = __DIR__ . '/build/blocks-manifest.php';
 
-		if ( ! is_readable( $manifest_path ) ) {
+		if ( ! is_readable( $manifest_path ) || ! is_dir( $blocks_path ) ) {
 			return;
 		}
 
 		wp_register_block_types_from_metadata_collection(
-			$build_path,
+			$blocks_path,
 			$manifest_path
 		);
 	}
