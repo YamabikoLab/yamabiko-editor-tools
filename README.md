@@ -28,6 +28,17 @@ npm run build
 
 WordPressは `http://127.0.0.1:8080` で開きます。
 
+## 配布用ZIPを生成する
+
+コンテナ内で次を実行します。
+
+```bash
+cd app
+npm run plugin-zip
+```
+
+`build/` の生成後、`app/yamabiko-editor-tools.zip` が作成されます。
+
 ## ドキュメント
 
 - [開発方針](docs/development/foundation.md)
