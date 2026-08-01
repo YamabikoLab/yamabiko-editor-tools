@@ -1,8 +1,4 @@
-import {
-	InspectorControls,
-	RichText,
-	useBlockProps,
-} from '@wordpress/block-editor';
+import { InspectorControls, RichText, useBlockProps } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { PanelBody, RadioControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -14,10 +10,7 @@ type NoticeAttributes = Record< string, unknown > & {
 	tone: NoticeTone;
 };
 
-export function Edit( {
-	attributes,
-	setAttributes,
-}: BlockEditProps< NoticeAttributes > ) {
+export function Edit( { attributes, setAttributes }: BlockEditProps< NoticeAttributes > ) {
 	const tone = normalizeTone( attributes.tone );
 	const toneLabels: Record< NoticeTone, string > = {
 		info: __( 'お知らせ', 'yamabiko-editor-tools' ),
@@ -34,9 +27,7 @@ export function Edit( {
 				<PanelBody title={ __( '表示設定', 'yamabiko-editor-tools' ) }>
 					<RadioControl
 						label={ __( '表示種別', 'yamabiko-editor-tools' ) }
-						onChange={ ( value ) =>
-							setAttributes( { tone: normalizeTone( value ) } )
-						}
+						onChange={ ( value ) => setAttributes( { tone: normalizeTone( value ) } ) }
 						options={ noticeTones.map( ( value ) => ( {
 							label: toneLabels[ value ],
 							value,
