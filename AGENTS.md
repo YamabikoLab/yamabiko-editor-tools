@@ -9,6 +9,15 @@ These instructions apply to the entire repository.
 - `docs/development/` explains development principles and the reasons behind them.
 - Read `app/AGENTS.md` before changing files under `app/`.
 
+## Development documentation
+
+- Read `docs/development/foundation.md` for repository-wide development principles.
+- Read `docs/development/source-organization.md` before adding or moving source files.
+- Read `docs/development/testing.md` before selecting validation commands.
+- Read `docs/development/github-cli.md` when using GitHub CLI.
+- Use `docs/plans/TEMPLATE.md` for features or changes that require multiple implementation steps or important design decisions.
+- Simple fixes and documentation-only changes do not require a plan.
+
 ## Working rules
 
 - Make the smallest change that fully satisfies the current issue.
