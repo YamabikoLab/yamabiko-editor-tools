@@ -1,4 +1,4 @@
-# Yamabiko Blocks repository instructions
+# Yamabiko Editor Tools repository instructions
 
 These instructions apply to the entire repository.
 
