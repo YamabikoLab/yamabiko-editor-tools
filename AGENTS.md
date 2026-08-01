@@ -79,6 +79,8 @@ Do not run an alternative or broaden the scope without approval when the choice 
 - When files were changed, commands were run, or an implementation plan was produced, end the final response with a Japanese Markdown summary.
 - Do not add the structured summary to simple questions, explanations, or requests that do not perform repository work.
 - Include `Work performed`, `Changed files`, `Commands run`, `Decision rationale`, `Open items`, and `Next steps`.
+- When changes are pushed, include `<repository-url>/compare/<starting-sha>..<pushed-sha>` in the final response.
+- Report up to three inefficient activities, such as large reads, repeated searches, or unnecessary command output.
 - Under `Commands run`, list every shell command actually run and its result (`success`, `failure`, or `interrupted`), including failed or interrupted commands. Preserve the command form so `logcut` use is visible while following the existing personal-environment and secret-handling rules.
 - Write `None` only when a required field has nothing to report.
 
