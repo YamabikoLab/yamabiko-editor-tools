@@ -1,4 +1,4 @@
-# Yamabiko Outline PRD
+# Yamabiko Outline 要件定義書
 
 ## 1. 文書情報
 
