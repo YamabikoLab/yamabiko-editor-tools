@@ -56,7 +56,7 @@ Use the following top-level directories when their first real feature exists:
 src/
 ├── blocks/             # blocks
 ├── formats/            # rich-text formats
-├── editor-extensions/     # editor plugins and editor-wide extensions
+├── editor-extensions/  # sidebars and other editor-wide extensions
 └── shared/             # proven cross-feature code only
 ```
 
