@@ -5,8 +5,8 @@ These instructions apply to the entire repository.
 ## Repository boundaries
 
 - The repository root is the WordPress plugin root.
-- `src/` contains plugin source files. Read `src/AGENTS.md` before changing files under `src/`.
-- The local WordPress development environment is maintained in the separate `YamabikoLab/wp-dev` repository.
+- `src/` contains product source code. Read `src/AGENTS.md` before changing files under `src/`.
+- Local WordPress development infrastructure is maintained in the separate `YamabikoLab/wp-dev` repository.
 - `docs/development/` explains development principles and the reasons behind them.
 
 ## Development documentation
@@ -96,5 +96,11 @@ Do not run an alternative or broaden the scope without approval when the choice 
 
 ## Command output
 
+- Use `logcut` only after the execution-environment check confirms Codex is running inside the Dev Container.
+- On the host, run the normal command. To invoke the wrapper from the host, use the command documented by the active development environment.
+- Use `logcut` only for finite commands whose successful output is not needed.
+- Never use `logcut` for commands containing tokens, passwords, Authorization headers, signed URLs, or other secrets. The wrapper omits arguments from its status lines, but the executed command can still write sensitive values to its retained failure log.
+- When `logcut` fails, inspect its summary first, then read only the relevant section of the preserved full log when additional context is required.
+- Do not rerun a failed command solely to obtain output already available in its preserved log.
 - For diagnostic or query commands, constrain output at the source with paths, filters, formats, ranges, counts, time windows, or failed-only options.
 - Follow the `YamabikoLab/wp-dev` documentation for commands that operate the local WordPress development environment.
