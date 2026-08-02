@@ -1,3 +1,0 @@
-include:
-  - path: ../../docker/compose.environment.yaml
-    env_file: ../../environments/wp702-default.env
