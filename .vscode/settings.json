@@ -9,12 +9,6 @@
 	"accessibility.signals.chatResponseReceived": {
 		"sound": "on"
 	},
-	"eslint.workingDirectories": [
-		{
-			"directory": "app",
-			"changeProcessCWD": true
-		}
-	],
 	"intelephense.environment.includePaths": [
 		"/var/www/html",
 		"/var/www/html/wp-admin",
