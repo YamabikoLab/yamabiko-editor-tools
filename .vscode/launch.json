@@ -6,12 +6,11 @@
       "request": "launch",
       "name": "Launch WordPress (Chrome)",
       "url": "${env:WORDPRESS_SITE_URL}",
-      "webRoot": "${workspaceFolder}/app",
+      "webRoot": "${workspaceFolder}",
       "sourceMapPathOverrides": {
-        "webpack:///./*": "${workspaceFolder}/app/*",
-        "webpack:///*": "${workspaceFolder}/app/*",
-        "vite:///*": "${workspaceFolder}/app/*",
-        "/src/*": "${workspaceFolder}/app/*",
+        "webpack:///./*": "${workspaceFolder}/*",
+        "webpack:///*": "${workspaceFolder}/*",
+        "/src/*": "${workspaceFolder}/*",
         "/*": "${workspaceFolder}/*"
       }
     },
