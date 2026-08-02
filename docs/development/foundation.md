@@ -8,7 +8,7 @@ Yamabiko Editor Tools is a WordPress plugin for site creators. It complements Gu
 
 The repository root is the WordPress plugin root. Published minimum versions must stay aligned with the metadata in `yamabiko-editor-tools.php`.
 
-Local WordPress, PHP, Docker, and Dev Container configuration is maintained in the separate `YamabikoLab/wp-dev` repository. This repository contains only the plugin, its product documentation, tests, and release automation.
+Local WordPress, PHP, Docker, and Dev Container configuration is maintained in the separate `YamabikoLab/wp-dev` repository. This repository maintains the plugin itself and its product documentation, tests, and release automation.
 
 Do not document or implement future systems such as drag-and-drop, REST endpoints, custom HMR, persistence, telemetry, or distribution flows until an issue requires them.
 
