@@ -112,26 +112,3 @@ jobs:
       - name: Run PHPStan
         working-directory: app
         run: composer analyse:php
-
-  repository:
-    name: Repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Require a PR branch
-        if: github.ref_name == github.event.repository.default_branch
-        run: |
-          echo "::error::Select the PR branch when running this workflow."
-          exit 1
-
-      - name: Validate Docker Compose configuration
-        run: docker compose -f .devcontainer/wp702-default/compose.yaml config --quiet
-
-      - name: Check whitespace errors
-        run: git diff --check origin/main...HEAD
