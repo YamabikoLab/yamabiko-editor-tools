@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 24.5.0
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Verify npm version
         run: |
@@ -36,11 +36,9 @@ jobs:
           fi
 
       - name: Install dependencies
-        working-directory: app
         run: npm ci
 
       - name: Verify release version
-        working-directory: app
         env:
           TAG_NAME: ${{ github.ref_name }}
         run: |
@@ -60,7 +58,6 @@ jobs:
           npm run version:check
 
       - name: Build release ZIP
-        working-directory: app
         run: npm run plugin-zip
 
       - name: Create GitHub Release
@@ -68,7 +65,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            app/yamabiko-editor-tools.zip \
+            yamabiko-editor-tools.zip \
             --verify-tag \
             --generate-notes \
             --title "${GITHUB_REF_NAME}"
