@@ -56,7 +56,7 @@ Use the following top-level directories when their first real feature exists:
 src/
 ├── blocks/             # blocks
 ├── formats/            # rich-text formats
-├── editor-plugins/     # editor plugins and editor-wide extensions
+├── editor-extensions/     # editor plugins and editor-wide extensions
 └── shared/             # proven cross-feature code only
 ```
 
@@ -65,7 +65,7 @@ Use lowercase kebab-case feature directory names.
 ```text
 src/blocks/<block-name>/
 src/formats/<format-name>/
-src/editor-plugins/<extension-name>/
+src/editor-extensions/<extension-name>/
 ```
 
 Do not organize implementations into language-oriented trees such as `php/`, `js/`, `styles/`, or `includes/`. A developer should be able to find everything owned by one feature in one place.
