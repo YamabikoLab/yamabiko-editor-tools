@@ -43,7 +43,7 @@ These instructions apply to the entire repository.
 
 ## External tool boundaries
 
-- Distinguish failures caused by repository code or configuration from limitations, defects, or compatibility differences in external tools such as Docker and act, or in the separate local development environment.
+- Distinguish failures caused by repository code or configuration from limitations, defects, or compatibility differences in external tools such as Docker, act, and Dev Containers. The local environment configuration for these tools is maintained in the separate `YamabikoLab/wp-dev` repository.
 - When the available evidence reasonably places the root cause outside the repository, report the evidence and impact, then stop instead of spending extended time investigating the external tool or implementing workarounds.
 - Treat GitHub-hosted GitHub Actions runs as the authoritative CI result. Use act only as an optional local feedback tool.
 - Do not change product code or GitHub Actions workflows solely to accommodate an act-specific or other external-tool-specific failure.
@@ -82,7 +82,7 @@ Do not run an alternative or broaden the scope without approval when the choice 
 - Include `Work performed`, `Changed files`, `Commands run`, `Decision rationale`, `Open items`, and `Next steps`.
 - When changes are pushed, include `<repository-url>/compare/<starting-sha>..<pushed-sha>` in the final response.
 - Report up to three inefficient activities, such as large reads, repeated searches, or unnecessary command output.
-- Under `Commands run`, list every shell command actually run and its result (`success`, `failure`, or `interrupted`), including failed or interrupted commands. Preserve the command form while following the existing personal-environment and secret-handling rules.
+- Under `Commands run`, list every shell command actually run and its result (`success`, `failure`, or `interrupted`), including failed or interrupted commands. Preserve the command form so `logcut` use is visible while following the existing personal-environment and secret-handling rules.
 - Write `None` only when a required field has nothing to report.
 
 ## Efficient workflow
@@ -103,4 +103,6 @@ Do not run an alternative or broaden the scope without approval when the choice 
 - When `logcut` fails, inspect its summary first, then read only the relevant section of the preserved full log when additional context is required.
 - Do not rerun a failed command solely to obtain output already available in its preserved log.
 - For diagnostic or query commands, constrain output at the source with paths, filters, formats, ranges, counts, time windows, or failed-only options.
+- This includes Docker inspection and log commands such as `docker ps`, `docker inspect`, and `docker logs`; do not wrap them with `logcut`.
+- Do not use `logcut` for interactive, watch-mode, streaming, or long-running development commands.
 - Follow the `YamabikoLab/wp-dev` documentation for commands that operate the local WordPress development environment.
