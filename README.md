@@ -6,40 +6,76 @@
 
 現在は開発中です。
 
-## 開発を始める
-
-必要なもの:
-
-- Docker Engine
-- Docker Compose 2.20.0以上
-- Visual Studio Code
-- VS Code Dev Containers拡張機能
-
-VS Codeでリポジトリを開き、コマンドパレットから `Dev Containers: Reopen in Container` を実行して `Yamabiko Editor Tools: wp702-default` を選択します。
-
-コンテナ内で次を実行します。
+## Install dependencies
 
 ```bash
-cd app
 npm ci
 composer install
+```
+
+## Start development mode
+
+```bash
+npm start
+```
+
+The local WordPress development environment enables `SCRIPT_DEBUG`, and `wp-scripts start --hot` watches files under `src/` and rebuilds blocks when they change.
+
+The local WordPress development environment, including its configuration, startup procedure, and plugin placement, is maintained in the separate [YamabikoLab/wp-dev](https://github.com/YamabikoLab/wp-dev) repository.
+
+## Create a production build
+
+```bash
 npm run build
 ```
 
-WordPressは `http://127.0.0.1:8080` で開きます。
+Build output is written to `build/`. The generated block manifest is loaded by `yamabiko-editor-tools.php`.
 
-## 配布用ZIPを生成する
-
-コンテナ内で次を実行します。
+## Check the code
 
 ```bash
-cd app
-npm run plugin-zip
+npm run format:check
+npm run lint:js
+npm run lint:css
+npm run typecheck
+composer lint:php
+composer analyse:php
 ```
 
-`build/` の生成後、`app/yamabiko-editor-tools.zip` が作成されます。
+These commands only inspect files and do not rewrite them.
 
-公開時は、バージョンタグを作成するとGitHub ActionsがZIPを生成し、GitHub Releaseへ添付します。手順は[リリース方法](docs/development/releasing.md)を参照してください。
+Apply automatic fixes separately when needed:
+
+```bash
+npm run format
+npm run format:css
+composer format:php
+```
+
+Review every automatic change before committing it.
+
+When Plugin Check is installed in the WordPress environment provided by `YamabikoLab/wp-dev`, it can also be run as a complementary check:
+
+```bash
+wp plugin check yamabiko-editor-tools
+```
+
+Plugin Check does not replace the coding-standard commands above.
+
+## Add a block
+
+Create each block in its own directory under `src/blocks/` and include a `block.json` file.
+
+```text
+src/blocks/
+└── notice/
+    ├── block.json
+    └── index.tsx
+```
+
+The build command discovers block metadata under `src/` and generates the files required for WordPress registration.
+
+After building, activate **Yamabiko Editor Tools** in WordPress and confirm that the block is available in the block editor.
 
 ## ドキュメント
 

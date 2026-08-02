@@ -1,6 +1,6 @@
 # Testing and validation
 
-Run application commands from `app/`. Use the narrowest relevant checks while working, then run the applicable non-mutating checks before handoff.
+Run application commands from the repository root. Use the narrowest relevant checks while working, then run the applicable non-mutating checks before handoff.
 
 ## Node.js
 
@@ -88,26 +88,21 @@ Use `composer format:php` only when intentionally applying automatic fixes.
 
 Run these commands from the repository root.
 
-Validate the reference Docker Compose configuration:
-
-```bash
-docker compose -f .devcontainer/wp702-default/compose.yaml config --quiet
-```
-
 Check changed lines for whitespace errors:
 
 ```bash
 git diff --check origin/main...HEAD
 ```
 
-The manually triggered `.github/workflows/pr-validation.yml` workflow runs the current Node.js, PHP, and repository checks on GitHub Actions.
+The manually triggered `.github/workflows/pr-validation.yml` workflow runs the current Node.js and PHP checks on GitHub Actions. Run the repository check above separately before handoff.
 
 ## Which checks to run
 
 - Documentation-only changes: `git diff --check origin/main...HEAD`.
 - JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes: formatting check, JavaScript lint, style lint, typecheck, unit tests, and build.
 - PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
-- Docker or Dev Container changes: Docker Compose validation plus any focused checks required by the changed files.
 - Mixed changes: combine the applicable groups.
+
+For checks that require a local WordPress environment, follow the commands documented in the separate `YamabikoLab/wp-dev` repository.
 
 Do not claim checks were run when they were skipped or unavailable. Record the reason when an applicable check cannot be executed.

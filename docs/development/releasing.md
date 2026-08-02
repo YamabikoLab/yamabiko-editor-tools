@@ -14,12 +14,12 @@ Choose the next version according to the change:
 
 The following version fields must match:
 
-- `app/package.json`
-- `app/package-lock.json`
-- `app/yamabiko-editor-tools.php`
-- every `app/src/**/block.json`
+- `package.json`
+- `package-lock.json`
+- `yamabiko-editor-tools.php`
+- every `src/**/block.json`
 
-From `app/`, update them together with:
+From the repository root, update them together with:
 
 ```bash
 npm run version:set -- 0.2.0

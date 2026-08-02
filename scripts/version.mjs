@@ -3,11 +3,11 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const appDirectory = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
-const packagePath = path.join( appDirectory, 'package.json' );
-const packageLockPath = path.join( appDirectory, 'package-lock.json' );
-const pluginPath = path.join( appDirectory, 'yamabiko-editor-tools.php' );
-const blocksDirectory = path.join( appDirectory, 'src', 'blocks' );
+const repositoryRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
+const packagePath = path.join( repositoryRoot, 'package.json' );
+const packageLockPath = path.join( repositoryRoot, 'package-lock.json' );
+const pluginPath = path.join( repositoryRoot, 'yamabiko-editor-tools.php' );
+const blocksDirectory = path.join( repositoryRoot, 'src', 'blocks' );
 const versionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 async function findBlockMetadata( directory ) {
@@ -46,7 +46,7 @@ async function readVersions() {
 
 	for ( const metadataPath of await findBlockMetadata( blocksDirectory ) ) {
 		const metadata = JSON.parse( await readFile( metadataPath, 'utf8' ) );
-		versions.set( path.relative( appDirectory, metadataPath ), metadata.version );
+		versions.set( path.relative( repositoryRoot, metadataPath ), metadata.version );
 	}
 
 	return versions;

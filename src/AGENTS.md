@@ -1,11 +1,11 @@
 # Yamabiko Editor Tools plugin instructions
 
-These instructions apply to the WordPress plugin under `app/`.
+These instructions apply to plugin source files under `src/`.
 
 ## Plugin root
 
-- `app/` is the plugin root.
-- Run npm, Composer, PHP, and build commands from `app/`.
+- The repository root is the plugin root.
+- Run npm, Composer, PHP, and build commands from the repository root.
 - Source files live under `src/`; generated production assets live under `build/` and are not committed.
 
 ## Implementation rules

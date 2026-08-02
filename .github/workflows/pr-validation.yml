@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: 24.5.0
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Verify npm version
         run: |
@@ -42,31 +42,24 @@ jobs:
           fi
 
       - name: Install dependencies
-        working-directory: app
         run: npm ci
 
       - name: Check formatting
-        working-directory: app
         run: npm run format:check
 
       - name: Lint JavaScript and TypeScript
-        working-directory: app
         run: npm run lint:js
 
       - name: Lint CSS and SCSS
-        working-directory: app
         run: npm run lint:css
 
       - name: Type-check
-        working-directory: app
         run: npm run typecheck
 
       - name: Run unit tests
-        working-directory: app
         run: npm run test:unit
 
       - name: Build
-        working-directory: app
         run: npm run build
 
   php:
@@ -89,49 +82,21 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.3"
+          php-version: '8.3'
           tools: composer:v2
           coverage: none
 
       - name: Validate Composer configuration
-        working-directory: app
         run: composer validate --strict
 
       - name: Install Composer dependencies
-        working-directory: app
         run: composer install --no-interaction --prefer-dist
 
       - name: Check PHP syntax
-        working-directory: app
         run: php -l yamabiko-editor-tools.php
 
       - name: Check PHP coding standards
-        working-directory: app
         run: composer lint:php
 
       - name: Run PHPStan
-        working-directory: app
         run: composer analyse:php
-
-  repository:
-    name: Repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Require a PR branch
-        if: github.ref_name == github.event.repository.default_branch
-        run: |
-          echo "::error::Select the PR branch when running this workflow."
-          exit 1
-
-      - name: Validate Docker Compose configuration
-        run: docker compose -f .devcontainer/wp702-default/compose.yaml config --quiet
-
-      - name: Check whitespace errors
-        run: git diff --check origin/main...HEAD
