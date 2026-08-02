@@ -94,7 +94,7 @@ Check changed lines for whitespace errors:
 git diff --check origin/main...HEAD
 ```
 
-The manually triggered `.github/workflows/pr-validation.yml` workflow runs the current Node.js, PHP, and repository checks on GitHub Actions.
+The manually triggered `.github/workflows/pr-validation.yml` workflow runs the current Node.js and PHP checks on GitHub Actions. Run the repository check above separately before handoff.
 
 ## Which checks to run
 
