@@ -19,7 +19,9 @@ composer install
 npm start
 ```
 
-The local WordPress container enables `SCRIPT_DEBUG`, and `wp-scripts start --hot` watches files under `src/` and rebuilds blocks when they change.
+`wp-scripts start --hot` watches files under `src/` and rebuilds blocks when they change.
+
+The local WordPress development environment, including its startup procedure and plugin placement, is maintained in the separate [YamabikoLab/wp-dev](https://github.com/YamabikoLab/wp-dev) repository.
 
 ## Create a production build
 
@@ -51,14 +53,6 @@ composer format:php
 ```
 
 Review every automatic change before committing it.
-
-When Plugin Check is installed in the development WordPress environment, it can also be run as a complementary check:
-
-```bash
-wp plugin check yamabiko-editor-tools
-```
-
-Plugin Check does not replace the coding-standard commands above.
 
 ## Add a block
 

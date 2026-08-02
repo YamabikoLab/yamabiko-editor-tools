@@ -6,7 +6,7 @@ This document defines the cross-cutting rules for Yamabiko Editor Tools. Working
 
 Yamabiko Editor Tools is a WordPress plugin for site creators. It complements Gutenberg with blocks and editor extensions that improve content creation. The first product area is document structure and outline improvement.
 
-`app/` is the WordPress plugin root. The current development environment uses WordPress 7.0.2 and PHP 8.3. Published minimum versions must stay aligned with the metadata in `app/yamabiko-editor-tools.php`.
+The repository root is the WordPress plugin root. The local WordPress development environment is maintained in the separate `YamabikoLab/wp-dev` repository. Published minimum versions must stay aligned with the metadata in `yamabiko-editor-tools.php`.
 
 Do not document or implement future systems such as drag-and-drop, REST endpoints, custom HMR, persistence, telemetry, or distribution flows until an issue requires them.
 
