@@ -4,10 +4,11 @@ These instructions apply to the entire repository.
 
 ## Repository boundaries
 
-- `app/` is the WordPress plugin root. There is no nested `app/plugin/` directory.
-- `.devcontainer/`, `docker/`, and `environments/` contain local development infrastructure.
+- The repository root is the WordPress plugin root.
+- `src/` contains product source code.
 - `docs/development/` explains development principles and the reasons behind them.
-- Read `app/AGENTS.md` before changing files under `app/`.
+- Read `src/AGENTS.md` before changing files under `src/`.
+- Local development infrastructure is maintained in the separate `YamabikoLab/wp-dev` repository.
 
 ## Development documentation
 
@@ -24,7 +25,7 @@ These instructions apply to the entire repository.
 - Make the smallest change that fully satisfies the current issue.
 - Keep documentation aligned with the code, commands, and directories that exist on the current branch.
 - Do not add placeholder directories or describe unimplemented systems as available.
-- Do not commit generated dependencies or build output such as `node_modules/`, `app/vendor/`, or `app/build/`.
+- Do not commit generated dependencies or build output such as `node_modules/`, `vendor/`, or `build/`.
 - Do not commit secrets, credentials, personal paths, machine names, or other local-only environment details.
 - Preserve released identifiers and saved content unless the issue explicitly includes a compatibility decision.
 
@@ -97,7 +98,7 @@ Do not run an alternative or broaden the scope without approval when the choice 
 ## Command output
 
 - Use `logcut` only after the execution-environment check confirms Codex is running inside the Dev Container.
-- On the host, run the normal command. To invoke the wrapper from the host, use `docker compose exec --user www-data wordpress logcut <command> ...`.
+- On the host, run the normal command. To invoke the wrapper from the host, use the command documented by the active development environment.
 - Use `logcut` only for finite commands whose successful output is not needed.
 - Never use `logcut` for commands containing tokens, passwords, Authorization headers, signed URLs, or other secrets. The wrapper omits arguments from its status lines, but the executed command can still write sensitive values to its retained failure log.
 - When `logcut` fails, inspect its summary first, then read only the relevant section of the preserved full log when additional context is required.
