@@ -23,8 +23,12 @@ gh auth setup-git
 
 ## 認証情報
 
+認証情報の保存場所と管理方法は、利用している開発環境の手順に従います。`YamabikoLab/wp-dev` のDev Containerでは、GitHub CLIの設定をDocker volumeで永続化します。
+
 - トークンや認証済み設定をこのリポジトリまたは `YamabikoLab/wp-dev` リポジトリへコミットしない
-- 認証情報の保存場所と管理方法は、利用している開発環境の手順に従う
+- DockerfileやDockerイメージへ認証情報を埋め込まない
+- GitHub CLIの設定を保存するvolumeは秘密情報として扱う
+- `docker compose down --volumes`はWordPressやDBなど他のデータも削除するため、認証解除だけを目的に実行しない
 
 通常のログアウトは次で行います。
 
