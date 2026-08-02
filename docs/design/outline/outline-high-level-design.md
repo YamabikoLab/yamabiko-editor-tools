@@ -2,15 +2,15 @@
 
 ## 1. 文書情報
 
-| 項目       | 内容                                                   |
-| ---------- | ------------------------------------------------------ |
-| 製品名     | Yamabiko Outline                                       |
-| 対象       | Gutenberg ブロックエディター                           |
-| 文書種別   | 基本設計書                                             |
-| バージョン | 0.8                                                    |
-| ステータス | 基本設計                                               |
-| 関連PRD    | `../requirements/outline/outline-requirements.md` v0.2 |
-| 対象課題   | Gutenberg Issue #71699                                 |
+| 項目       | 内容                                                      |
+| ---------- | --------------------------------------------------------- |
+| 製品名     | Yamabiko Outline                                          |
+| 対象       | Gutenberg ブロックエディター                              |
+| 文書種別   | 基本設計書                                                |
+| バージョン | 0.8                                                       |
+| ステータス | 基本設計                                                  |
+| 関連PRD    | `../../requirements/outline/outline-requirements.md` v0.2 |
+| 対象課題   | Gutenberg Issue #71699                                    |
 
 ## 2. 文書の目的
 
