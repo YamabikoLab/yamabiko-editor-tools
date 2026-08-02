@@ -2,15 +2,15 @@
 
 ## 1. 文書情報
 
-| 項目 | 内容 |
-| --- | --- |
-| 製品名 | Yamabiko Outline |
-| 対象 | Gutenberg ブロックエディター |
-| 文書種別 | 基本設計書 |
-| バージョン | 0.8 |
-| ステータス | 基本設計 |
-| 関連PRD | `../requirements/yamabiko-outline-requirements.md` v0.2 |
-| 対象課題 | Gutenberg Issue #71699 |
+| 項目       | 内容                                                   |
+| ---------- | ------------------------------------------------------ |
+| 製品名     | Yamabiko Outline                                       |
+| 対象       | Gutenberg ブロックエディター                           |
+| 文書種別   | 基本設計書                                             |
+| バージョン | 0.8                                                    |
+| ステータス | 基本設計                                               |
+| 関連PRD    | `../requirements/outline/outline-requirements.md` v0.2 |
+| 対象課題   | Gutenberg Issue #71699                                 |
 
 ## 2. 文書の目的
 
@@ -132,22 +132,22 @@ type OutlineNode = {
   blockName: string;
   level: 1 | 2 | 3 | 4 | 5 | 6;
   text: string;
-  source: 'core-heading' | 'inner-block' | 'adapter' | 'html';
+  source: "core-heading" | "inner-block" | "adapter" | "html";
   navigable: boolean;
 };
 ```
 
 各項目の用途は次のとおりとする。
 
-| 項目 | 用途 |
-| --- | --- |
-| `id` | アウトライン項目の一意な識別 |
-| `blockClientId` | 元ブロックの選択 |
-| `blockName` | アダプター判定と通知 |
-| `level` | 見出し階層の生成と診断 |
-| `text` | サイドバー表示 |
-| `source` | 取得元の識別とデバッグ |
-| `navigable` | 対象ブロックへの移動可否 |
+| 項目            | 用途                         |
+| --------------- | ---------------------------- |
+| `id`            | アウトライン項目の一意な識別 |
+| `blockClientId` | 元ブロックの選択             |
+| `blockName`     | アダプター判定と通知         |
+| `level`         | 見出し階層の生成と診断       |
+| `text`          | サイドバー表示               |
+| `source`        | 取得元の識別とデバッグ       |
+| `navigable`     | 対象ブロックへの移動可否     |
 
 1つのブロックが複数の見出しを持つ場合は、見出しごとに一意な`id`を持つ複数の`OutlineNode`を生成する。
 
@@ -181,7 +181,7 @@ type OutlineNode = {
 
 ```ts
 registerYamabikoOutlineAdapter({
-  blockName: 'example/faq',
+  blockName: "example/faq",
 
   getOutlineNodes(block) {
     return [
@@ -251,12 +251,12 @@ PHPの`render_callback`をアウトライン更新のたびに実行し、生成
 
 次は組み込みResolverまたはParserで処理する。
 
-| ブロック | 処理 |
-| --- | --- |
+| ブロック                 | 処理                                 |
+| ------------------------ | ------------------------------------ |
 | `core/accordion-heading` | 属性から見出しレベルとテキストを取得 |
-| `core/html` | 静的HTMLからH1からH6を抽出 |
-| `core/freeform` | 静的HTMLからH1からH6を抽出 |
-| テスト用カスタムブロック | 内部アダプターで取得 |
+| `core/html`              | 静的HTMLからH1からH6を抽出           |
+| `core/freeform`          | 静的HTMLからH1からH6を抽出           |
+| テスト用カスタムブロック | 内部アダプターで取得                 |
 
 ### 7.3 制限付き処理
 
@@ -310,13 +310,13 @@ PHPの`render_callback`をアウトライン更新のたびに実行し、生成
 
 ### 9.2 診断レベル
 
-| 診断 | レベル |
-| --- | --- |
-| H1の複数使用 | 警告 |
-| 見出しレベルの飛び | 警告 |
-| 空見出し | 警告 |
-| 見出しなし | 情報 |
-| 同一階層の重複見出し | 提案 |
+| 診断                 | レベル |
+| -------------------- | ------ |
+| H1の複数使用         | 警告   |
+| 見出しレベルの飛び   | 警告   |
+| 空見出し             | 警告   |
+| 見出しなし           | 情報   |
+| 同一階層の重複見出し | 提案   |
 
 自動修正は行わない。
 
@@ -362,15 +362,15 @@ PHPの`render_callback`をアウトライン更新のたびに実行し、生成
 
 ### 11.2 責務
 
-| モジュール | 責務 |
-| --- | --- |
-| Document Outline Sidebar | アウトライン、診断、通知の表示 |
-| Block Tree Selector | Data Storeからのブロックツリー取得 |
-| Standard Heading Resolver | 標準Headingの変換 |
-| Outline Adapter Registry | ブロック別アダプターの管理 |
-| HTML Heading Parser | 静的HTMLからの見出し抽出 |
-| Outline Diagnostics | 見出し構造の診断 |
-| Block Navigator | 選択、スクロール、フォーカス |
+| モジュール                | 責務                               |
+| ------------------------- | ---------------------------------- |
+| Document Outline Sidebar  | アウトライン、診断、通知の表示     |
+| Block Tree Selector       | Data Storeからのブロックツリー取得 |
+| Standard Heading Resolver | 標準Headingの変換                  |
+| Outline Adapter Registry  | ブロック別アダプターの管理         |
+| HTML Heading Parser       | 静的HTMLからの見出し抽出           |
+| Outline Diagnostics       | 見出し構造の診断                   |
+| Block Navigator           | 選択、スクロール、フォーカス       |
 
 ## 12. 状態管理と更新
 
