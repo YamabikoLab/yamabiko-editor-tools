@@ -63,7 +63,7 @@
 
 - `props.name === 'core/table'`のときだけTable Reorderを追加する。
 - 元のBlockEditはそのまま描画し、コアTableのセル編集、行・列操作および保存処理を再実装しない。
-- Tableブロックが選択され、本文行が存在するときにブロックツールバーへ「行を並べ替え」を表示する。
+- Tableブロックが選択されたときにブロックツールバーへ「行を並べ替え」を表示する。
 - 並べ替えモードはReactの一時状態として保持し、ブロック属性へ追加しない。
 - 通常時はハンドル、Sensor、SortableおよびDragOverlayを描画しない。
 
@@ -126,11 +126,14 @@
 
 - 各行に対応するUIへ`useSortable({ id, disabled })`を接続する。
 - `setNodeRef`は各sortable行の測定対象へ接続する。
-- `setActivatorNodeRef`、`listeners`および`attributes`はドラッグハンドルの`button`へ接続する。
+- 移動可能な行では、`setActivatorNodeRef`、`listeners`および`attributes`をドラッグハンドルの`button`へ接続する。
 - DnDはハンドルからだけ開始する。
 - ハンドルはキーボードでフォーカス可能にする。
 - ハンドルには対象行と並べ替え操作であることが分かるラベルを付ける。
-- `rowspan`範囲に含まれる行は`disabled`とし、DnDを開始できない状態を色以外でも示す。
+- `rowspan`範囲に含まれる行は`useSortable`を`disabled`にし、dnd-kitの`listeners`を接続しない。
+- `rowspan`範囲に含まれる行のハンドルにはネイティブの`disabled`属性を付けず、`aria-disabled="true"`と無効状態を示す見た目を付けて、キーボードフォーカスを維持する。
+- 無効ハンドルの主ボタン`pointerdown`と`Space`または`Enter`の`keydown`をハンドル側で捕捉し、DnD開始イベントを待たずに`notifyInvalidMove()`を一回だけ呼ぶ。キーボードイベントでは既定動作を抑止し、`event.repeat`による重複通知を行わない。
+- 開始前に拒否されたポインター操作の通知済み状態は`pointerup`または`pointercancel`で、キーボード操作の通知済み状態は対応する`keyup`でリセットする。フォーカスが外れた場合も状態を破棄し、次の独立した操作を新しい移動試行として扱う。
 - ヘッダー行とフッター行へハンドルを追加しない。
 
 コアTableの保存用行データへDnD用ID、クラスまたは属性を追加しない。
@@ -249,22 +252,24 @@ setAttributes({ body: nextBody });
 1. 選択中のブロックが`core/table`であることを確認する。
 2. 「行を並べ替え」で並べ替えモードを開始する。
 3. `attributes.body`、本文行DOMおよび`rowspan`範囲を取得する。
-4. DnD開始時に次を一時状態へ保持する。
+4. `rowspan`範囲内の無効ハンドルから操作された場合は、ハンドル側でポインターまたはキーボードの開始前試行を捕捉し、DnD状態を作らず一回だけエラーを通知する。
+5. 開始前試行の通知済み状態は、ポインターでは`pointerup`または`pointercancel`、キーボードでは対応する`keyup`でリセットする。`blur`またはモード終了でも破棄する。
+6. 移動可能な行からDnDを開始したときに次を一時状態へ保持する。
    - 移動開始前の`body`
    - 移動元ID
    - 移動元インデックス
    - 現在の有効な移動先
    - 同じ移動試行でエラーを通知済みかどうか
-5. 移動元が禁止対象なら開始を拒否し、一回だけエラーを通知する。
-6. DnD中はdnd-kitの一時的な表示とDragOverlayだけを更新する。
-7. 候補変更時に`validateMove()`を呼ぶ。
-8. 無効候補では表データを変更せず、候補を変更せず、一回だけエラーを通知する。
-9. 有効候補では挿入位置とスクリーンリーダー向け現在位置を更新する。
-10. 確定時に`validateMove()`を再実行する。
-11. 有効で順序が変わる場合だけ、開始時`body`から次の配列を作り、`setAttributes({ body: nextBody })`を一回呼ぶ。
-12. 完了通知後にDnD一時状態を破棄する。
-13. キャンセルでは`setAttributes`を呼ばず、一時状態だけを破棄する。
-14. 「並べ替えを終了」でDnDをキャンセルし、ハンドルを外して通常編集へ戻る。
+7. DnD開始時に移動元を再検証し、禁止対象なら開始を拒否して一回だけエラーを通知する。
+8. DnD中はdnd-kitの一時的な表示とDragOverlayだけを更新する。
+9. 候補変更時に`validateMove()`を呼ぶ。
+10. 無効候補では表データを変更せず、候補を変更せず、一回だけエラーを通知する。
+11. 有効候補では挿入位置とスクリーンリーダー向け現在位置を更新する。
+12. 確定時に`validateMove()`を再実行する。
+13. 有効で順序が変わる場合だけ、開始時`body`から次の配列を作り、`setAttributes({ body: nextBody })`を一回呼ぶ。
+14. 完了通知後にDnD一時状態を破棄する。
+15. キャンセルでは`setAttributes`を呼ばず、一時状態だけを破棄する。
+16. 「並べ替えを終了」でDnDをキャンセルし、開始前試行を含む通知済み状態とハンドルを外して通常編集へ戻る。
 
 ### 12. Undo
 
@@ -303,11 +308,20 @@ DnDのアクセシビリティ設定で、次を日本語で通知する。
 
 > 結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。
 
-DnD開始ごとに通知済み状態をリセットし、一回の移動試行中は無効候補が複数回発生しても一回だけ通知する。要件にない画面通知は追加しない。
+通知の重複防止は、開始前に拒否される無効ハンドル操作と、開始後のDnDを別の試行として管理する。
+
+- 無効ハンドルのポインター試行は、主ボタンの`pointerdown`から`pointerup`または`pointercancel`までを一回の移動試行とする。
+- 無効ハンドルのキーボード試行は、`Space`または`Enter`の`keydown`から対応する`keyup`までを一回の移動試行とし、キーリピートでは再通知しない。
+- 無効ハンドルが`blur`した場合、または並べ替えモードを終了した場合は開始前試行の通知済み状態を破棄する。
+- 移動可能な行のDnDでは、DnD開始時に通知済み状態をリセットし、完了またはキャンセルまでに無効候補が複数回発生しても一回だけ通知する。
+- DnDの完了、キャンセルまたはモード終了でDnD側の通知済み状態を破棄する。
+
+要件にない画面通知は追加しない。
 
 ### 14. フォーカス
 
 - ドラッグハンドルはネイティブ`button`とする。
+- `rowspan`範囲内の無効ハンドルにもネイティブの`disabled`属性は付けず、`aria-disabled="true"`で状態を伝えながらフォーカス可能にする。
 - DnD開始時は操作中のハンドルを基準にする。
 - 有効な確定後は、移動後の対象行に対応するハンドルへフォーカスを維持する。
 - キャンセル後は、移動元行のハンドルへフォーカスを戻す。
@@ -335,11 +349,12 @@ Table Reorderは`body`配列の順序以外を変更しない。
 |---|---|---|
 | `package.json` | Update | dnd-kitと、Table Reorderから直接importするWordPressパッケージを依存関係へ追加する。 |
 | `package-lock.json` | Update | 追加依存関係の解決結果を固定する。 |
+| `webpack.config.js` | Add | `@wordpress/scripts`の公開webpack設定を拡張し、既存ブロックの自動検出と`blocks-manifest.php`生成を維持したまま、Table Reorderの非ブロックエントリーを追加する。 |
 | `yamabiko-editor-tools.php` | Update | 生成されたTable Reorderのエディタースクリプト、スタイル、依存関係および翻訳を読み込む。 |
 | `src/editor-extensions/table-reorder/index.tsx` | Add | スタイルをimportし、`editor.BlockEdit`フィルターを登録する薄い入口。 |
 | `src/editor-extensions/table-reorder/with-table-reorder.tsx` | Add | `core/table`への限定、BlockControls、並べ替えモードおよび元のBlockEditとの接続。 |
 | `src/editor-extensions/table-reorder/table-reorder.tsx` | Add | Table DOMの取得、行位置測定、DndContext、DnD一時状態、イベント、確定更新、通知およびモード終了時のキャンセル。 |
-| `src/editor-extensions/table-reorder/sortable-row.tsx` | Add | 各行の`useSortable`接続、ドラッグハンドル、無効状態、挿入位置およびOverlay用表示。 |
+| `src/editor-extensions/table-reorder/sortable-row.tsx` | Add | 各行の`useSortable`接続、ドラッグハンドル、無効状態、開始前の禁止操作捕捉、挿入位置およびOverlay用表示。 |
 | `src/editor-extensions/table-reorder/row-order.ts` | Add | Table行とセルの最小型、`rowspan`範囲抽出、移動可否判定および行配列の並べ替え。 |
 | `src/editor-extensions/table-reorder/row-order.test.ts` | Add | 行順序、属性保持、`rowspan`範囲、禁止条件、`colspan`保持およびno-opのfocused unit test。 |
 | `src/editor-extensions/table-reorder/editor.scss` | Add | ハンドル、フォーカス、無効状態、挿入位置およびDragOverlayのエディター専用スタイル。 |
@@ -371,7 +386,10 @@ editor.BlockEdit filter
   -> toolbar starts reorder mode
   -> read body and locate tbody rows
   -> calculate row geometry and rowspan ranges
-  -> pointer or keyboard DnD starts
+  -> disabled source attempt
+     -> handle intercepts pointer or Space/Enter before dnd-kit
+     -> one error notification, no DnD state
+  -> movable source starts pointer or keyboard DnD
   -> validate source
   -> validate candidate with shared function
      -> invalid: keep candidate + one error notification
@@ -455,18 +473,21 @@ editor.BlockEdit filter
 - Tasks:
   1. 選択Tableブロックの本文行DOMを取得する。
   2. 行高を測定し、左側へハンドルUIを配置する。
-  3. 各行へ`useSortable`、各ハンドルへactivatorを接続する。
-  4. `rowspan`範囲内の行を無効にする。
-  5. PointerSensorとKeyboardSensorを接続する。
-  6. `Space`、`Enter`、`ArrowUp`、`ArrowDown`および`Escape`を確認する。
-  7. 候補変更ごとに`validateMove()`を呼ぶ。
-  8. 無効候補では候補を変更せず、挿入位置を表示しない。
-  9. 有効候補だけ挿入位置を表示する。
-  10. 表示専用行を一つのDragOverlayへ描画する。
+  3. 各行へ`useSortable`、移動可能な各ハンドルへactivatorを接続する。
+  4. `rowspan`範囲内の行は`useSortable`を無効化し、ハンドルをフォーカス可能な`aria-disabled`状態にする。
+  5. 無効ハンドルのポインター押下と`Space`または`Enter`をDnD外で捕捉する。
+  6. PointerSensorとKeyboardSensorを接続する。
+  7. `Space`、`Enter`、`ArrowUp`、`ArrowDown`および`Escape`を確認する。
+  8. 候補変更ごとに`validateMove()`を呼ぶ。
+  9. 無効候補では候補を変更せず、挿入位置を表示しない。
+  10. 有効候補だけ挿入位置を表示する。
+  11. 表示専用行を一つのDragOverlayへ描画する。
 - Validation:
   - 可変高の行でもハンドルが対応行へ揃う。
   - ポインターDnDで有効候補だけ挿入位置が表示される。
   - キーボードDnDで候補が一行ずつ移動する。
+  - `rowspan`範囲内のハンドルへTabでフォーカスでき、`aria-disabled`が伝わる。
+  - 無効ハンドルの操作ではDnDを開始せず、開始前の禁止通知経路を呼ぶ。
   - 禁止位置でポインターの挿入位置を表示しない。
   - 禁止位置でキーボード候補を変更しない。
   - DragOverlay内で`useSortable`を二重登録しない。
@@ -493,15 +514,19 @@ editor.BlockEdit filter
   3. 開始、現在位置、完了およびキャンセルを通知する。
   4. モード開始と終了を通知する。
   5. 禁止操作を一回だけ画面表示および読み上げる。
-  6. 確定後、キャンセル後およびモード終了後のフォーカスを戻す。
-  7. DnD中のモード終了で属性更新なしにキャンセルする。
-  8. モード終了時にSensor、Observerおよび一時状態を破棄する。
+  6. 開始前の無効ハンドル操作と開始後のDnDで通知済み状態を分け、各試行の終了時にリセットする。
+  7. 確定後、キャンセル後およびモード終了後のフォーカスを戻す。
+  8. DnD中のモード終了で属性更新なしにキャンセルする。
+  9. モード終了時にSensor、Observerおよび一時状態を破棄する。
 - Validation:
   - 一回の有効な移動につき`setAttributes`が一回。
   - 一回のUndoで移動前へ戻る。
   - 無効、no-opおよびキャンセルでUndo履歴を増やさない。
-  - 一回の移動試行でエラー通知が一回。
-  - 新しいDnD開始時に通知済み状態がリセットされる。
+  - 無効ハンドルの一回のポインター押下またはキー押下でエラー通知が一回。
+  - `pointerup`、`pointercancel`または対応する`keyup`後の次の操作は新しい試行として一回通知される。
+  - キーリピートでは通知が増えない。
+  - 一回の開始済みDnDでエラー通知が一回。
+  - 新しいDnD開始時にDnD側の通知済み状態がリセットされる。
   - キーボードだけで開始、上下移動、確定およびキャンセルを完了できる。
   - DnD中のモード終了で開始前の順序を維持する。
   - 確定後とキャンセル後に対象ハンドルを操作できる。
@@ -540,7 +565,8 @@ editor.BlockEdit filter
    - ベータ版または内部APIは使用しない。
 
 2. **非ブロックエントリーの出力と読込み**
-   - `@wordpress/scripts`の公開webpack設定拡張方法を使用する。
+   - `webpack.config.js`で`@wordpress/scripts`の公開webpack設定を拡張する。
+   - 既存ブロックの自動検出と`blocks-manifest.php`生成を維持したまま、Table Reorderの非ブロックエントリーを追加する。
    - 一回ビルドし、既存ブロック成果物とTable ReorderのJS、CSS、asset PHPの実際の出力名を確認してPHPのパスを確定する。
 
 3. **Table DOMの接続点**
@@ -565,9 +591,10 @@ editor.BlockEdit filter
 4. `ResizeObserver`だけで行高変更を捕捉できるか。
 5. `rowspan`が数値と文字列のどちらでも同じ範囲を生成できるか。
 6. DnD開始時の一時IDとインデックスで確定処理が安定するか。
-7. `core/notices`と`@wordpress/a11y`による禁止通知が一回だけになるか。
-8. 一回の`setAttributes({ body: nextBody })`が対象WordPress環境で一回のUndo履歴になるか。
-9. モード中にブロック選択またはTable属性が外部から変わった場合、製品仕様を追加せず進行中DnDを安全に破棄できるか。
+7. 無効ハンドルのポインター操作と`Space`または`Enter`を、dnd-kitの開始イベントなしで一回だけ通知できるか。
+8. `core/notices`と`@wordpress/a11y`による開始済みDnDの禁止通知が一回だけになるか。
+9. 一回の`setAttributes({ body: nextBody })`が対象WordPress環境で一回のUndo履歴になるか。
+10. モード中にブロック選択またはTable属性が外部から変わった場合、製品仕様を追加せず進行中DnDを安全に破棄できるか。
 
 ここでは実装技術の成立性だけを確認し、新しい操作、設定、通知または対応範囲を決めない。
 
@@ -736,13 +763,19 @@ npm run build
 手順:
 
 1. `rowspan`を持つ本文行と、そのセルが占有する後続行を用意する。
-2. 各行のハンドルからDnD開始を試みる。
+2. 各行のハンドルへTabでフォーカスする。
+3. ポインターで押下し、`Space`および`Enter`でもDnD開始を試みる。
+4. ポインターまたはキーを押したままにして、同じ試行中の重複通知を確認する。
+5. ポインターまたはキーを離した後、もう一度開始を試みる。
 
 期待結果:
 
 - どちらの行からもDnDを開始できない。
+- ハンドルはフォーカス可能で、`aria-disabled`により無効状態が伝わる。
 - 無効状態を色以外でも確認できる。
-- 規定エラーが画面表示および読み上げされる。
+- 一回のポインター押下またはキー押下につき、規定エラーが画面表示および読み上げで一回だけ通知される。
+- キーリピートや同じ押下中のイベントで通知が増えない。
+- `pointerup`、`pointercancel`または対応する`keyup`後の次の操作では、必要な場合に再び一回通知される。
 - 表データを変更しない。
 
 #### 7. `rowspan` insertion and crossing protection
@@ -844,6 +877,7 @@ npm run build
 - [ ] `tbody`本文行だけへドラッグハンドルを表示する。
 - [ ] dnd-kit、SortableおよびDragOverlayを使用する。
 - [ ] ドラッグハンドルと`useSortable`の接続が具体化されている。
+- [ ] `rowspan`範囲内の無効ハンドルをフォーカス可能な`aria-disabled`状態とし、開始前の禁止操作を通知する経路が具体化されている。
 - [ ] PointerSensorとKeyboardSensorの接続が具体化されている。
 - [ ] ポインターとキーボードが同じ移動可否判定を使用する。
 - [ ] キーボードで開始、上下移動、確定およびキャンセルできる。
