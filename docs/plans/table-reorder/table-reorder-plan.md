@@ -135,7 +135,7 @@ Table Reorderは、選択中Tableブロックの要素を編集領域の起点�
 
 1. DnD中であれば確定せずキャンセルする。
 2. DnD開始時の行順序を維持し、`setAttributes`を呼ばない。
-3. 移動元、移動先候補、開始時順序および通知済み状態を破棄する。
+3. 移動元、現在のドロップ候補、その有効・無効状態、確定可能な移動先、開始時順序および通知済み状態を破棄する。
 4. 対象編集領域へ登録したイベントとObserverを解除する。
 5. ドラッグハンドルを非表示にする。
 6. 通常のTable編集へ戻す。
@@ -183,13 +183,15 @@ DOM取得方法、iframe・非iframeでの座標系およびハンドル配置�
 
 - ポインター操作はハンドルから開始する。
 - DnD開始時に移動元行が移動可能か確認する。
-- ポインター位置から移動先候補となる行間を求める。
+- ポインター位置から、現在のドロップ候補となる行間または`tbody`外を求める。
+- 現在のドロップ候補、候補境界および`validateMove()`による有効・無効状態をDnD一時状態として管理する。
 - 候補変更時に挿入位置と`rowspan`範囲越えを検証する。
-- 無効な候補では有効な移動先状態を変更しない。
-- 無効な候補へ挿入位置を表示しない。
-- 有効な候補だけ一時的な移動先として保持する。
-- ドロップ確定時に同じ判定を再実行する。
-- 対象編集領域外または`tbody`外へのドロップでは表データを変更しない。
+- 無効候補または`tbody`外へ入った場合は、確定可能な移動先を`null`にし、以前の有効候補を確定へ流用しない。
+- 無効候補へのoptimistic sortingを抑止し、挿入位置を表示しない。
+- 有効候補の場合だけ確定可能な移動先を設定し、挿入位置を表示する。
+- `onDragEnd`では保持された最後の有効候補を使用せず、実際の終了位置から候補を求め直して`validateMove()`を再実行する。
+- 実際の終了位置が無効、候補なし、対象編集領域外または`tbody`外の場合は`setAttributes`を呼ばない。
+- 実際の終了位置が有効で順序が変わる場合だけ、開始時の`body`から次の配列を生成する。
 
 ポインター座標、行矩形および挿入位置は同じ編集領域の座標系へ揃える。iframe内の矩形と親文書の矩形を直接比較しない。
 
@@ -283,18 +285,22 @@ setAttributes({ body: nextBody });
    - 移動開始前の`body`
    - 移動元ID
    - 移動元インデックス
-   - 現在の有効な移動先
+   - 現在のドロップ候補と候補境界
+   - 現在候補の有効・無効状態
+   - 確定可能な移動先。無効候補または`tbody`外では`null`
    - 同じ移動試行でエラーを表示済みかどうか
 8. DnD開始時に移動元を再検証し、禁止対象なら開始を拒否して一回だけエラーを表示する。
 9. DnD中はdnd-kitの一時的な表示とDragOverlayだけを更新する。
-10. 候補変更時に`validateMove()`を呼ぶ。
-11. 無効候補では表データと有効候補を変更せず、一回だけエラーを表示する。
-12. 有効候補では挿入位置を更新する。
-13. 確定時に`validateMove()`を再実行する。
-14. 有効で順序が変わる場合だけ、開始時`body`から次の配列を作り、`setAttributes({ body: nextBody })`を一回呼ぶ。
-15. 完了後にDnD一時状態を破棄する。
-16. キャンセルでは`setAttributes`を呼ばず、一時状態だけを破棄する。
-17. 「並べ替えを終了」で進行中DnDをキャンセルし、通知済み状態、イベント、Observerおよびハンドルを外して通常編集へ戻る。
+10. 候補変更時に現在候補を更新し、`validateMove()`を呼ぶ。
+11. 無効候補または`tbody`外では確定可能な移動先を`null`へ戻し、挿入位置を消して一回だけエラーを表示する。
+12. 有効候補では確定可能な移動先と挿入位置を更新する。
+13. `onDragEnd`で実際の終了位置から候補を求め直す。
+14. 求め直した候補に対して`validateMove()`を再実行する。
+15. 実際の終了位置が有効で順序が変わる場合だけ、開始時`body`から次の配列を作り、`setAttributes({ body: nextBody })`を一回呼ぶ。
+16. 実際の終了位置が無効、候補なし、対象編集領域外または`tbody`外の場合は`setAttributes`を呼ばない。
+17. 完了後にDnD一時状態を破棄する。
+18. キャンセルでは`setAttributes`を呼ばず、一時状態だけを破棄する。
+19. 「並べ替えを終了」で進行中DnDをキャンセルし、通知済み状態、イベント、Observerおよびハンドルを外して通常編集へ戻る。
 
 ### 13. Undo
 
@@ -391,11 +397,14 @@ editor.BlockEdit filter
   -> movable source starts PointerSensor DnD
   -> validate source
   -> dnd-kit updates temporary drag state and DragOverlay
+  -> derive current candidate from pointer position
   -> validate candidate with shared function
-     -> invalid: keep last valid candidate + one screen notification
-     -> valid: update temporary target and insertion indicator
+     -> invalid or outside tbody: clear committable target + hide insertion indicator + one screen notification
+     -> valid: set committable target + update insertion indicator
   -> end
-     -> canceled/no-op/invalid: no attribute update
+     -> derive actual drop candidate again from final position
+     -> validate actual drop candidate again
+     -> canceled/no-op/invalid/outside tbody: no attribute update
      -> valid: arrayMove/reorder body + one setAttributes call
   -> remain in reorder mode
   -> explicit exit cancels active drag, removes listeners/observers and returns to normal editing
@@ -478,16 +487,18 @@ editor.BlockEdit filter
   5. 各行へ`useSortable`、移動可能な各ハンドルへactivatorを接続する。
   6. `rowspan`範囲内の行は`useSortable`を無効化する。
   7. 無効ハンドルのポインター押下をdnd-kit開始前に捕捉し、pointer captureで試行終了を管理する。
-  8. 候補変更ごとに`validateMove()`を呼ぶ。
-  9. 無効候補へのoptimistic sortingを抑止する。
-  10. 無効候補では挿入位置を表示せず、最後の有効候補を維持する。
-  11. 有効候補だけ挿入位置を表示する。
-  12. 表示専用行を一つのDragOverlayへ描画する。
-  13. ResizeObserver、スクロール、リサイズで行位置を再測定する。
-  14. モード終了または対象変更時にイベントとObserverを解除する。
+  8. 現在のドロップ候補、候補境界および有効・無効状態を管理する。
+  9. 候補変更ごとに`validateMove()`を呼ぶ。
+  10. 無効候補へのoptimistic sortingを抑止する。
+  11. 無効候補または`tbody`外では挿入位置を消し、確定可能な移動先を`null`にする。
+  12. 有効候補だけ確定可能な移動先として保持し、挿入位置を表示する。
+  13. 表示専用行を一つのDragOverlayへ描画する。
+  14. ResizeObserver、スクロール、リサイズで行位置を再測定する。
+  15. モード終了または対象変更時にイベントとObserverを解除する。
 - Validation:
   - 可変高の行でもハンドルが対応行へ揃う。
   - ポインターDnDで有効候補だけ挿入位置が表示される。
+  - 無効候補または`tbody`外へ入ると、以前の有効候補が確定可能な状態として残らない。
   - 無効ハンドルの操作ではDnDを開始しない。
   - 無効ハンドルを押したまま外へ移動して離しても、pointer capture経由で試行終了を検出する。
   - 禁止位置へのoptimistic sortingが発生しない。
@@ -511,17 +522,20 @@ editor.BlockEdit filter
   - `src/editor-extensions/table-reorder/table-reorder.tsx`
   - `src/editor-extensions/table-reorder/sortable-row.tsx`
 - Tasks:
-  1. 確定時に移動可否を再検証する。
-  2. 有効で順序が変わる場合だけ`setAttributes({ body: nextBody })`を一回呼ぶ。
-  3. `arrayMove`を使う場合は有効な確定処理だけで呼ぶ。
-  4. 禁止操作を一回だけ画面表示する。
-  5. 開始前の無効ハンドル操作と開始後のDnDで通知済み状態を分け、各試行の終了時にリセットする。
-  6. DnD中のモード終了で属性更新なしにキャンセルする。
-  7. モード終了時にSensor、Observer、イベントおよび一時状態を破棄する。
+  1. `onDragEnd`で実際の終了位置から候補を求め直し、移動可否を再検証する。
+  2. 保持された最後の有効候補を確定処理へ流用しない。
+  3. 実際の終了位置が有効で順序が変わる場合だけ`setAttributes({ body: nextBody })`を一回呼ぶ。
+  4. 無効位置、候補なし、対象編集領域外または`tbody`外では`setAttributes`を呼ばない。
+  5. `arrayMove`を使う場合は有効な確定処理だけで呼ぶ。
+  6. 禁止操作を一回だけ画面表示する。
+  7. 開始前の無効ハンドル操作と開始後のDnDで通知済み状態を分け、各試行の終了時にリセットする。
+  8. DnD中のモード終了で属性更新なしにキャンセルする。
+  9. モード終了時にSensor、Observer、イベントおよび一時状態を破棄する。
 - Validation:
   - 一回の有効な移動につき`setAttributes`が一回。
   - 一回のUndoで移動前へ戻る。
   - 無効、no-opおよびキャンセルでUndo履歴を増やさない。
+  - 有効位置を通過した後、無効位置または`tbody`外へ移動してドロップしても行順序とUndo履歴が変わらない。
   - 無効ハンドルの一回のポインター押下でエラー通知が一回。
   - `pointerup`、`pointercancel`または`lostpointercapture`後の次の操作は新しい試行として一回通知される。
   - 無効ハンドルを押したまま外へ移動して離した後も、次の操作は新しい試行として一回通知される。
@@ -596,9 +610,11 @@ editor.BlockEdit filter
 6. DnD開始時の一時IDとインデックスで確定処理が安定するか。
 7. 無効ハンドルのポインター操作をdnd-kitの開始イベントなしで一回だけ通知でき、ハンドル外で離した場合もpointer captureで試行終了を検出できるか。
 8. `core/notices`による禁止通知が一回だけになるか。
-9. 一回の`setAttributes({ body: nextBody })`が対象WordPress環境で一回のUndo履歴になるか。
-10. モード中にブロック選択またはTable属性が外部から変わった場合、製品仕様を追加せず進行中DnDを安全に破棄できるか。
-11. モード終了またはアンマウント後にdnd-kit Sensor、Observerおよび編集領域イベントが残らないか。
+9. 現在候補が無効または`tbody`外になった時点で確定可能な移動先を確実にクリアできるか。
+10. `onDragEnd`で実際の終了位置を再取得し、直前の有効候補ではなく終了位置の検証結果だけを確定へ使用できるか。
+11. 一回の`setAttributes({ body: nextBody })`が対象WordPress環境で一回のUndo履歴になるか。
+12. モード中にブロック選択またはTable属性が外部から変わった場合、製品仕様を追加せず進行中DnDを安全に破棄できるか。
+13. モード終了またはアンマウント後にdnd-kit Sensor、Observerおよび編集領域イベントが残らないか。
 
 ここでは実装技術の成立性だけを確認し、新しい操作、設定、通知または対応範囲を決めない。
 
@@ -611,7 +627,7 @@ editor.BlockEdit filter
 - [ ] 行配列、`rowspan`範囲および移動可否の純粋ロジックとunit test。
 - [ ] iframe・非iframeの編集領域取得、行DOM測定、ドラッグハンドルUIおよびエディタースタイル。
 - [ ] dnd-kitのDndContext、PointerSensor、Sortable、DragOverlayおよび無効候補の制御。
-- [ ] 確定時一回更新、Undoおよびキャンセル。
+- [ ] 実ドロップ位置の再検証、確定時一回更新、Undoおよびキャンセル。
 - [ ] 画面通知と一回の移動試行の管理。
 - [ ] 保存形式、両エディター環境および回帰の統合確認。
 
@@ -752,15 +768,20 @@ npm run build
 手順:
 
 1. 結合範囲外の通常行からDnDを開始する。
-2. 結合範囲の途中へ移動を試みる。
-3. 結合範囲の反対側へ越える移動を試みる。
-4. 同じ試行中に複数の禁止位置へ移動する。
+2. 有効な移動先を一度通過する。
+3. 結合範囲の途中へ移動し、その無効位置でドロップする。
+4. 新しいDnDで有効な移動先を一度通過する。
+5. 結合範囲の反対側へ越える無効位置または`tbody`外へ移動し、その位置でドロップする。
+6. 同じ試行中に複数の禁止位置へ移動する。
 
 期待結果:
 
 - 禁止位置へのoptimistic sortingが発生しない。
 - 禁止位置に挿入線を表示しない。
-- 表データを変更しない。
+- 無効位置へ入った時点で、直前の有効候補が確定可能な移動先として残らない。
+- `onDragEnd`で実際のドロップ位置が再検証される。
+- 有効位置を通過した後でも、無効位置または`tbody`外でドロップした場合は表データを変更しない。
+- 無効位置または`tbody`外でドロップした場合は`setAttributes`を呼ばず、Undo履歴を増やさない。
 - 一回の試行中、規定エラーは画面に一回だけ表示される。
 - 新しいDnDを開始すると必要な場合は再び一回通知される。
 
@@ -872,7 +893,10 @@ npm run build
 - 行の移動方法がドラッグハンドルを使用したポインターDnDだけに限定されている。
 - dnd-kitのDndContext、PointerSensor、SortableContext、useSortable、DragOverlay、strategy、arrayMove、安定版確認および公開API利用の実装方針が定義されている。
 - dnd-kitの一時表示とTableブロック属性の確定更新が分離されている。
-- 無効候補へのoptimistic sortingを抑止し、有効な確定時だけ`body`属性を一回更新する計画になっている。
+- 現在のドロップ候補と有効・無効状態を管理し、無効候補または`tbody`外では確定可能な移動先をクリアする計画になっている。
+- `onDragEnd`で実際のドロップ位置を再検証し、保持された最後の有効候補を確定に使用しない計画になっている。
+- 無効候補へのoptimistic sortingを抑止し、実際の終了位置が有効な場合だけ`body`属性を一回更新する計画になっている。
+- 無効位置または`tbody`外で終了した場合は`setAttributes`を呼ばず、行順序とUndo履歴を変更しない確認が定義されている。
 - iframe・非iframeの両方を対象とする編集領域、座標、イベント、Observer、Sensor、Overlayおよび後始末の方針が定義されている。
 - `rowspan`を分断する移動が拒否され、禁止操作では表データが変更されず、一回の移動試行につきエラーが一回だけ画面表示される。
 - 一回のUndoで移動前へ戻せる。
