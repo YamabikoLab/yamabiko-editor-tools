@@ -2,6 +2,11 @@ import { isHeadingLevel, type AdapterOutlineNode, type OutlineAdapter } from './
 
 const blockNamePattern = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/;
 
+export type IndexedAdapterOutlineNode = {
+	headingIndex: number;
+	node: AdapterOutlineNode;
+};
+
 export function isOutlineAdapter( value: unknown ): value is OutlineAdapter {
 	if ( typeof value !== 'object' || value === null ) {
 		return false;
@@ -30,6 +35,19 @@ export function isAdapterOutlineNode( value: unknown ): value is AdapterOutlineN
 	);
 }
 
-export function isAdapterOutlineNodeList( value: unknown ): value is readonly AdapterOutlineNode[] {
-	return Array.isArray( value ) && value.every( isAdapterOutlineNode );
+export function filterAdapterOutlineNodes( value: unknown ): readonly IndexedAdapterOutlineNode[] {
+	if ( ! Array.isArray( value ) ) {
+		return [];
+	}
+
+	return value.reduce< IndexedAdapterOutlineNode[] >(
+		( nodes, node, headingIndex ) => {
+			if ( isAdapterOutlineNode( node ) ) {
+				nodes.push( { headingIndex, node } );
+			}
+
+			return nodes;
+		},
+		[]
+	);
 }
