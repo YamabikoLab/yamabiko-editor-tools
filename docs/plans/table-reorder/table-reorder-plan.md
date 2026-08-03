@@ -4,7 +4,7 @@
 
 - Parent issue: https://github.com/YamabikoLab/yamabiko-editor-tools/issues/49
 - Requirements: `docs/requirements/table-reorder/table-reorder-requirements.md`
-- Design: `docs/design/table-reorder/table-reorder-high-level-design.md`
+- Design: `docs/design/table-reorder/table-reorder-design.md`
 - Source organization: `docs/development/source-organization.md`
 - Plan template: `docs/plans/TEMPLATE.md`
 - dnd-kit: https://dndkit.com/
@@ -544,7 +544,7 @@ editor.BlockEdit filter
 - Tasks:
   1. 要件とテスト結果を対応付ける。
   2. 通常編集、モード切替、ポインター、キーボード、`rowspan`、`colspan`、Undoおよび保存を一連で確認する。
-  3. iframeエディターでDOM取得、Overlay、Observerおよびフォーカスを確認する。
+  3. iframeエディターと非iframeエディターの両方で、DOM取得、Overlay、Observerおよびフォーカスを確認する。
   4. Noticeブロックと既存ビルドを回帰確認する。
   5. `build/`をコミット対象へ含めない。
   6. すべての検証コマンドを実行する。
@@ -573,7 +573,7 @@ editor.BlockEdit filter
 
 3. **Table DOMの接続点**
    - `clientId`に対応するブロックラッパーから対象Tableの`tbody > tr`だけを取得できることを確認する。
-   - WordPress 6.8以降とiframeエディターで同じブロックインスタンスだけを取得できることを確認する。
+   - iframe・非iframeの両環境で、同じブロックインスタンスだけを取得できることを確認する。
 
 4. **DnD中のモード終了**
    - dnd-kitの公開APIで明示的にキャンセルできるか確認する。
@@ -589,7 +589,7 @@ editor.BlockEdit filter
 
 1. 無効候補へのoptimistic sortingをポインターとキーボードの両方で抑止できるか。
 2. dnd-kitの既定フォーカス復元だけで確定後とキャンセル後の要件を満たせるか。
-3. DragOverlayがiframe、スクロール領域および可変幅Tableで正しく表示されるか。
+3. DragOverlayがiframe、非iframe、スクロール領域および可変幅Tableで正しく表示されるか。
 4. `ResizeObserver`だけで行高変更を捕捉できるか。
 5. `rowspan`が数値と文字列のどちらでも同じ範囲を生成できるか。
 6. DnD開始時の一時IDとインデックスで確定処理が安定するか。
@@ -856,7 +856,35 @@ npm run build
 - Table Reorderのモード、ID、ハンドル、通知またはOverlayに関する値が保存されない。
 - ブロック検証エラーが発生しない。
 
-#### 12. Regression
+#### 12. iframe editor
+
+手順:
+
+1. iframeを使用する投稿エディターでTableブロックを作成する。
+2. 通常編集、並べ替えモード、ポインターDnD、キーボードDnD、キャンセルおよびモード終了を確認する。
+3. エディターをスクロールし、行高が異なるTableでも確認する。
+
+期待結果:
+
+- 選択中Tableブロックの本文行だけを取得する。
+- ドラッグハンドルと挿入位置が対象行へ揃う。
+- DragOverlay、ポインターイベント、キーボード操作およびフォーカスがiframe内の編集領域で正しく動作する。
+- モード終了後にイベントとObserverが残らない。
+
+#### 13. non-iframe editor
+
+手順:
+
+1. 非iframeの投稿エディターでTableブロックを作成する。
+2. iframe環境と同じ操作を確認する。
+
+期待結果:
+
+- iframe環境と同じ要件を満たす。
+- メイン文書を編集領域として扱い、環境固有の追加操作を必要としない。
+- 保存形式とTable以外のブロックへ影響しない。
+
+#### 14. Regression
 
 手順:
 
@@ -899,6 +927,7 @@ npm run build
 - [ ] 一回の移動試行につきエラーを一回だけ画面表示および読み上げる。
 - [ ] DnD開始、現在位置、完了、キャンセル、モード開始およびモード終了を読み上げる。
 - [ ] DnD中のモード終了が開始前の順序を維持してキャンセルされる。
+- [ ] iframe・非iframeの両環境で同じ要件を満たす設計と確認観点が記載されている。
 - [ ] コアTableブロックの属性構造と保存HTML形式を変更しない。
 - [ ] PhaseごとのOutcome、Tasks、Validationが記載されている。
 - [ ] 自動テスト、手動確認および検証コマンドが記載されている。
