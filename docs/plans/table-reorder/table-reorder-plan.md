@@ -133,7 +133,8 @@
 - `rowspan`範囲に含まれる行は`useSortable`を`disabled`にし、dnd-kitの`listeners`を接続しない。
 - `rowspan`範囲に含まれる行のハンドルにはネイティブの`disabled`属性を付けず、`aria-disabled="true"`と無効状態を示す見た目を付けて、キーボードフォーカスを維持する。
 - 無効ハンドルの主ボタン`pointerdown`と`Space`または`Enter`の`keydown`をハンドル側で捕捉し、DnD開始イベントを待たずに`notifyInvalidMove()`を一回だけ呼ぶ。キーボードイベントでは既定動作を抑止し、`event.repeat`による重複通知を行わない。
-- 開始前に拒否されたポインター操作の通知済み状態は`pointerup`または`pointercancel`で、キーボード操作の通知済み状態は対応する`keyup`でリセットする。フォーカスが外れた場合も状態を破棄し、次の独立した操作を新しい移動試行として扱う。
+- 無効ハンドルの主ボタン`pointerdown`時に`setPointerCapture(event.pointerId)`でpointer captureを取得する。通知済み状態は`pointerup`、`pointercancel`または`lostpointercapture`でリセットし、pointer captureを保持している場合は`releasePointerCapture(event.pointerId)`で解除する。これにより、ポインターをハンドル外へ移動してから離した場合も同じ試行を確実に終了する。
+- キーボード操作の通知済み状態は対応する`keyup`でリセットする。フォーカスが外れた場合、並べ替えモードを終了した場合、またはコンポーネントをアンマウントした場合も、保持中のpointer captureを解除して開始前試行の状態を破棄し、次の独立した操作を新しい移動試行として扱う。
 - ヘッダー行とフッター行へハンドルを追加しない。
 
 コアTableの保存用行データへDnD用ID、クラスまたは属性を追加しない。
@@ -253,7 +254,7 @@ setAttributes({ body: nextBody });
 2. 「行を並べ替え」で並べ替えモードを開始する。
 3. `attributes.body`、本文行DOMおよび`rowspan`範囲を取得する。
 4. `rowspan`範囲内の無効ハンドルから操作された場合は、ハンドル側でポインターまたはキーボードの開始前試行を捕捉し、DnD状態を作らず一回だけエラーを通知する。
-5. 開始前試行の通知済み状態は、ポインターでは`pointerup`または`pointercancel`、キーボードでは対応する`keyup`でリセットする。`blur`またはモード終了でも破棄する。
+5. ポインターの開始前試行では`pointerdown`時にpointer captureを取得し、`pointerup`、`pointercancel`または`lostpointercapture`で解除・リセットする。キーボードでは対応する`keyup`でリセットする。`blur`、モード終了またはアンマウントでも保持中のpointer captureを解除し、開始前試行の状態を破棄する。
 6. 移動可能な行からDnDを開始したときに次を一時状態へ保持する。
    - 移動開始前の`body`
    - 移動元ID
@@ -310,9 +311,9 @@ DnDのアクセシビリティ設定で、次を日本語で通知する。
 
 通知の重複防止は、開始前に拒否される無効ハンドル操作と、開始後のDnDを別の試行として管理する。
 
-- 無効ハンドルのポインター試行は、主ボタンの`pointerdown`から`pointerup`または`pointercancel`までを一回の移動試行とする。
+- 無効ハンドルのポインター試行は、主ボタンの`pointerdown`でpointer captureを取得して開始し、`pointerup`、`pointercancel`または`lostpointercapture`までを一回の移動試行とする。試行終了時は通知済み状態をリセットし、保持しているpointer captureを解除する。
 - 無効ハンドルのキーボード試行は、`Space`または`Enter`の`keydown`から対応する`keyup`までを一回の移動試行とし、キーリピートでは再通知しない。
-- 無効ハンドルが`blur`した場合、または並べ替えモードを終了した場合は開始前試行の通知済み状態を破棄する。
+- 無効ハンドルが`blur`した場合、並べ替えモードを終了した場合、またはコンポーネントをアンマウントした場合は、保持中のpointer captureを解除して開始前試行の通知済み状態を破棄する。
 - 移動可能な行のDnDでは、DnD開始時に通知済み状態をリセットし、完了またはキャンセルまでに無効候補が複数回発生しても一回だけ通知する。
 - DnDの完了、キャンセルまたはモード終了でDnD側の通知済み状態を破棄する。
 
@@ -353,7 +354,7 @@ Table Reorderは`body`配列の順序以外を変更しない。
 | `src/editor-extensions/table-reorder/index.tsx` | Add | スタイルをimportし、`editor.BlockEdit`フィルターを登録する薄い入口。 |
 | `src/editor-extensions/table-reorder/with-table-reorder.tsx` | Add | `core/table`への限定、BlockControls、並べ替えモードおよび元のBlockEditとの接続。 |
 | `src/editor-extensions/table-reorder/table-reorder.tsx` | Add | Table DOMの取得、行位置測定、DndContext、DnD一時状態、イベント、確定更新、通知およびモード終了時のキャンセル。 |
-| `src/editor-extensions/table-reorder/sortable-row.tsx` | Add | 各行の`useSortable`接続、ドラッグハンドル、無効状態、開始前の禁止操作捕捉、挿入位置およびOverlay用表示。 |
+| `src/editor-extensions/table-reorder/sortable-row.tsx` | Add | 各行の`useSortable`接続、ドラッグハンドル、無効状態、開始前の禁止操作捕捉、pointer captureの取得・解除、挿入位置およびOverlay用表示。 |
 | `src/editor-extensions/table-reorder/row-order.ts` | Add | Table行とセルの最小型、`rowspan`範囲抽出、移動可否判定および行配列の並べ替え。 |
 | `src/editor-extensions/table-reorder/row-order.test.ts` | Add | 行順序、属性保持、`rowspan`範囲、禁止条件、`colspan`保持およびno-opのfocused unit test。 |
 | `src/editor-extensions/table-reorder/editor.scss` | Add | ハンドル、フォーカス、無効状態、挿入位置およびDragOverlayのエディター専用スタイル。 |
@@ -387,6 +388,7 @@ editor.BlockEdit filter
   -> calculate row geometry and rowspan ranges
   -> disabled source attempt
      -> handle intercepts pointer or Space/Enter before dnd-kit
+     -> pointerdown captures pointer until pointerup/cancel/lost capture
      -> one error notification, no DnD state
   -> movable source starts pointer or keyboard DnD
   -> validate source
@@ -473,7 +475,7 @@ editor.BlockEdit filter
   2. 行高を測定し、左側へハンドルUIを配置する。
   3. 各行へ`useSortable`、移動可能な各ハンドルへactivatorを接続する。
   4. `rowspan`範囲内の行は`useSortable`を無効化し、ハンドルをフォーカス可能な`aria-disabled`状態にする。
-  5. 無効ハンドルのポインター押下と`Space`または`Enter`をDnD外で捕捉する。
+  5. 無効ハンドルのポインター押下と`Space`または`Enter`をDnD外で捕捉し、ポインター試行ではpointer captureを取得してハンドル外で終了しても確実に解除・リセットする。
   6. PointerSensorとKeyboardSensorを接続する。
   7. `Space`、`Enter`、`ArrowUp`、`ArrowDown`および`Escape`を確認する。
   8. 候補変更ごとに`validateMove()`を呼ぶ。
@@ -486,6 +488,7 @@ editor.BlockEdit filter
   - キーボードDnDで候補が一行ずつ移動する。
   - `rowspan`範囲内のハンドルへTabでフォーカスでき、`aria-disabled`が伝わる。
   - 無効ハンドルの操作ではDnDを開始せず、開始前の禁止通知経路を呼ぶ。
+  - 無効ハンドルを押したまま外へ移動して離しても、pointer capture経由で試行終了を検出する。
   - 禁止位置でポインターの挿入位置を表示しない。
   - 禁止位置でキーボード候補を変更しない。
   - DragOverlay内で`useSortable`を二重登録しない。
@@ -521,7 +524,8 @@ editor.BlockEdit filter
   - 一回のUndoで移動前へ戻る。
   - 無効、no-opおよびキャンセルでUndo履歴を増やさない。
   - 無効ハンドルの一回のポインター押下またはキー押下でエラー通知が一回。
-  - `pointerup`、`pointercancel`または対応する`keyup`後の次の操作は新しい試行として一回通知される。
+  - `pointerup`、`pointercancel`、`lostpointercapture`または対応する`keyup`後の次の操作は新しい試行として一回通知される。
+  - 無効ハンドルを押したまま外へ移動して離した後も、次の操作は新しい試行として一回通知される。
   - キーリピートでは通知が増えない。
   - 一回の開始済みDnDでエラー通知が一回。
   - 新しいDnD開始時にDnD側の通知済み状態がリセットされる。
@@ -589,7 +593,7 @@ editor.BlockEdit filter
 4. `ResizeObserver`だけで行高変更を捕捉できるか。
 5. `rowspan`が数値と文字列のどちらでも同じ範囲を生成できるか。
 6. DnD開始時の一時IDとインデックスで確定処理が安定するか。
-7. 無効ハンドルのポインター操作と`Space`または`Enter`を、dnd-kitの開始イベントなしで一回だけ通知できるか。
+7. 無効ハンドルのポインター操作と`Space`または`Enter`を、dnd-kitの開始イベントなしで一回だけ通知でき、ポインターをハンドル外で離した場合もpointer captureで試行終了を検出できるか。
 8. `core/notices`と`@wordpress/a11y`による開始済みDnDの禁止通知が一回だけになるか。
 9. 一回の`setAttributes({ body: nextBody })`が対象WordPress環境で一回のUndo履歴になるか。
 10. モード中にブロック選択またはTable属性が外部から変わった場合、製品仕様を追加せず進行中DnDを安全に破棄できるか。
@@ -764,7 +768,8 @@ npm run build
 2. 各行のハンドルへTabでフォーカスする。
 3. ポインターで押下し、`Space`および`Enter`でもDnD開始を試みる。
 4. ポインターまたはキーを押したままにして、同じ試行中の重複通知を確認する。
-5. ポインターまたはキーを離した後、もう一度開始を試みる。
+5. 無効ハンドルをポインターで押したままハンドル外へ移動して離し、もう一度ポインター操作を試みる。
+6. キーを離した後、もう一度キーボード操作を試みる。
 
 期待結果:
 
@@ -773,7 +778,8 @@ npm run build
 - 無効状態を色以外でも確認できる。
 - 一回のポインター押下またはキー押下につき、規定エラーが画面表示および読み上げで一回だけ通知される。
 - キーリピートや同じ押下中のイベントで通知が増えない。
-- `pointerup`、`pointercancel`または対応する`keyup`後の次の操作では、必要な場合に再び一回通知される。
+- ポインターをハンドル外で離しても試行が終了し、その後の操作で再び一回通知される。
+- `pointerup`、`pointercancel`、`lostpointercapture`または対応する`keyup`後の次の操作では、必要な場合に再び一回通知される。
 - 表データを変更しない。
 
 #### 7. `rowspan` insertion and crossing protection
@@ -876,6 +882,7 @@ npm run build
 - [ ] dnd-kit、SortableおよびDragOverlayを使用する。
 - [ ] ドラッグハンドルと`useSortable`の接続が具体化されている。
 - [ ] `rowspan`範囲内の無効ハンドルをフォーカス可能な`aria-disabled`状態とし、開始前の禁止操作を通知する経路が具体化されている。
+- [ ] 無効ハンドルのポインター試行はpointer captureを使用し、ハンドル外で終了しても通知済み状態を確実にリセットする。
 - [ ] PointerSensorとKeyboardSensorの接続が具体化されている。
 - [ ] ポインターとキーボードが同じ移動可否判定を使用する。
 - [ ] キーボードで開始、上下移動、確定およびキャンセルできる。
