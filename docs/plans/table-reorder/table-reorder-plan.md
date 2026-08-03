@@ -71,7 +71,7 @@
 
 `src/editor-extensions/table-reorder/`をowning directoryとする。
 
-現在の`@wordpress/scripts`によるブロック自動ビルドを維持しながら、Table Reorder用の非ブロックエントリーを一つ追加する。実装前に`@wordpress/scripts`の公開webpack設定拡張方法と実際の出力名を確認し、次を満たす最小構成にする。
+現在の`@wordpress/scripts`によるブロック自動ビルドを維持しながら、Table Reorder用の非ブロックエントリーを一つ追加する。実装前に現在のプロジェクト構成と`@wordpress/scripts`の公開機能を確認し、次を満たす最小構成にする。
 
 - 既存Noticeブロックの自動ビルドと`blocks-manifest.php`生成を維持する。
 - Table Reorderのエントリーを`src/editor-extensions/table-reorder/index.tsx`とする。
@@ -349,7 +349,6 @@ Table Reorderは`body`配列の順序以外を変更しない。
 |---|---|---|
 | `package.json` | Update | dnd-kitと、Table Reorderから直接importするWordPressパッケージを依存関係へ追加する。 |
 | `package-lock.json` | Update | 追加依存関係の解決結果を固定する。 |
-| `webpack.config.js` | Add | `@wordpress/scripts`の公開webpack設定を拡張し、既存ブロックの自動検出と`blocks-manifest.php`生成を維持したまま、Table Reorderの非ブロックエントリーを追加する。 |
 | `yamabiko-editor-tools.php` | Update | 生成されたTable Reorderのエディタースクリプト、スタイル、依存関係および翻訳を読み込む。 |
 | `src/editor-extensions/table-reorder/index.tsx` | Add | スタイルをimportし、`editor.BlockEdit`フィルターを登録する薄い入口。 |
 | `src/editor-extensions/table-reorder/with-table-reorder.tsx` | Add | `core/table`への限定、BlockControls、並べ替えモードおよび元のBlockEditとの接続。 |
@@ -411,14 +410,13 @@ editor.BlockEdit filter
 - Files:
   - `package.json`
   - `package-lock.json`
-  - `webpack.config.js`
   - `yamabiko-editor-tools.php`
   - `src/editor-extensions/table-reorder/index.tsx`
   - `src/editor-extensions/table-reorder/with-table-reorder.tsx`
   - `src/editor-extensions/table-reorder/editor.scss`
 - Tasks:
   1. dnd-kitと必要なWordPress直接依存を追加する。
-  2. 既存ブロックの自動検出を保持するビルド設定を追加する。
+  2. 現在のプロジェクト構成と`@wordpress/scripts`の公開機能を確認し、既存ブロックの自動検出を保持する非ブロックエントリー追加方法を決定する。
   3. PHPへTable Reorderのエディターアセット読込みを追加する。
   4. 薄い`index.tsx`から`editor.BlockEdit`フィルターを登録する。
   5. `core/table`だけを対象にBlockControlsを追加する。
@@ -565,8 +563,8 @@ editor.BlockEdit filter
    - ベータ版または内部APIは使用しない。
 
 2. **非ブロックエントリーの出力と読込み**
-   - `webpack.config.js`で`@wordpress/scripts`の公開webpack設定を拡張する。
-   - 既存ブロックの自動検出と`blocks-manifest.php`生成を維持したまま、Table Reorderの非ブロックエントリーを追加する。
+   - 現在のプロジェクト構成と`@wordpress/scripts`の公開機能を確認し、既存ブロックの自動検出と`blocks-manifest.php`生成を維持できる非ブロックエントリー追加方法を決定する。
+   - 確認前に設定ファイル名やビルド拡張方式を確定しない。
    - 一回ビルドし、既存ブロック成果物とTable ReorderのJS、CSS、asset PHPの実際の出力名を確認してPHPのパスを確定する。
 
 3. **Table DOMの接続点**
