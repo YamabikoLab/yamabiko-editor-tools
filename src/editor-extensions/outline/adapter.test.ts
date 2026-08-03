@@ -1,4 +1,8 @@
-import { isAdapterOutlineNode, isAdapterOutlineNodeList, isOutlineAdapter } from './adapter';
+import {
+	filterAdapterOutlineNodes,
+	isAdapterOutlineNode,
+	isOutlineAdapter,
+} from './adapter';
 
 describe( 'isOutlineAdapter', () => {
 	it( 'accepts the minimal internal adapter shape', () => {
@@ -42,13 +46,27 @@ describe( 'isAdapterOutlineNode', () => {
 	} );
 } );
 
-describe( 'isAdapterOutlineNodeList', () => {
-	it( 'accepts an array of valid nodes', () => {
-		expect( isAdapterOutlineNodeList( [ { level: 2, text: 'Heading' } ] ) ).toBe( true );
+describe( 'filterAdapterOutlineNodes', () => {
+	it( 'returns an empty list for a non-array value', () => {
+		expect( filterAdapterOutlineNodes( null ) ).toEqual( [] );
 	} );
 
-	it( 'rejects a non-array or an array containing an invalid node', () => {
-		expect( isAdapterOutlineNodeList( null ) ).toBe( false );
-		expect( isAdapterOutlineNodeList( [ { level: 7, text: 'Heading' } ] ) ).toBe( false );
+	it( 'keeps valid nodes and their original indexes', () => {
+		expect(
+			filterAdapterOutlineNodes( [
+				{ level: 2, text: 'First' },
+				{ level: 7, text: 'Invalid' },
+				{ level: 3, text: 'Third', navigable: false },
+			] )
+		).toEqual( [
+			{
+				headingIndex: 0,
+				node: { level: 2, text: 'First' },
+			},
+			{
+				headingIndex: 2,
+				node: { level: 3, text: 'Third', navigable: false },
+			},
+		] );
 	} );
 } );
