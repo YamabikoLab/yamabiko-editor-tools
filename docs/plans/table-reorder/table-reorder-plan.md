@@ -335,7 +335,6 @@ Table Reorderは`body`配列の順序以外を変更しない。
 |---|---|---|
 | `package.json` | Update | dnd-kitと、Table Reorderから直接importするWordPressパッケージを依存関係へ追加する。 |
 | `package-lock.json` | Update | 追加依存関係の解決結果を固定する。 |
-| `webpack.config.js` | Add | 既存ブロックの自動エントリーを維持し、Table Reorderの非ブロックエントリーを追加する。実装前検証で別の公開設定方法が適切と判明した場合は、その最小構成を使用する。 |
 | `yamabiko-editor-tools.php` | Update | 生成されたTable Reorderのエディタースクリプト、スタイル、依存関係および翻訳を読み込む。 |
 | `src/editor-extensions/table-reorder/index.tsx` | Add | スタイルをimportし、`editor.BlockEdit`フィルターを登録する薄い入口。 |
 | `src/editor-extensions/table-reorder/with-table-reorder.tsx` | Add | `core/table`への限定、BlockControls、並べ替えモードおよび元のBlockEditとの接続。 |
