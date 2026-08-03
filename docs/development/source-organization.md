@@ -11,10 +11,13 @@ The repository root is the WordPress plugin root.
 ```text
 .
 ├── src/
-│   └── blocks/
-│       └── notice/
+│   ├── blocks/
+│   │   └── notice/
+│   └── editor-extensions/
+│       └── outline/
 ├── build/              # generated, not committed
 ├── package.json
+├── webpack.config.js
 ├── composer.json
 └── yamabiko-editor-tools.php
 ```
@@ -97,9 +100,13 @@ Do not add a PHP registration class to every block by default. Add block-specifi
 
 A non-block extension should follow the same feature-first ownership rule. Create only the files and subdirectories required by the implementation. Do not introduce generic architecture in advance.
 
+`src/editor-extensions/outline/` is the current reference implementation. It keeps the sidebar UI, Data Store selection, outline transformation, navigation, internal contracts, styles, and focused tests together. Its `index.tsx` is an independent editor entry registered in `webpack.config.js`; the plugin bootstrap enqueues the generated entry only on the supported post and page editor screens.
+
 ## Entry files
 
 Each feature's `index.ts` or `index.tsx` is a thin entry point. It may import metadata, implementations, and styles, then register the feature with public WordPress APIs.
+
+Block entries continue to be discovered from `block.json`. Non-block editor entries are added explicitly by extending the default `@wordpress/scripts` webpack configuration, preserving the standard block discovery and generated block manifest.
 
 It must not become the main location for substantial UI, state management, transformations, validation, network operations, or unrelated behavior. Move those responsibilities into clearly named files inside the owning feature.
 

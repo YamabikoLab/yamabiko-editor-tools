@@ -7,7 +7,7 @@
 | 製品名         | Yamabiko Outline                                          |
 | 対象           | Gutenberg ブロックエディター                              |
 | 文書種別       | 基本設計書                                                |
-| バージョン     | 0.8                                                       |
+| バージョン     | 0.9                                                       |
 | ステータス     | 基本設計                                                  |
 | 関連要件定義書 | `../../requirements/outline/outline-requirements.md` v0.2 |
 | 対象課題       | Gutenberg Issue #71699                                    |
@@ -48,6 +48,10 @@
 サイトエディター、ウィジェットエディター、カスタム投稿タイプ、およびその他の編集コンテキストにはサイドバーを登録しない。
 
 対象のブロックエディター内に「文書構造」サイドバーを追加し、標準の投稿設定サイドバーとは独立したプラグインサイドバーとして実装する。
+
+サイドバーは`@wordpress/plugins`の`registerPlugin`と`@wordpress/editor`の`PluginSidebar`で登録する。製品コードは独立したエディター用ビルドエントリーとし、PHPの`enqueue_block_editor_assets`で読み込む。
+
+対象判定は`get_current_screen()`の公開情報を使用し、画面の`base`が`post`、かつ`post_type`が`post`または`page`の場合だけエントリーを読み込む。JavaScript側で非対象画面に登録した後で非表示にする方式は採用しない。
 
 ### 4.2 表示構成
 
@@ -151,6 +155,10 @@ type OutlineNode = {
 
 1つのブロックが複数の見出しを持つ場合は、見出しごとに一意な`id`を持つ複数の`OutlineNode`を生成する。
 
+`id`は`<blockClientId>:<headingIndex>`で生成する。`headingIndex`は1ブロック内の見出し返却順を表すゼロ始まりの番号であり、標準Headingは常に`0`とする。無効なアダプター返却値が除外されても後続項目のIDが変わらないよう、アダプターでは除外前の返却位置を使用する。
+
+このIDはエディターセッション内で、見出しテキストの編集やブロックの並べ替えに対して安定する。投稿データへ識別子を保存しないため、再読み込みをまたぐ永続IDは保証しない。
+
 ### 5.4 順序
 
 見出しは、GutenbergのブロックツリーとinnerBlocksの順序に従って並べる。
@@ -193,6 +201,35 @@ registerYamabikoOutlineAdapter({
   },
 });
 ```
+
+#### 6.2.1 Phase 1の内部契約
+
+内部アダプターの最小インターフェースは次のとおりとする。アダプターは`OutlineNode`のID、ブロック情報、取得元を決めず、見出し固有の情報だけを返す。
+
+```ts
+type AdapterOutlineNode = {
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  text: string;
+  navigable?: boolean;
+};
+
+type OutlineAdapter = {
+  blockName: string;
+  getOutlineNodes(block: Block): readonly AdapterOutlineNode[];
+};
+```
+
+Registryへの接続時は、次を実行時にも検証する。
+
+- `blockName`は登録済みブロック名と一致する空でない文字列である
+- `getOutlineNodes`の返却値は配列である
+- `level`は1から6の整数である
+- `text`は文字列である。空文字列は診断対象として保持する
+- `navigable`は省略可能な真偽値であり、省略時は`true`とする
+- 不正な項目だけを除外し、アダプターの例外は対象ブロック内へ隔離する
+- 同じ`blockName`の重複登録を拒否する
+
+Phase 1では型と項目検証だけを製品コードへ含め、Registryとアダプター実行処理はPhase 2で実装する。
 
 ### 6.3 責務
 
@@ -257,6 +294,8 @@ PHPの`render_callback`をアウトライン更新のたびに実行し、生成
 | `core/html`              | 静的HTMLからH1からH6を抽出           |
 | `core/freeform`          | 静的HTMLからH1からH6を抽出           |
 | テスト用カスタムブロック | 内部アダプターで取得                 |
+
+`core/accordion-heading`の正式な見出しテキスト属性は`title`、保存される見出しレベル属性は`level`である。`level`は親`core/accordion`の`headingLevel`から子へ同期され、保存時に未設定の場合は`3`として扱われる。これはWordPress 7.0対応の[`accordion-heading/block.json`](https://github.com/WordPress/gutenberg/blob/wp/7.0/packages/block-library/src/accordion-heading/block.json)、[`accordion/edit.js`](https://github.com/WordPress/gutenberg/blob/wp/7.0/packages/block-library/src/accordion/edit.js)、[`accordion-heading/save.js`](https://github.com/WordPress/gutenberg/blob/wp/7.0/packages/block-library/src/accordion-heading/save.js)で確認した。Phase 1ではこの契約だけを記録し、アウトラインへの変換はPhase 2で実装する。
 
 ### 7.3 制限付き処理
 
@@ -328,12 +367,14 @@ PHPの`render_callback`をアウトライン更新のたびに実行し、生成
 
 次の場合に、アウトラインが不完全な可能性を通知する。
 
-- 見出しを生成する可能性があるカスタムブロックまたは動的ブロックに、対応するアダプターがない
+- 製品内の明示的な見出し候補一覧にあるブロックに、対応するResolver、アダプター、またはParserがない
 - PHP-onlyブロックから見出し情報を取得できない
 - HTMLまたはClassicブロックの解析に失敗した
 - 同期パターンを安全に展開できない
 - アダプターが例外を発生させた
 - アダプターが不正な見出し情報を返した
+
+未対応ブロックの最小判定条件は「見出しを生成することを製品がブロック名単位で明示的に把握していること」とする。カスタム名前空間、動的ブロック、`render_callback`の有無だけでは見出し生成を判断できないため、それらだけを理由に通知しない。将来の明示的な宣言または登録がない未知のブロックは推測せず、誤検知を避ける。
 
 ### 10.2 表示
 
@@ -447,12 +488,9 @@ PHPの`render_callback`をアウトライン更新のたびに実行し、生成
 
 ## 16. 技術的な未決事項
 
-1. プラグインサイドバーの登録方式
-2. Accordionの見出し取得元
-3. HTMLとClassicブロックの解析方式
-4. 同期パターンからのブロック取得方式
-5. PHP-onlyブロックの登録情報をJavaScriptへ渡す方式
-6. 公開アダプターAPIのバージョニング方式
-7. 見出しを生成する可能性がある未対応のカスタムブロックまたは動的ブロックの判定方式
-8. 1ブロック内の複数見出しに対する個別ナビゲーション方式
-9. Data Storeの選択だけで十分にスクロールできない場合の補助方式
+1. HTMLとClassicブロックの解析方式
+2. 同期パターンからのブロック取得方式
+3. PHP-onlyブロックの登録情報をJavaScriptへ渡す方式
+4. 公開アダプターAPIのバージョニング方式
+5. 1ブロック内の複数見出しに対する個別ナビゲーション方式
+6. Data Storeの選択だけで十分にスクロールできない場合の補助方式

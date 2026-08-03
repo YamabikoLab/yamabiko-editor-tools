@@ -108,6 +108,17 @@ H1 の複数使用、見出しレベルの飛び、空見出し、見出しな�
   - 決定した内部契約と検証結果が記録されている。
   - Accordion の正式な属性と未対応ブロック判定の最小条件が記録されている。
 
+#### Phase 1 implementation record (2026-08-03)
+
+- `src/editor-extensions/outline/`を製品コードの所有ディレクトリとし、独立したwebpackエントリーをPHPから投稿・固定ページだけへ読み込む構成にした。
+- サイドバー登録には`registerPlugin`と`PluginSidebar`、ブロックツリー取得と選択には`core/block-editor` Data Storeの`getBlocks`と`selectBlock`を使用した。
+- `OutlineNode.id`は`<blockClientId>:<headingIndex>`とし、標準Headingは`headingIndex = 0`、複数見出しはブロック内のゼロ始まり返却位置を使用する。
+- 内部アダプターはブロック名と`getOutlineNodes`だけを持ち、各返却項目のレベル、テキスト、任意の移動可否を検証する最小契約にした。Registryへの接続はPhase 2へ残した。
+- `core/accordion-heading`は`title`をテキスト、`level`を保存見出しレベルとして使用する。親`core/accordion.headingLevel`が子の`level`へ同期され、保存時の未設定レベルは`3`となることをWordPress 7.0対応ソースで確認した。製品表示への接続はPhase 2へ残した。
+- 未対応ブロックは、製品がブロック名単位で見出し生成を明示的に把握している場合だけ候補にする。未知のカスタムブロックや動的ブロックを種類だけで判定しない。
+- 100個すべてをHeadingとしたブロック配列を、1,000回ウォームアップ後に1,000回変換した。Dev Container（Node.js v24.5.0）で中央値`0.023 ms`、95パーセンタイル`0.028 ms`だった。Data Store通知とReact描画を含む体感確認はローカルWordPress環境で別途行う。
+- 計測用テストは一時的に実行して削除し、製品エントリーと配布物には含めない。
+
 ### Phase 2: アウトライン生成基盤と内部アダプター
 
 - Outcome:

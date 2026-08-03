@@ -10,7 +10,7 @@
 | ステータス | Draft                                                    |
 | 作成日     | 2026-08-01                                               |
 | 対象       | Gutenberg ブロックエディター                             |
-| 関連文書   | `../../design/outline/outline-high-level-design.md` v0.8 |
+| 関連文書   | `../../design/outline/outline-high-level-design.md` v0.9 |
 | 参照課題   | WordPress/gutenberg Issue #71699                         |
 
 ## 2. エグゼクティブサマリー
@@ -365,6 +365,6 @@ MVPは、次を満たしたとき完成とする。
 
 ## 18. 参照資料
 
-- `../../design/outline/outline-high-level-design.md` v0.8
+- `../../design/outline/outline-high-level-design.md` v0.9
 - WordPress/gutenberg Issue #71699
   https://github.com/WordPress/gutenberg/issues/71699
