@@ -60,6 +60,8 @@ Table Reorderは`src/editor-extensions/table-reorder/`に配置し、`editor.Blo
 
 既存ブロックのmanifestビルドと登録は維持しながら、Table Reorder用のエディター拡張エントリーと編集領域内CSSエントリーを追加する。
 
+ビルドは既存の`@wordpress/scripts`標準構成を維持する。Table Reorderの非ブロックエントリーと独立CSSは、`wp-scripts build`の明示的なエントリー指定やnpm scriptsの分割など、標準機能を使って生成する。
+
 ### アセットの読込責務を分ける
 
 Table Reorderのスクリプトとスタイルは、描画先に応じて読込経路を分ける。
@@ -152,7 +154,6 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
 ├── build/                              # generated, not committed
 │   └── editor-extensions/
 │       └── table-reorder/
-├── webpack.config.js
 ├── package.json
 └── yamabiko-editor-tools.php
 ```
@@ -164,7 +165,7 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
 - focused testsは対象モジュールと同じディレクトリに置く。
 - MVPでは`components/`、`hooks/`、`utils/`、`helpers/`および`shared/`の下位ディレクトリを作らない。
 - 新しいファイルやディレクトリは、実装中に独立した責務が実際に生じた場合だけ追加する。
-- `build/`はwebpackが生成する出力であり、直接編集またはコミットしない。
+- `build/`は`npm run build`による生成物であり、直接編集またはコミットしない。
 
 ### React component composition
 
@@ -210,13 +211,13 @@ withTableReorder(BlockEdit)
 
 ### Build and loading
 
-#### `webpack.config.js`
+#### `@wordpress/scripts`標準構成
 
-- 既存の`@wordpress/scripts`設定を基礎にする。
-- ブロックmanifestのビルドを維持したまま、Table Reorderのエディター拡張エントリーを追加する。
+- 既存の`@wordpress/scripts`標準構成とblocks manifestのビルドを維持する。
+- Table Reorderのエディター拡張と`content.scss`は、`wp-scripts build`の明示的なエントリー指定やnpm scriptsの分割など、標準機能を使って個別に生成する。
 - `index.tsx`からエディター上位UI用`editor.scss`をビルドする。
-- `content.scss`を独立したCSSエントリーとしてビルドし、編集領域内CSSを個別にenqueueできる生成物にする。
-- 出力先を`build/editor-extensions/table-reorder/`に固定する。
+- `content.scss`は独立してenqueueできるCSS生成物にする。
+- 出力先は`build/editor-extensions/table-reorder/`とする。
 - 生成物はコミットしない。
 
 #### `yamabiko-editor-tools.php`
@@ -233,7 +234,7 @@ withTableReorder(BlockEdit)
 
 - エディター上位UI用の`editor.scss`を読み込む。
 - `editor.BlockEdit`フィルターへTable ReorderのHOCを登録する。
-- 編集領域内DnD UI用`content.scss`は読み込まず、webpackとPHPの専用経路へ委ねる。
+- 編集領域内DnD UI用`content.scss`は読み込まず、`@wordpress/scripts`標準機能とPHPの専用経路へ委ねる。
 - 登録以外の状態管理や制約判定を持たない。
 
 #### `src/editor-extensions/table-reorder/with-table-reorder.tsx`
@@ -323,7 +324,7 @@ withTableReorder(BlockEdit)
 - Tasks:
   - `@dnd-kit/react`と`@dnd-kit/dom`をruntime dependencyへ追加する。
   - `src/editor-extensions/table-reorder/`を作成し、必要なファイルだけを機能ディレクトリ直下へ追加する。
-  - エディター拡張と`content.scss`を含むwebpack entryを追加する。
+  - `@wordpress/scripts`標準機能でエディター拡張と`content.scss`の生成経路を追加する。
   - PHPでassetファイルを使って生成物を登録する。
   - エディター拡張は`enqueue_block_editor_assets`、編集領域内CSSは`enqueue_block_assets`と`is_admin()`でenqueueする。
   - `src/editor-extensions/table-reorder/index.tsx`を追加する。
@@ -449,13 +450,15 @@ withTableReorder(BlockEdit)
 - portalされたハンドルは`PointerSensor.configure({ activatorElements })`で対象行へ関連付ける。
 - エディター拡張スクリプトと上位UIスタイルは`enqueue_block_editor_assets`で読み込む。
 - 編集領域内DnD UI用CSSは`enqueue_block_assets`と`is_admin()`で読み込む。
-- エディター拡張のwebpack entry名とasset出力パスを、PHP enqueue処理と一致させる。
+- 既存の`@wordpress/scripts`標準構成を維持する。
+- Table Reorderの生成物名と出力パスを、PHP enqueue処理と一致させる。
 - ハンドル用portal containerの配置先を、対象Tableブロックと同じ座標系を維持できる要素に固定する。
 - 行の一時IDを保存データへ入れず、モード中の再描画でも同じ行へ対応付けられる方式に固定する。
 - 禁止通知に使用するWordPressの公開notice APIを固定する。
 
 ### Validate during implementation
 
+- `@wordpress/scripts`標準機能だけで既存ブロックのビルド、watch、Table Reorderスクリプトおよび独立CSSを両立できるか。
 - BlockEdit拡張の一時アンカーから、iframe・非iframeの両方で対象block elementを安定して取得できるか。
 - コアTableブロックの再描画後に、`body`配列と`tbody > tr`の順序および件数が一致するか。
 - `useSortable`へ外部の行DOM elementとhandle refを渡し、`activatorElements`を構成した状態で、両編集環境のポインターDnDが同じように動作するか。
