@@ -93,11 +93,6 @@ export function TableReorderController( { body, clientId }: TableReorderControll
 					};
 				} )
 			);
-
-			if ( resizeObserver ) {
-				resizeObserver.disconnect();
-				tableRows.forEach( ( row ) => resizeObserver?.observe( row ) );
-			}
 		};
 
 		const scheduleUpdate = () => {
