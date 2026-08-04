@@ -60,7 +60,7 @@ Table Reorderは`src/editor-extensions/table-reorder/`に配置し、`editor.Blo
 
 既存ブロックのmanifestビルドと登録は維持しながら、Table Reorder用のエディター拡張エントリーと編集領域内CSSエントリーを追加する。
 
-ビルドは既存の`@wordpress/scripts`標準構成を維持し、`webpack.config.js`は追加しない。Table Reorderの非ブロックエントリーと独立CSSは、`wp-scripts build`の明示的なエントリー指定やnpm scriptsの分割など、カスタムwebpack設定を追加しない方法を優先する。標準機能で要件を満たせないことが実装検証で確認された場合に限り、カスタム設定を再検討する。
+ビルドは既存の`@wordpress/scripts`標準構成を維持する。Table Reorderの非ブロックエントリーと独立CSSは、`wp-scripts build`の明示的なエントリー指定やnpm scriptsの分割など、標準機能を使って生成する。
 
 ### アセットの読込責務を分ける
 
@@ -214,12 +214,10 @@ withTableReorder(BlockEdit)
 #### `@wordpress/scripts`標準構成
 
 - 既存の`@wordpress/scripts`標準構成とblocks manifestのビルドを維持する。
-- `webpack.config.js`は追加しない。
 - Table Reorderのエディター拡張と`content.scss`は、`wp-scripts build`の明示的なエントリー指定やnpm scriptsの分割など、標準機能を使って個別に生成する。
 - `index.tsx`からエディター上位UI用`editor.scss`をビルドする。
 - `content.scss`は独立してenqueueできるCSS生成物にする。
 - 出力先は`build/editor-extensions/table-reorder/`とする。
-- 標準機能で既存ブロックのビルド、watchおよび必要な個別生成物を両立できないことが確認された場合のみ、カスタム設定を再検討する。
 - 生成物はコミットしない。
 
 #### `yamabiko-editor-tools.php`
@@ -335,7 +333,6 @@ withTableReorder(BlockEdit)
   - Noticeブロックが従来どおり登録される。
   - フロントエンドではTable ReorderのスクリプトとDnD UI用CSSがenqueueされない。
   - iframeの編集領域内にDnD UI用CSSが読み込まれる。
-  - `webpack.config.js`が追加されていない。
   - 空の下位ディレクトリや汎用`utils`、`helpers`および`shared`が追加されていない。
 
 ### Phase 2: Tableブロックへモード切替を追加する
@@ -453,7 +450,7 @@ withTableReorder(BlockEdit)
 - portalされたハンドルは`PointerSensor.configure({ activatorElements })`で対象行へ関連付ける。
 - エディター拡張スクリプトと上位UIスタイルは`enqueue_block_editor_assets`で読み込む。
 - 編集領域内DnD UI用CSSは`enqueue_block_assets`と`is_admin()`で読み込む。
-- 既存の`@wordpress/scripts`標準構成を維持し、`webpack.config.js`は追加しない。
+- 既存の`@wordpress/scripts`標準構成を維持する。
 - Table Reorderの生成物名と出力パスを、PHP enqueue処理と一致させる。
 - ハンドル用portal containerの配置先を、対象Tableブロックと同じ座標系を維持できる要素に固定する。
 - 行の一時IDを保存データへ入れず、モード中の再描画でも同じ行へ対応付けられる方式に固定する。
