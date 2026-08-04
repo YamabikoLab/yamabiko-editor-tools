@@ -1,3 +1,27 @@
 .yamabiko-editor-tools-table-reorder-content {
 	box-sizing: border-box;
+	inset: 0;
+	pointer-events: none;
+	position: fixed;
+	z-index: 10;
+
+	&__handle {
+		align-items: center;
+		background: var(--wp-components-color-accent, #3858e9);
+		border: 0;
+		border-radius: 2px;
+		color: #fff;
+		display: flex;
+		justify-content: center;
+		margin-left: -28px;
+		padding: 0;
+		pointer-events: auto;
+		position: absolute;
+		width: 24px;
+
+		&:focus-visible {
+			outline: 2px solid var(--wp-components-color-accent, #3858e9);
+			outline-offset: 2px;
+		}
+	}
 }
