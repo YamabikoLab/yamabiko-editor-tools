@@ -8,7 +8,7 @@
 	],
 	"scripts": {
 		"start": "wp-scripts start --hot --blocks-manifest",
-		"build": "wp-scripts build blocks/notice/index=src/blocks/notice/index.tsx editor-extensions/table-reorder/index=src/editor-extensions/table-reorder/index.tsx editor-extensions/table-reorder/content=src/editor-extensions/table-reorder/content.scss --blocks-manifest",
+		"build": "wp-scripts build --blocks-manifest",
 		"plugin-zip": "npm run build && wp-scripts plugin-zip",
 		"version:check": "node scripts/version.mjs check",
 		"version:set": "node scripts/version.mjs set",
