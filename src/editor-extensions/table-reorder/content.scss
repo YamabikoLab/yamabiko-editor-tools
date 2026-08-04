@@ -42,15 +42,9 @@
 	}
 
 	&__overlay {
-		align-items: center;
-		background: var(--wp-components-color-accent, #3858e9);
-		border-radius: 2px;
 		box-sizing: border-box;
-		color: #fff;
-		display: flex;
-		font-size: 12px;
-		font-weight: 600;
-		padding: 8px;
+		box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+		opacity: 0.9;
 		pointer-events: none;
 	}
 }

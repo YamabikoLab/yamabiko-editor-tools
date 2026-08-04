@@ -25,7 +25,7 @@ export function SortableRow( {
 	top,
 }: SortableRowProps ) {
 	const { handleRef, isDragSource } = useSortable( {
-		disabled,
+		disabled: disabled ? { draggable: true } : false,
 		element,
 		id,
 		index,
