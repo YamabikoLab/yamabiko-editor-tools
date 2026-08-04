@@ -96,13 +96,17 @@ Do not run an alternative or broaden the scope without approval when the choice 
 
 ## Command output
 
-- Use `logcut` only after the execution-environment check confirms Codex is running inside the Dev Container.
-- On the host, run the normal command. To invoke the wrapper from the host, use the command documented by the active development environment.
-- Use `logcut` only for finite commands whose successful output is not needed.
-- Never use `logcut` for commands containing tokens, passwords, Authorization headers, signed URLs, or other secrets. The wrapper omits arguments from its status lines, but the executed command can still write sensitive values to its retained failure log.
-- When `logcut` fails, inspect its summary first, then read only the relevant section of the preserved full log when additional context is required.
-- Do not rerun a failed command solely to obtain output already available in its preserved log.
-- For diagnostic or query commands, constrain output at the source with paths, filters, formats, ranges, counts, time windows, or failed-only options.
-- This includes Docker inspection and log commands such as `docker ps`, `docker inspect`, and `docker logs`; do not wrap them with `logcut`.
-- Do not use `logcut` for interactive, watch-mode, streaming, or long-running development commands.
+- Use `logcut` only inside the Dev Container.
+- Use `logcut` only for finite, non-interactive commands when full successful output is unnecessary or the supported concise success summary is sufficient.
+- Use `logcut` for supported Docker build commands (`docker build` and `docker compose build`) and Git transfer commands (`git push`, `git pull`, and `git fetch`). These commands preserve a small amount of useful success information.
+- Prefer the default `auto` profile. Specify `--profile` only when automatic detection is insufficient, such as when a supported operation is hidden behind a custom wrapper or `sh -c`.
+- Never use `logcut` for commands containing tokens, passwords, Authorization headers, signed URLs, private keys, or other secrets. Secret masking is best effort and cannot guarantee detection of unknown, arbitrary, or multiline sensitive values.
+- Do not treat `--no-retain-log` or `LOGCUT_RETAIN_FAILED_LOG=0` as protection for secret-bearing commands. Command output can still be written temporarily before the failure log is discarded.
+- By default, when `logcut` fails, inspect its summary first, then read only the relevant section of the preserved full log when additional context is required.
+- Use `--no-retain-log` only when the failure summary is expected to be sufficient and retaining the full failure log is unnecessary.
+- Do not rerun a failed command solely to obtain output that is already available in its preserved log.
+- For diagnostic, inspection, or query commands, constrain output at the source with paths, filters, formats, ranges, counts, time windows, or failed-only options.
+- Do not wrap Docker commands whose output is itself the requested information, including `docker ps`, `docker images`, `docker inspect`, `docker logs`, `docker compose ps`, `docker compose logs`, `docker run`, and `docker exec`.
+- Do not wrap Git information commands such as `git status`, `git log`, `git diff`, and `git show`.
+- Do not use `logcut` for interactive, watch-mode, follow-mode, streaming, or long-running development commands.
 - Follow the `YamabikoLab/wp-dev` documentation for commands that operate the local WordPress development environment.
