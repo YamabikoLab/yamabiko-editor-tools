@@ -162,7 +162,7 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
 - `editor.scss`はエディター上位UIに必要な見た目だけを所有する。
 - `content.scss`は編集領域へportalするハンドル、disabled状態、挿入位置およびoverlayだけを所有する。
 - focused testsは対象モジュールと同じディレクトリに置く。
-- MVPでは`components/`、`hooks/`、`utils/`、`helpers`および`shared/`の下位ディレクトリを作らない。
+- MVPでは`components/`、`hooks/`、`utils/`、`helpers/`および`shared/`の下位ディレクトリを作らない。
 - 新しいファイルやディレクトリは、実装中に独立した責務が実際に生じた場合だけ追加する。
 - `build/`はwebpackが生成する出力であり、直接編集またはコミットしない。
 
