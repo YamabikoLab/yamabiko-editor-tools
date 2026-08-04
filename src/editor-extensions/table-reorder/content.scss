@@ -19,9 +19,38 @@
 		position: absolute;
 		width: 24px;
 
+		&.is-dragging {
+			opacity: 0.5;
+		}
+
+		&:disabled {
+			background: #757575;
+			cursor: not-allowed;
+		}
+
 		&:focus-visible {
 			outline: 2px solid var(--wp-components-color-accent, #3858e9);
 			outline-offset: 2px;
 		}
+	}
+
+	&__insertion-indicator {
+		background: var(--wp-components-color-accent, #3858e9);
+		height: 3px;
+		pointer-events: none;
+		position: absolute;
+	}
+
+	&__overlay {
+		align-items: center;
+		background: var(--wp-components-color-accent, #3858e9);
+		border-radius: 2px;
+		box-sizing: border-box;
+		color: #fff;
+		display: flex;
+		font-size: 12px;
+		font-weight: 600;
+		padding: 8px;
+		pointer-events: none;
 	}
 }
