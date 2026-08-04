@@ -1,3 +1,4 @@
+import { directionBiased } from '@dnd-kit/collision';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useCallback } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
@@ -25,6 +26,7 @@ export function SortableRow( {
 	top,
 }: SortableRowProps ) {
 	const { handleRef, isDragSource } = useSortable( {
+		collisionDetector: directionBiased,
 		disabled: disabled ? { draggable: true } : false,
 		element,
 		id,

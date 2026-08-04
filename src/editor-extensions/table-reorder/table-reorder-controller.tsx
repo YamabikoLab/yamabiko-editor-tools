@@ -382,7 +382,7 @@ export function TableReorderController( { body, clientId }: TableReorderControll
 
 	const onDragOver = useCallback(
 		( event: DragOverEvent ) => {
-			const { source } = event.operation;
+			const { source, target } = event.operation;
 			if ( ! isSortable( source ) ) {
 				event.preventDefault();
 				clearInsertionIndicator();
@@ -400,9 +400,29 @@ export function TableReorderController( { body, clientId }: TableReorderControll
 			const isForbidden =
 				forbiddenInsertionIndices.has( insertionIndex ) ||
 				crossesRowspanBoundary( rowspanRanges, sourceIndex, insertionIndex );
-			const targetRow = rows.find( ( row ) => row.index === currentIndex );
+			const firstBodyRow = rows.find(
+				( row ) => row.element.parentElement?.firstElementChild === row.element
+			);
 
-			if ( isForbidden || ! targetRow ) {
+			if ( isForbidden || ! firstBodyRow ) {
+				event.preventDefault();
+				clearInsertionIndicator();
+				return;
+			}
+
+			if ( currentIndex === 0 ) {
+				showInsertionIndicator( firstBodyRow.id, false );
+				return;
+			}
+
+			if ( ! isSortable( target ) || source.sortable.group !== target.sortable.group ) {
+				event.preventDefault();
+				clearInsertionIndicator();
+				return;
+			}
+
+			const targetRow = rows.find( ( row ) => row.id === target.id );
+			if ( ! targetRow ) {
 				event.preventDefault();
 				clearInsertionIndicator();
 				return;
