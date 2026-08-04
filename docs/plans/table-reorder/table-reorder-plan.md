@@ -107,6 +107,82 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
 
 ## Architecture
 
+### Directory structure
+
+`source-organization.md`のfeature-first方針に従い、Table Reorderが所有する実装、スタイルおよびfocused testsを一つの機能ディレクトリへまとめる。
+
+```text
+.
+├── src/
+│   ├── blocks/
+│   │   └── notice/
+│   └── editor-extensions/
+│       └── table-reorder/
+│           ├── index.tsx
+│           ├── with-table-reorder.tsx
+│           ├── table-reorder-controller.tsx
+│           ├── sortable-row.tsx
+│           ├── rowspan.ts
+│           ├── rowspan.test.ts
+│           ├── reorder.ts
+│           ├── reorder.test.ts
+│           └── editor.scss
+├── build/                              # generated, not committed
+│   └── editor-extensions/
+│       └── table-reorder/
+├── webpack.config.js
+├── package.json
+└── yamabiko-editor-tools.php
+```
+
+- Table Reorderはブロックそのものではないため、`src/blocks/`ではなく`src/editor-extensions/`へ配置する。
+- 保存マークアップやフロントエンド表示を追加しないため、`block.json`、`save.tsx`、`render.php`および`style.scss`は作成しない。
+- エディター専用の見た目は`editor.scss`だけが所有する。
+- focused testsは対象モジュールと同じディレクトリに置く。
+- MVPでは`components/`、`hooks/`、`utils/`、`helpers/`および`shared/`の下位ディレクトリを作らない。
+- 新しいファイルやディレクトリは、実装中に独立した責務が実際に生じた場合だけ追加する。
+- `build/`はwebpackが生成する出力であり、直接編集またはコミットしない。
+
+### React component composition
+
+```text
+withTableReorder(BlockEdit)
+├── original BlockEdit
+├── BlockControls
+│   └── ToolbarButton
+└── TableReorderController             # 並べ替えモード中だけ描画
+    ├── DragDropProvider
+    │   ├── SortableRow × tbody行数
+    │   │   └── drag handle button
+    │   └── DragOverlay × 1
+    └── handle portal container
+```
+
+#### `withTableReorder`
+
+- WordPressの`editor.BlockEdit`フィルターへ登録するHOCとする。
+- 元のBlockEditを常に描画し、`core/table`かつ選択中の場合だけTable Reorderの操作を追加する。
+- `BlockControls`とモード状態を所有する。
+- 並べ替えモード中だけ`TableReorderController`を描画する。
+- DnD、DOM測定、`rowspan`判定および行配列更新は持たない。
+
+#### `TableReorderController`
+
+- 一つの対象TableブロックについてDnDセッション全体を調整する。
+- `DragDropProvider`、一つの`DragOverlay`、本文行一覧、移動候補および通知済み状態を所有する。
+- 対象Tableの編集領域を解決し、portal container、イベントおよびObserverの作成と破棄を行う。
+- `rowspan.ts`と`reorder.ts`の結果を組み合わせ、有効なドロップ時だけ`setAttributes`を一回呼ぶ。
+- 行ごとの`useSortable`登録は持たず、`SortableRow`へ委譲する。
+
+#### `SortableRow`
+
+- 一つの`tbody`行と一つのドラッグハンドルを対応付ける小さなコンポーネントとする。
+- `useSortable`を一回だけ呼び、行DOMをsortable elementへ、ボタンを`handleRef`へ接続する。
+- `disabled`、ドラッグ中および挿入候補の表示状態を受け取る。
+- Table属性の更新、通知、Observerおよび他行の状態は所有しない。
+
+`DragOverlay`は独立したfeature componentへ分割せず、`TableReorderController`内の小さな読み取り専用表示として開始する。実装が大きくなり独立した責務が明確になった場合だけ、同じfeature directory直下へ分離する。
+
 ### Build and loading
 
 #### `webpack.config.js`
@@ -210,6 +286,7 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
   - 既存のNoticeブロックとblocks manifestのビルドが維持される。
 - Tasks:
   - `@dnd-kit/react`をruntime dependencyへ追加する。
+  - `src/editor-extensions/table-reorder/`を作成し、必要なファイルだけを機能ディレクトリ直下へ追加する。
   - エディター拡張を含むwebpack entryを追加する。
   - PHPでassetファイルを使って生成物を登録・enqueueする。
   - `src/editor-extensions/table-reorder/index.tsx`を追加する。
@@ -217,6 +294,7 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
   - `npm run build`が成功し、block manifestとTable Reorderのasset付き生成物が作られる。
   - Noticeブロックが従来どおり登録される。
   - 投稿エディター以外ではTable Reorderの生成物がenqueueされない。
+  - 空の下位ディレクトリや汎用`utils`、`helpers`および`shared`が追加されていない。
 
 ### Phase 2: Tableブロックへモード切替を追加する
 
@@ -261,7 +339,7 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
   - 結合範囲途中の禁止挿入位置を求める。
   - 結合範囲を越える移動を判定する。
   - `colspan`だけの行を許可する。
-  - focused unit testsを追加する。
+  - focused unit testsを`rowspan.ts`の隣へ追加する。
 - Validation:
   - `npm run test:unit -- rowspan`相当の対象テストが成功する。
   - 要件定義書と基本設計書の禁止・許可例をテストで表現する。
@@ -299,7 +377,7 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
   - WordPressの画面通知で規定メッセージを表示する。
   - 一回の移動試行中の通知を一回へ制限し、次のDnD開始時にリセットする。
   - DnD中のモード終了では未確定変更を破棄する。
-  - focused unit testsを追加する。
+  - focused unit testsを`reorder.ts`の隣へ追加する。
 - Validation:
   - 移動後もセル内容、セル属性、装飾、行内セル順序および`colspan`が保持される。
   - 一回の移動を一回のUndoで戻せる。
@@ -338,6 +416,7 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
 - 禁止候補で`onDragOver`の既定処理を抑止したとき、optimistic sortingと挿入表示が進まないか。
 - DnD中にモードを終了したとき、未確定のDOM順序とprovider状態が残らず通常編集へ戻るか。
 - 一回の`setAttributes`が一回のUndo履歴になるか。
+- `TableReorderController`または`SortableRow`が大きくなった場合、分割する実責務が生じているか。単なる分類目的では分割しない。
 
 ## Issue breakdown
 
@@ -413,6 +492,9 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
 - 現行の`@dnd-kit/react`公式APIを使用している。
 - 要件定義書の機能要件、結合セル保護、対象外および完了条件が実装単位とValidationへ反映されている。
 - 基本設計書のUI、状態、更新方式、DnD、`rowspan`、`colspan`、通知、終了処理および編集環境対応が実装単位とValidationへ反映されている。
+- Table Reorderの実装、スタイルおよびfocused testsが`src/editor-extensions/table-reorder/`にまとまっている。
+- entry fileが登録だけを担当し、UI、状態、変換および制約判定を抱えていない。
+- 実際の責務がない汎用ディレクトリ、共有モジュールおよび空ファイルが追加されていない。
 - 有効な行移動だけがTableブロックの`body`を一回更新する。
 - 一回の行移動を一回のUndoで戻せる。
 - 禁止操作で表データが変更されず、一回の移動試行につき通知が一回だけ表示される。
@@ -426,3 +508,4 @@ BlockEdit拡張が描画する一時アンカーから、対象Tableブロック
 - DnD状態、行の一時ID、ハンドル用DOMおよびoverlayは編集画面上の一時情報であり、保存対象にしない。
 - `build/`は生成物のためコミットしない。
 - 実装ファイルはTable Reorderのfeature directory内へ置き、現在必要な責務だけに分割する。
+- 将来ほかの機能から同じ処理が必要になっても、少なくとも二つの実利用と安定した責務が確認されるまでは`shared/`へ抽出しない。
