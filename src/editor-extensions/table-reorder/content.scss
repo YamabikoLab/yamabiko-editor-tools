@@ -41,10 +41,26 @@
 		position: absolute;
 	}
 
+	&__row.is-displaced {
+		transform: translateY(var(--yamabiko-editor-tools-table-reorder-row-offset));
+		transition: transform 160ms ease;
+	}
+
+	&__row.is-drag-source {
+		opacity: 0;
+	}
+
 	&__overlay {
 		box-sizing: border-box;
 		box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
 		opacity: 0.9;
 		pointer-events: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	/* stylelint-disable-next-line rule-empty-line-before -- The media query contains one override. */
+	.yamabiko-editor-tools-table-reorder-content__row.is-displaced {
+		transition: none;
 	}
 }
