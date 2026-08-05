@@ -26,6 +26,7 @@ import { SortableRow } from './sortable-row';
 type TableReorderControllerProps = {
 	body: unknown;
 	clientId: string;
+	onExit: () => void;
 };
 
 type TableRow = {
@@ -137,7 +138,7 @@ function DragRowOverlay( {
 	);
 }
 
-export function TableReorderController( { body, clientId }: TableReorderControllerProps ) {
+export function TableReorderController( { body, clientId, onExit }: TableReorderControllerProps ) {
 	const anchorRef = useRef< HTMLSpanElement >( null );
 	const [ container, setContainer ] = useState< HTMLDivElement | null >( null );
 	const [ rows, setRows ] = useState< TableRow[] >( [] );
@@ -221,6 +222,16 @@ export function TableReorderController( { body, clientId }: TableReorderControll
 		if ( ! view ) {
 			return;
 		}
+		const onPointerDown = ( event: PointerEvent ) => {
+			if ( event.button !== 0 || ! ( event.target instanceof view.Element ) ) {
+				return;
+			}
+
+			const cell = event.target.closest( 'td, th' );
+			if ( cell && blockElement.contains( cell ) ) {
+				onExit();
+			}
+		};
 
 		const handleContainer = document.createElement( 'div' );
 		handleContainer.className = 'yamabiko-editor-tools-table-reorder-content';
@@ -341,6 +352,7 @@ export function TableReorderController( { body, clientId }: TableReorderControll
 		}
 
 		document.addEventListener( 'scroll', schedulePositionUpdate, true );
+		document.addEventListener( 'pointerdown', onPointerDown, true );
 		view.addEventListener( 'resize', schedulePositionUpdate );
 		updateRows();
 
@@ -351,13 +363,14 @@ export function TableReorderController( { body, clientId }: TableReorderControll
 			mutationObserver.disconnect();
 			resizeObserver?.disconnect();
 			document.removeEventListener( 'scroll', schedulePositionUpdate, true );
+			document.removeEventListener( 'pointerdown', onPointerDown, true );
 			view.removeEventListener( 'resize', schedulePositionUpdate );
 			rowsRef.current = [];
 			scheduleRowsUpdate.current = () => {};
 			handleContainer.remove();
 			setContainer( null );
 		};
-	}, [ body, clientId ] );
+	}, [ body, clientId, onExit ] );
 
 	useEffect( () => () => stopWaitingForDragCleanup.current(), [] );
 
