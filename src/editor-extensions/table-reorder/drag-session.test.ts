@@ -83,6 +83,43 @@ describe( 'Table reorder drag session', () => {
 		).toEqual( [ '6', '8', '9', '7', '10' ] );
 	} );
 
+	it( 'preserves the core Table row and cell data when committing a move', () => {
+		const rows = [
+			{
+				cells: [
+					{ content: 'first', tag: 'td' },
+					{ className: 'is-emphasized', colspan: 2, content: '<strong>second</strong>', tag: 'td' },
+				],
+			},
+			{
+				cells: [
+					{ content: 'third', tag: 'th' },
+					{ content: 'fourth', tag: 'td' },
+				],
+			},
+			{ cells: [ { content: 'fifth', tag: 'td' } ] },
+		];
+		const session = beginTableReorderDrag( rows, 'row-1', 1 )!;
+		const update = updateTableReorderDragTarget( session, 'row-0', 0 );
+
+		const committed = getCommittedTableReorderBody( update.session, {
+			canceled: false,
+			sourceId: 'row-1',
+			targetId: 'row-0',
+		} );
+		const committedRows = committed as typeof rows | null;
+
+		expect( committedRows ).toEqual( [ rows[ 1 ], rows[ 0 ], rows[ 2 ] ] );
+		expect( committedRows?.[ 0 ] ).toBe( rows[ 1 ] );
+		expect( committedRows?.[ 1 ]?.cells ).toBe( rows[ 0 ].cells );
+		expect( committedRows?.[ 1 ]?.cells[ 1 ] ).toEqual( {
+			className: 'is-emphasized',
+			colspan: 2,
+			content: '<strong>second</strong>',
+			tag: 'td',
+		} );
+	} );
+
 	it( 'does not commit a move across a rowspan range or into its interior', () => {
 		const mergedRows: Row[] = [
 			{ cells: [ { content: '6' } ] },
