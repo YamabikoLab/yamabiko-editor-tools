@@ -26,6 +26,7 @@ import {
 	type TableReorderDragSession,
 	updateTableReorderDragTarget,
 } from './drag-session';
+import { TableReorderDragVisuals, type InsertionIndicator } from './drag-visuals';
 import { enableFullWidthTableReorder } from './full-width';
 import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
@@ -49,11 +50,6 @@ type TableRowPosition = {
 	left: number;
 	top: number;
 	width: number;
-};
-
-type InsertionIndicator = {
-	below: boolean;
-	rowId: string;
 };
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
@@ -176,6 +172,7 @@ export function TableReorderController( {
 	const rowElementIds = useRef< WeakMap< HTMLTableRowElement, string > >( new WeakMap() );
 	const rowIds = useRef( new WeakMap< object, string >() );
 	const nextRowId = useRef( 0 );
+	const dragVisuals = useRef< TableReorderDragVisuals | null >( null );
 	const { createErrorNotice } = useDispatch( noticesStore );
 	const rowspanRanges = useMemo( () => getRowspanRanges( body ), [ body ] );
 	const nonMovableRows = useMemo(
@@ -191,8 +188,20 @@ export function TableReorderController( {
 		[]
 	);
 
-	const clearInsertionIndicator = useCallback( () => {
-		setInsertionIndicator( null );
+	const clearDragVisuals = useCallback( () => {
+		dragVisuals.current?.clear();
+	}, [] );
+
+	useEffect( () => {
+		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
+		dragVisuals.current = visuals;
+
+		return () => {
+			visuals.clear();
+			if ( dragVisuals.current === visuals ) {
+				dragVisuals.current = null;
+			}
+		};
 	}, [] );
 	const showForbiddenNotice = useCallback( () => {
 		if ( hasShownForbiddenNotice.current ) {
@@ -208,16 +217,6 @@ export function TableReorderController( {
 			{ type: 'snackbar' }
 		);
 	}, [ createErrorNotice ] );
-
-	const showInsertionIndicator = useCallback( ( rowId: string, below: boolean ) => {
-		setInsertionIndicator( ( current ) => {
-			if ( current?.rowId === rowId && current.below === below ) {
-				return current;
-			}
-
-			return { below, rowId };
-		} );
-	}, [] );
 
 	const onHandleChange = useCallback( ( id: string, element: HTMLButtonElement | null ) => {
 		if ( element ) {
@@ -400,19 +399,21 @@ export function TableReorderController( {
 			view.removeEventListener( 'resize', schedulePositionUpdate );
 			rowsRef.current = [];
 			scheduleRowsUpdate.current = () => {};
+			clearDragVisuals();
 			disableFullWidthReorder();
 			handleContainer.remove();
 			setContainer( null );
 		};
-	}, [ align, body, clientId, onExit ] );
+	}, [ align, body, clearDragVisuals, clientId, onExit ] );
 
 	useEffect(
 		() => () => {
+			clearDragVisuals();
 			dragSession.current = null;
 			dragRows.current = new Map();
 			stopWaitingForDragCleanup.current();
 		},
-		[]
+		[ clearDragVisuals ]
 	);
 
 	const onDragStart = useCallback(
@@ -435,10 +436,10 @@ export function TableReorderController( {
 			dragRows.current = new Map( rows.map( ( candidate ) => [ candidate.id, candidate ] ) );
 			dragSession.current = session;
 			stopWaitingForDragCleanup.current();
-			clearInsertionIndicator();
+			clearDragVisuals();
 			setActiveRow( row );
 		},
-		[ body, clearInsertionIndicator, rows ]
+		[ body, clearDragVisuals, rows ]
 	);
 
 	const updateDragTarget = useCallback(
@@ -446,15 +447,18 @@ export function TableReorderController( {
 			const { source, target } = event.operation;
 			const session = dragSession.current;
 			if ( ! session || ! isSortable( source ) || source.id !== session.sourceId ) {
+				if ( session ) {
+					dragSession.current = clearTableReorderDragTarget( session );
+				}
 				event.preventDefault();
-				clearInsertionIndicator();
+				clearDragVisuals();
 				return;
 			}
 
 			if ( ! isSortable( target ) || source.sortable.group !== target.sortable.group ) {
 				dragSession.current = clearTableReorderDragTarget( session );
 				event.preventDefault();
-				clearInsertionIndicator();
+				clearDragVisuals();
 				return;
 			}
 
@@ -462,7 +466,7 @@ export function TableReorderController( {
 			if ( ! targetRow ) {
 				dragSession.current = clearTableReorderDragTarget( session );
 				event.preventDefault();
-				clearInsertionIndicator();
+				clearDragVisuals();
 				return;
 			}
 
@@ -477,18 +481,26 @@ export function TableReorderController( {
 			if ( update.isForbidden ) {
 				event.preventDefault();
 				showForbiddenNotice();
-				clearInsertionIndicator();
+				clearDragVisuals();
 				return;
 			}
 
 			if ( ! update.session.target ) {
-				clearInsertionIndicator();
+				clearDragVisuals();
 				return;
 			}
 
-			showInsertionIndicator( targetRow.id, insertionIndex > targetRow.index );
+			dragVisuals.current?.showCandidate(
+				Array.from( dragRows.current.values(), ( row ) => ( {
+					...row,
+					height: row.element.getBoundingClientRect().height,
+				} ) ),
+				update.session.sourceId,
+				update.session.target.targetId,
+				update.session.target.insertionIndex
+			);
 		},
-		[ clearInsertionIndicator, showForbiddenNotice, showInsertionIndicator ]
+		[ clearDragVisuals, showForbiddenNotice ]
 	);
 
 	const onDragEnd = useCallback(
@@ -500,6 +512,7 @@ export function TableReorderController( {
 				isSortable( source ) &&
 				isSortable( target ) &&
 				source.sortable.group === target.sortable.group;
+			clearDragVisuals();
 			commitTableReorderDrag(
 				session,
 				{
@@ -509,8 +522,6 @@ export function TableReorderController( {
 				},
 				( nextBody ) => setAttributes( { body: nextBody } )
 			);
-
-			clearInsertionIndicator();
 
 			const overlay = overlayElement.current?.parentElement;
 			const view = activeRow?.element.ownerDocument.defaultView;
@@ -552,7 +563,7 @@ export function TableReorderController( {
 				}
 			};
 		},
-		[ activeRow, clearInsertionIndicator, setAttributes ]
+		[ activeRow, clearDragVisuals, setAttributes ]
 	);
 
 	const indicatorPosition = insertionIndicator
