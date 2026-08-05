@@ -60,9 +60,10 @@ export const getRowDisplacements = (
 
 export class TableReorderDragVisuals {
 	private readonly originalStyles = new Map< HTMLTableRowElement, InlineStyles >();
+	private insertionIndicator: InsertionIndicator | null = null;
 
 	constructor(
-		private readonly setInsertionIndicator: ( indicator: InsertionIndicator | null ) => void
+		private readonly onInsertionIndicatorChange: ( indicator: InsertionIndicator | null ) => void
 	) {}
 
 	showCandidate(
@@ -109,7 +110,7 @@ export class TableReorderDragVisuals {
 			}
 		}
 
-		this.setInsertionIndicator( {
+		this.updateInsertionIndicator( {
 			below: insertionIndex > target.index,
 			rowId: target.id,
 		} );
@@ -123,7 +124,19 @@ export class TableReorderDragVisuals {
 		}
 
 		this.originalStyles.clear();
-		this.setInsertionIndicator( null );
+		this.updateInsertionIndicator( null );
+	}
+
+	private updateInsertionIndicator( indicator: InsertionIndicator | null ): void {
+		if (
+			this.insertionIndicator?.below === indicator?.below &&
+			this.insertionIndicator?.rowId === indicator?.rowId
+		) {
+			return;
+		}
+
+		this.insertionIndicator = indicator;
+		this.onInsertionIndicatorChange( indicator );
 	}
 
 	private getOriginalStyles( element: HTMLTableRowElement ): InlineStyles {

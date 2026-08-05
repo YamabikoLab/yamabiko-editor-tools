@@ -81,4 +81,19 @@ describe( 'TableReorderDragVisuals', () => {
 		expect( thirdDisplaced.style.transform ).toBe( '' );
 		expect( setInsertionIndicator ).toHaveBeenLastCalledWith( null );
 	} );
+
+	it( 'notifies once when the insertion candidate is unchanged', () => {
+		const rows = createVisualRows();
+		const setInsertionIndicator = jest.fn< void, [ InsertionIndicator | null ] >();
+		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
+
+		visuals.showCandidate( rows, 'row-10', 'row-7', 1 );
+		visuals.showCandidate( rows, 'row-10', 'row-7', 1 );
+
+		expect( setInsertionIndicator ).toHaveBeenCalledTimes( 1 );
+		expect( setInsertionIndicator ).toHaveBeenCalledWith( {
+			below: false,
+			rowId: 'row-7',
+		} );
+	} );
 } );
