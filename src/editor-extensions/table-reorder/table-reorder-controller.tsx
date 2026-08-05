@@ -31,6 +31,7 @@ import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
 
 type TableReorderControllerProps = {
+	align: string | undefined;
 	body: unknown;
 	clientId: string;
 	onExit: () => void;
@@ -147,6 +148,7 @@ function DragRowOverlay( {
 }
 
 export function TableReorderController( {
+	align,
 	body,
 	clientId,
 	onExit,
@@ -402,7 +404,7 @@ export function TableReorderController( {
 			handleContainer.remove();
 			setContainer( null );
 		};
-	}, [ body, clientId, onExit ] );
+	}, [ align, body, clientId, onExit ] );
 
 	useEffect(
 		() => () => {

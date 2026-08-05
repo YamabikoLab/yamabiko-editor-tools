@@ -4,9 +4,10 @@ export const enableFullWidthTableReorder = (
 	blockElement: HTMLElement,
 	table: HTMLTableElement | null
 ) => {
+	const fullWidthElement = table?.closest( '.alignfull, [data-align="full"]' );
 	const isFullWidth =
 		blockElement.matches( '.alignfull, [data-align="full"]' ) ||
-		table?.closest( '.alignfull, [data-align="full"]' );
+		Boolean( fullWidthElement && blockElement.contains( fullWidthElement ) );
 
 	if ( ! isFullWidth ) {
 		return () => {};

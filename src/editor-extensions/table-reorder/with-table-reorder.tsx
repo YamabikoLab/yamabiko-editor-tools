@@ -9,6 +9,7 @@ import { focusTableCellFromPaddingClick } from './table-cell-padding-click';
 import { TableReorderController } from './table-reorder-controller';
 
 type TableAttributes = Record< string, unknown > & {
+	align?: string;
 	body?: unknown[];
 };
 
@@ -82,6 +83,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				) }
 				{ isReorderMode && props.isSelected && (
 					<TableReorderController
+						align={ props.attributes.align }
 						body={ props.attributes.body }
 						clientId={ props.clientId }
 						onExit={ exitReorderMode }
