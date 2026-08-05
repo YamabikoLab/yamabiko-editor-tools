@@ -26,6 +26,7 @@ import {
 	type TableReorderDragSession,
 	updateTableReorderDragTarget,
 } from './drag-session';
+import { enableFullWidthTableReorder } from './full-width';
 import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
 
@@ -248,6 +249,8 @@ export function TableReorderController( {
 		if ( ! view ) {
 			return;
 		}
+		const table = blockElement.querySelector< HTMLTableElement >( 'table' );
+		const disableFullWidthReorder = enableFullWidthTableReorder( blockElement, table );
 		const onPointerDown = ( event: PointerEvent ) => {
 			if ( event.button !== 0 || ! ( event.target instanceof view.Element ) ) {
 				return;
@@ -325,7 +328,6 @@ export function TableReorderController( {
 		};
 
 		const updateRows = () => {
-			const table = blockElement.querySelector( 'table' );
 			const tbody = table?.tBodies.item( 0 );
 			const tableRows = tbody ? Array.from( tbody.rows ) : [];
 			const bodyRows = getBodyRows( body );
@@ -375,6 +377,9 @@ export function TableReorderController( {
 		if ( view.ResizeObserver ) {
 			resizeObserver = new view.ResizeObserver( schedulePositionUpdate );
 			resizeObserver.observe( blockElement );
+			if ( table ) {
+				resizeObserver.observe( table );
+			}
 		}
 
 		document.addEventListener( 'scroll', schedulePositionUpdate, true );
@@ -393,6 +398,7 @@ export function TableReorderController( {
 			view.removeEventListener( 'resize', schedulePositionUpdate );
 			rowsRef.current = [];
 			scheduleRowsUpdate.current = () => {};
+			disableFullWidthReorder();
 			handleContainer.remove();
 			setContainer( null );
 		};
