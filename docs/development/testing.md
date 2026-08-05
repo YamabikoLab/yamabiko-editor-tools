@@ -40,6 +40,18 @@ Run focused JavaScript and TypeScript unit tests:
 npm run test:unit
 ```
 
+Run the Playwright end-to-end tests against the local WordPress environment:
+
+```bash
+npx playwright install chromium
+WP_BASE_URL=http://127.0.0.1:8080 WP_USERNAME=admin WP_PASSWORD=admin npm run test:e2e
+```
+
+`WP_BASE_URL` must match the active `YamabikoLab/wp-dev` environment. The
+username and password are local WordPress administrator credentials; do not
+place non-local credentials in repository files. Playwright outputs traces and
+reports to ignored directories when a test fails.
+
 Create the production build:
 
 ```bash
@@ -100,6 +112,7 @@ The manually triggered `.github/workflows/pr-validation.yml` workflow runs the c
 
 - Documentation-only changes: `git diff --check origin/main...HEAD`.
 - JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes: formatting check, JavaScript lint, style lint, typecheck, unit tests, and build.
+- Playwright E2E changes: install Chromium if needed, then run `npm run test:e2e` against the active local WordPress environment in addition to the applicable Node.js checks.
 - PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
 - Mixed changes: combine the applicable groups.
 

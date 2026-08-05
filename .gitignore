@@ -10,4 +10,7 @@ Thumbs.db
 node_modules/
 build/
 vendor/
+artifacts/
+playwright-report/
+test-results/
 *.zip

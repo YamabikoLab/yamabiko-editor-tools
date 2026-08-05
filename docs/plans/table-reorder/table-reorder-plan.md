@@ -493,6 +493,9 @@ withTableReorder(BlockEdit)
   - WordPress API、Table属性、`PointerSensor.configure`およびdnd-kit eventの型が解決される。
 - `npm run test:unit`
   - 既存テスト、`rowspan`制約テストおよび行順序テストが成功する。
+- `WP_BASE_URL=http://127.0.0.1:8080 WP_USERNAME=admin WP_PASSWORD=admin npm run test:e2e`
+  - PlaywrightがローカルWordPress投稿エディターで、並べ替えモードの開始・終了、ハンドル限定のポインターDnD、キーボードDnD無効、Undo／Redo、`rowspan`境界を越える移動の拒否と一回の通知、複数TableとTable以外のブロックへの非干渉、および保存・再読み込み後の行順を検証する。
+  - `WP_BASE_URL`、`WP_USERNAME`および`WP_PASSWORD`は使用するローカル環境に合わせる。認証情報をリポジトリへ保存しない。
 - `npm run build`
   - blocks manifest、既存ブロック、Table Reorderのスクリプト、上位UIスタイルおよび編集領域内CSSが作成される。
 - `composer lint:php`
@@ -503,16 +506,12 @@ withTableReorder(BlockEdit)
 ### Manual: normal editing and mode
 
 - 通常時はハンドルが表示されず、Tableのセルを編集できる。
-- 選択中Tableの「行を並べ替え」でモードを開始できる。
 - モード中は本文行だけにハンドルが表示される。
-- 「並べ替えを終了」でハンドルが消え、セル編集へ戻る。
 - 選択解除またはブロック削除で一時UIと監視処理が残らない。
 
 ### Manual: pointer-only activation
 
-- ドラッグハンドルをポインター操作した場合だけDnDが開始する。
 - セル、行本体、Table余白およびportal containerの空白からDnDが開始しない。
-- ハンドルへフォーカスした状態でも、Space、Enterおよび矢印キーでDnDが開始せず、行が移動しない。
 - portalされた各ハンドルが対応する一行だけを移動対象として開始する。
 
 ### Manual: valid moves and data preservation
@@ -521,17 +520,12 @@ withTableReorder(BlockEdit)
 - 同じ`tbody`の先頭、中間および末尾へ移動できる。
 - 移動後もセル内容、セル属性、装飾および行内セル順序が保持される。
 - `colspan`だけを含む行を、`rowspan`制約がない位置へ移動できる。
-- 一回の行移動を一回のUndoで元に戻せる。
-- 保存、再読み込み後も行順とコアTableブロックの保存形式が維持される。
 
 ### Manual: prohibited moves
 
 - `rowspan`結合範囲に含まれる開始行と後続行からDnDを開始できない。
 - `rowspan`結合範囲の途中に挿入位置が表示されない。
-- `rowspan`結合範囲を越える移動が確定しない。
 - `tbody`外、`thead`および`tfoot`へ移動できない。
-- 禁止操作でTableの`body`が変更されない。
-- 一回の移動試行につき規定メッセージが一回だけ表示される。
 - キャンセルと同位置へのドロップでデータとUndo履歴が変更されない。
 
 ### Manual: editor environments, CSS and impact
@@ -543,7 +537,6 @@ withTableReorder(BlockEdit)
 - フロントエンドではTable ReorderのスクリプトとDnD UI用CSSが読み込まれない。
 - Table以外のブロックの編集と表示に変化がない。
 - 並べ替えモードではないTableおよび選択されていないTableに追加UIやDnD動作がない。
-- 複数のTableがある投稿で、操作対象以外のTableデータが変化しない。
 
 ## Completion criteria
 
