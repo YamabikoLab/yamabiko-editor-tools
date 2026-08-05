@@ -48,3 +48,10 @@
 		pointer-events: none;
 	}
 }
+
+.yamabiko-editor-tools-table-reorder--full-width table {
+	box-sizing: border-box;
+	margin-left: 32px;
+	margin-right: 32px;
+	width: calc(100% - 64px);
+}
