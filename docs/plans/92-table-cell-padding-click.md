@@ -5,8 +5,8 @@
 - Parent issue: #92
 - Requirements: A selected core Table block must enter the clicked cell when the
   click lands in the unused vertical space of a one-line cell in a taller row.
-- Design: Use the core Table block's existing RichText focus behavior and handle
-  only pointer events whose target is the table figure itself.
+- Design: Use the core Table block's existing RichText focus behavior and identify
+  the clicked cell from the selected Table block element and pointer coordinates.
 
 ## Goal
 
@@ -17,8 +17,9 @@ without changing interactions with links or other elements inside cells.
 
 ### Included
 
-- Detect a primary-button pointer down on a Table figure that is geometrically
-  within a table cell.
+- Detect a primary-button pointer down whose coordinates fall within a cell of the
+  selected Table block, even when the browser reports the editor root as the event
+  target.
 - Focus that cell's direct RichText editable and stop the block-level selection
   event.
 - Add a focused regression test for a mixed-height row and an interactive link.
@@ -29,17 +30,22 @@ without changing interactions with links or other elements inside cells.
 
 ## Approach
 
-The core Table block selects a cell from the RichText `onFocus` handler. The
-editor extension therefore focuses the direct editable only when the browser
-reports the Table figure as the target. This narrow condition leaves events
-targeting links, buttons, and the RichText itself untouched.
+The core Table block selects a cell from the RichText `onFocus` handler. Manual
+browser debugging confirmed that a click in the unused vertical space can report
+the iframe editor root as `event.target`, rather than the Table figure or one of
+its descendants. The editor extension must therefore use the already resolved
+Table `blockElement` and the pointer coordinates to identify the corresponding
+cell, then focus its direct RichText editable.
+
+Events that directly target links, buttons, the RichText itself, or other existing
+interactive elements must remain untouched.
 
 ## Architecture
 
 - `with-table-reorder.tsx` mounts the controller while a core Table block is
   selected and reorder mode is off.
-- `table-cell-padding-click.ts` identifies the cell at the pointer coordinates
-  and focuses its direct RichText editable.
+- `table-cell-padding-click.ts` identifies the cell within the selected Table
+  block from the pointer coordinates and focuses its direct RichText editable.
 - `table-cell-padding-click.test.ts` verifies the mixed-height-row regression
   and non-interference with a link.
 
@@ -63,10 +69,13 @@ targeting links, buttons, and the RichText itself untouched.
 
 - Use focus rather than synthetic click events because the core Table block
   selects cells from the RichText `onFocus` handler.
+- Do not infer the target Table from `event.target`; use the selected Table's
+  resolved `blockElement` because padding clicks can target the editor root.
 
 ### Validate during implementation
 
-- Confirm only a figure-targeted padding click is intercepted.
+- Confirm an editor-root-targeted padding click is mapped to the correct cell by
+  coordinates.
 - Confirm a link target is not intercepted.
 
 ## Issue breakdown
@@ -91,5 +100,7 @@ targeting links, buttons, and the RichText itself untouched.
 
 ## Notes
 
-Manual WordPress verification remains necessary because JSDOM cannot reproduce
-the browser's table hit-testing and layout.
+Manual WordPress debugging confirmed that padding clicks can target the iframe
+editor root while their coordinates remain within a Table cell. JSDOM cannot
+reproduce the browser's table hit-testing and layout, so final manual verification
+remains necessary.
