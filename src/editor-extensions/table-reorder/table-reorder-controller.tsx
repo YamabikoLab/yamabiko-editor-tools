@@ -6,6 +6,7 @@ import {
 } from '@dnd-kit/dom';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
+import { useDispatch } from '@wordpress/data';
 import {
 	createPortal,
 	useCallback,
@@ -14,6 +15,8 @@ import {
 	useRef,
 	useState,
 } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
+import { store as noticesStore } from '@wordpress/notices';
 
 import {
 	crossesRowspanBoundary,
@@ -21,12 +24,14 @@ import {
 	getNonMovableRowIndices,
 	getRowspanRanges,
 } from './rowspan';
+import { reorderRows } from './reorder';
 import { SortableRow } from './sortable-row';
 
 type TableReorderControllerProps = {
 	body: unknown;
 	clientId: string;
 	onExit: () => void;
+	setAttributes: ( attributes: { body: unknown[] } ) => void;
 };
 
 type TableRow = {
@@ -138,7 +143,12 @@ function DragRowOverlay( {
 	);
 }
 
-export function TableReorderController( { body, clientId, onExit }: TableReorderControllerProps ) {
+export function TableReorderController( {
+	body,
+	clientId,
+	onExit,
+	setAttributes,
+}: TableReorderControllerProps ) {
 	const anchorRef = useRef< HTMLSpanElement >( null );
 	const [ container, setContainer ] = useState< HTMLDivElement | null >( null );
 	const [ rows, setRows ] = useState< TableRow[] >( [] );
@@ -151,6 +161,7 @@ export function TableReorderController( { body, clientId, onExit }: TableReorder
 	);
 	const handleElements = useRef< Map< string, HTMLButtonElement > >( new Map() );
 	const isDragging = useRef( false );
+	const hasShownForbiddenNotice = useRef( false );
 	const overlayElement = useRef< HTMLDivElement | null >( null );
 	const rowsRef = useRef< TableRow[] >( [] );
 	const scheduleRowsUpdate = useRef( () => {} );
@@ -158,6 +169,7 @@ export function TableReorderController( { body, clientId, onExit }: TableReorder
 	const rowElementIds = useRef< WeakMap< HTMLTableRowElement, string > >( new WeakMap() );
 	const rowIds = useRef( new WeakMap< object, string >() );
 	const nextRowId = useRef( 0 );
+	const { createErrorNotice } = useDispatch( noticesStore );
 	const rowspanRanges = useMemo( () => getRowspanRanges( body ), [ body ] );
 	const nonMovableRows = useMemo(
 		() => new Set( getNonMovableRowIndices( rowspanRanges ) ),
@@ -179,6 +191,20 @@ export function TableReorderController( { body, clientId, onExit }: TableReorder
 	const clearInsertionIndicator = useCallback( () => {
 		setInsertionIndicator( null );
 	}, [] );
+	const showForbiddenNotice = useCallback( () => {
+		if ( hasShownForbiddenNotice.current ) {
+			return;
+		}
+
+		hasShownForbiddenNotice.current = true;
+		createErrorNotice(
+			__(
+				'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
+				'yamabiko-editor-tools'
+			),
+			{ type: 'snackbar' }
+		);
+	}, [ createErrorNotice ] );
 
 	const showInsertionIndicator = useCallback( ( rowId: string, below: boolean ) => {
 		setInsertionIndicator( ( current ) => {
@@ -386,6 +412,7 @@ export function TableReorderController( { body, clientId, onExit }: TableReorder
 			}
 
 			isDragging.current = true;
+			hasShownForbiddenNotice.current = false;
 			stopWaitingForDragCleanup.current();
 			clearInsertionIndicator();
 			setActiveRow( row );
@@ -416,6 +443,10 @@ export function TableReorderController( { body, clientId, onExit }: TableReorder
 			const firstBodyRow = rows.find(
 				( row ) => row.element.parentElement?.firstElementChild === row.element
 			);
+
+			if ( isForbidden ) {
+				showForbiddenNotice();
+			}
 
 			if ( isForbidden || ! firstBodyRow ) {
 				event.preventDefault();
@@ -448,16 +479,36 @@ export function TableReorderController( { body, clientId, onExit }: TableReorder
 			forbiddenInsertionIndices,
 			rows,
 			rowspanRanges,
+			showForbiddenNotice,
 			showInsertionIndicator,
 		]
 	);
 
 	const onDragEnd = useCallback(
-		( { operation: { source } }: DragEndEvent ) => {
-			if ( isSortable( source ) ) {
+		( { canceled, operation: { source, target } }: DragEndEvent ) => {
+			if (
+				! canceled &&
+				isSortable( source ) &&
+				isSortable( target ) &&
+				source.sortable.group === target.sortable.group
+			) {
 				const { initialIndex, index } = source.sortable;
 				if ( initialIndex !== index ) {
-					// The commit and feedback phase persists this confirmed position.
+					const insertionIndex = initialIndex < index ? index + 1 : index;
+					const isForbidden =
+						nonMovableRows.has( initialIndex ) ||
+						forbiddenInsertionIndices.has( insertionIndex ) ||
+						crossesRowspanBoundary( rowspanRanges, initialIndex, insertionIndex );
+
+					if ( isForbidden ) {
+						showForbiddenNotice();
+					} else {
+						const currentBody = getBodyRows( body );
+						const nextBody = reorderRows( currentBody, initialIndex, index );
+						if ( nextBody !== currentBody ) {
+							setAttributes( { body: nextBody } );
+						}
+					}
 				}
 			}
 
@@ -503,7 +554,16 @@ export function TableReorderController( { body, clientId, onExit }: TableReorder
 				}
 			};
 		},
-		[ activeRow, clearInsertionIndicator ]
+		[
+			activeRow,
+			body,
+			clearInsertionIndicator,
+			forbiddenInsertionIndices,
+			nonMovableRows,
+			rowspanRanges,
+			setAttributes,
+			showForbiddenNotice,
+		]
 	);
 
 	const indicatorPosition = insertionIndicator

@@ -55,6 +55,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 						body={ props.attributes.body }
 						clientId={ props.clientId }
 						onExit={ exitReorderMode }
+						setAttributes={ props.setAttributes }
 					/>
 				) }
 			</>
