@@ -1,10 +1,11 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { ToolbarButton } from '@wordpress/components';
-import { useCallback, useEffect, useState, type ComponentType } from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
+import { focusTableCellFromPaddingClick } from './table-cell-padding-click';
 import { TableReorderController } from './table-reorder-controller';
 
 type TableAttributes = Record< string, unknown > & {
@@ -14,6 +15,32 @@ type TableAttributes = Record< string, unknown > & {
 type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
+
+function TableCellPaddingClickController( { clientId }: { clientId: string } ) {
+	const anchorRef = useRef< HTMLSpanElement >( null );
+
+	useEffect( () => {
+		const anchor = anchorRef.current;
+		if ( ! anchor ) {
+			return;
+		}
+
+		const document = anchor.ownerDocument;
+		const blockElement = document.querySelector< HTMLElement >( `[data-block="${ clientId }"]` );
+		if ( ! blockElement ) {
+			return;
+		}
+
+		const onPointerDown = ( event: PointerEvent ) => {
+			focusTableCellFromPaddingClick( event, blockElement );
+		};
+
+		document.addEventListener( 'pointerdown', onPointerDown, true );
+		return () => document.removeEventListener( 'pointerdown', onPointerDown, true );
+	}, [ clientId ] );
+
+	return <span aria-hidden="true" hidden ref={ anchorRef } />;
+}
 
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithTableReorder( props: TableBlockEditProps ) {
@@ -40,6 +67,9 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 		return (
 			<>
 				<BlockEdit { ...props } />
+				{ props.isSelected && ! isReorderMode && (
+					<TableCellPaddingClickController clientId={ props.clientId } />
+				) }
 				{ props.isSelected && (
 					<BlockControls>
 						<ToolbarButton
