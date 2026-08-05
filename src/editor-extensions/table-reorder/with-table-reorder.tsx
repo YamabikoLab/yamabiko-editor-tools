@@ -1,7 +1,7 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { ToolbarButton } from '@wordpress/components';
-import { useEffect, useState, type ComponentType } from '@wordpress/element';
+import { useCallback, useEffect, useState, type ComponentType } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
@@ -19,12 +19,15 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 	function WithTableReorder( props: TableBlockEditProps ) {
 		const [ isReorderMode, setIsReorderMode ] = useState( false );
 		const isTableBlock = props.name === 'core/table';
+		const exitReorderMode = useCallback( () => {
+			setIsReorderMode( false );
+		}, [] );
 
 		useEffect( () => {
 			if ( ! props.isSelected ) {
-				setIsReorderMode( false );
+				exitReorderMode();
 			}
-		}, [ props.isSelected ] );
+		}, [ exitReorderMode, props.isSelected ] );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
@@ -48,7 +51,11 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					</BlockControls>
 				) }
 				{ isReorderMode && props.isSelected && (
-					<TableReorderController body={ props.attributes.body } clientId={ props.clientId } />
+					<TableReorderController
+						body={ props.attributes.body }
+						clientId={ props.clientId }
+						onExit={ exitReorderMode }
+					/>
 				) }
 			</>
 		);

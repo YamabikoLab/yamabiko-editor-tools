@@ -4,15 +4,10 @@
 		{
 			"type": "chrome",
 			"request": "launch",
-			"name": "Launch WordPress (Chrome)",
-			"url": "${env:WORDPRESS_SITE_URL}",
+			"name": "chrome",
+			"url": "${env:WORDPRESS_SITE_URL}/wp-login.php",
 			"webRoot": "${workspaceFolder}",
-			"sourceMapPathOverrides": {
-				"webpack:///./*": "${workspaceFolder}/*",
-				"webpack:///*": "${workspaceFolder}/*",
-				"/src/*": "${workspaceFolder}/*",
-				"/*": "${workspaceFolder}/*"
-			}
+			"sourceMaps": true
 		},
 		{
 			"type": "php",
