@@ -15,6 +15,12 @@ const rows: Row[] = [
 ];
 
 describe( 'reorderRows', () => {
+	it( 'moves 10 above 7 without applying the move twice', () => {
+		const numberedRows = [ 6, 7, 8, 9, 10 ];
+
+		expect( reorderRows( numberedRows, 4, 1 ) ).toEqual( [ 6, 10, 7, 8, 9 ] );
+	} );
+
 	it( 'moves one row upward without changing row or cell references', () => {
 		const result = reorderRows( rows, 2, 0 );
 

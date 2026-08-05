@@ -1,6 +1,7 @@
 import {
 	PointerSensor,
 	type DragEndEvent,
+	type DragMoveEvent,
 	type DragOverEvent,
 	type DragStartEvent,
 } from '@dnd-kit/dom';
@@ -19,12 +20,13 @@ import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import {
-	crossesRowspanBoundary,
-	getForbiddenInsertionIndices,
-	getNonMovableRowIndices,
-	getRowspanRanges,
-} from './rowspan';
-import { reorderRows } from './reorder';
+	beginTableReorderDrag,
+	clearTableReorderDragTarget,
+	commitTableReorderDrag,
+	type TableReorderDragSession,
+	updateTableReorderDragTarget,
+} from './drag-session';
+import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
 
 type TableReorderControllerProps = {
@@ -163,6 +165,8 @@ export function TableReorderController( {
 	const isDragging = useRef( false );
 	const hasShownForbiddenNotice = useRef( false );
 	const overlayElement = useRef< HTMLDivElement | null >( null );
+	const dragRows = useRef< Map< string, TableRow > >( new Map() );
+	const dragSession = useRef< TableReorderDragSession | null >( null );
 	const rowsRef = useRef< TableRow[] >( [] );
 	const scheduleRowsUpdate = useRef( () => {} );
 	const stopWaitingForDragCleanup = useRef( () => {} );
@@ -173,10 +177,6 @@ export function TableReorderController( {
 	const rowspanRanges = useMemo( () => getRowspanRanges( body ), [ body ] );
 	const nonMovableRows = useMemo(
 		() => new Set( getNonMovableRowIndices( rowspanRanges ) ),
-		[ rowspanRanges ]
-	);
-	const forbiddenInsertionIndices = useMemo(
-		() => new Set( getForbiddenInsertionIndices( rowspanRanges ) ),
 		[ rowspanRanges ]
 	);
 	const sensors = useMemo(
@@ -398,7 +398,14 @@ export function TableReorderController( {
 		};
 	}, [ body, clientId, onExit ] );
 
-	useEffect( () => () => stopWaitingForDragCleanup.current(), [] );
+	useEffect(
+		() => () => {
+			dragSession.current = null;
+			dragRows.current = new Map();
+			stopWaitingForDragCleanup.current();
+		},
+		[]
+	);
 
 	const onDragStart = useCallback(
 		( { operation: { source } }: DragStartEvent ) => {
@@ -410,107 +417,90 @@ export function TableReorderController( {
 			if ( ! row ) {
 				return;
 			}
+			const session = beginTableReorderDrag( body, row.id, row.index );
+			if ( ! session || session.nonMovableRowIndices.includes( row.index ) ) {
+				return;
+			}
 
 			isDragging.current = true;
 			hasShownForbiddenNotice.current = false;
+			dragRows.current = new Map( rows.map( ( candidate ) => [ candidate.id, candidate ] ) );
+			dragSession.current = session;
 			stopWaitingForDragCleanup.current();
 			clearInsertionIndicator();
 			setActiveRow( row );
 		},
-		[ clearInsertionIndicator, rows ]
+		[ body, clearInsertionIndicator, rows ]
 	);
 
-	const onDragOver = useCallback(
-		( event: DragOverEvent ) => {
+	const updateDragTarget = useCallback(
+		( event: DragMoveEvent | DragOverEvent ) => {
 			const { source, target } = event.operation;
-			if ( ! isSortable( source ) ) {
+			const session = dragSession.current;
+			if ( ! session || ! isSortable( source ) || source.id !== session.sourceId ) {
 				event.preventDefault();
 				clearInsertionIndicator();
-				return;
-			}
-
-			const sourceIndex = source.sortable.initialIndex;
-			const currentIndex = source.sortable.index;
-			if ( sourceIndex === currentIndex ) {
-				clearInsertionIndicator();
-				return;
-			}
-
-			const insertionIndex = sourceIndex < currentIndex ? currentIndex + 1 : currentIndex;
-			const isForbidden =
-				forbiddenInsertionIndices.has( insertionIndex ) ||
-				crossesRowspanBoundary( rowspanRanges, sourceIndex, insertionIndex );
-			const firstBodyRow = rows.find(
-				( row ) => row.element.parentElement?.firstElementChild === row.element
-			);
-
-			if ( isForbidden ) {
-				showForbiddenNotice();
-			}
-
-			if ( isForbidden || ! firstBodyRow ) {
-				event.preventDefault();
-				clearInsertionIndicator();
-				return;
-			}
-
-			if ( currentIndex === 0 ) {
-				showInsertionIndicator( firstBodyRow.id, false );
 				return;
 			}
 
 			if ( ! isSortable( target ) || source.sortable.group !== target.sortable.group ) {
+				dragSession.current = clearTableReorderDragTarget( session );
 				event.preventDefault();
 				clearInsertionIndicator();
 				return;
 			}
 
-			const targetRow = rows.find( ( row ) => row.id === target.id );
+			const targetRow = dragRows.current.get( String( target.id ) );
 			if ( ! targetRow ) {
+				dragSession.current = clearTableReorderDragTarget( session );
 				event.preventDefault();
 				clearInsertionIndicator();
 				return;
 			}
 
-			showInsertionIndicator( targetRow.id, sourceIndex < currentIndex );
+			const targetRect = targetRow.element.getBoundingClientRect();
+			const insertionIndex =
+				event.operation.position.current.y < targetRect.top + targetRect.height / 2
+					? targetRow.index
+					: targetRow.index + 1;
+			const update = updateTableReorderDragTarget( session, targetRow.id, insertionIndex );
+			dragSession.current = update.session;
+
+			if ( update.isForbidden ) {
+				event.preventDefault();
+				showForbiddenNotice();
+				clearInsertionIndicator();
+				return;
+			}
+
+			if ( ! update.session.target ) {
+				clearInsertionIndicator();
+				return;
+			}
+
+			showInsertionIndicator( targetRow.id, insertionIndex > targetRow.index );
 		},
-		[
-			clearInsertionIndicator,
-			forbiddenInsertionIndices,
-			rows,
-			rowspanRanges,
-			showForbiddenNotice,
-			showInsertionIndicator,
-		]
+		[ clearInsertionIndicator, showForbiddenNotice, showInsertionIndicator ]
 	);
 
 	const onDragEnd = useCallback(
 		( { canceled, operation: { source, target } }: DragEndEvent ) => {
-			if (
-				! canceled &&
+			const session = dragSession.current;
+			dragSession.current = null;
+			dragRows.current = new Map();
+			const isValidTarget =
 				isSortable( source ) &&
 				isSortable( target ) &&
-				source.sortable.group === target.sortable.group
-			) {
-				const { initialIndex, index } = source.sortable;
-				if ( initialIndex !== index ) {
-					const insertionIndex = initialIndex < index ? index + 1 : index;
-					const isForbidden =
-						nonMovableRows.has( initialIndex ) ||
-						forbiddenInsertionIndices.has( insertionIndex ) ||
-						crossesRowspanBoundary( rowspanRanges, initialIndex, insertionIndex );
-
-					if ( isForbidden ) {
-						showForbiddenNotice();
-					} else {
-						const currentBody = getBodyRows( body );
-						const nextBody = reorderRows( currentBody, initialIndex, index );
-						if ( nextBody !== currentBody ) {
-							setAttributes( { body: nextBody } );
-						}
-					}
-				}
-			}
+				source.sortable.group === target.sortable.group;
+			commitTableReorderDrag(
+				session,
+				{
+					canceled: canceled || ! isValidTarget,
+					sourceId: isSortable( source ) ? String( source.id ) : '',
+					targetId: isSortable( target ) ? String( target.id ) : null,
+				},
+				( nextBody ) => setAttributes( { body: nextBody } )
+			);
 
 			clearInsertionIndicator();
 
@@ -554,16 +544,7 @@ export function TableReorderController( {
 				}
 			};
 		},
-		[
-			activeRow,
-			body,
-			clearInsertionIndicator,
-			forbiddenInsertionIndices,
-			nonMovableRows,
-			rowspanRanges,
-			setAttributes,
-			showForbiddenNotice,
-		]
+		[ activeRow, clearInsertionIndicator, setAttributes ]
 	);
 
 	const indicatorPosition = insertionIndicator
@@ -576,7 +557,8 @@ export function TableReorderController( {
 			<span aria-hidden="true" hidden ref={ anchorRef } />
 			<DragDropProvider
 				onDragEnd={ onDragEnd }
-				onDragOver={ onDragOver }
+				onDragMove={ updateDragTarget }
+				onDragOver={ updateDragTarget }
 				onDragStart={ onDragStart }
 				sensors={ sensors }
 			>

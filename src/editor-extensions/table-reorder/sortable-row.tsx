@@ -31,6 +31,9 @@ export function SortableRow( {
 		element,
 		id,
 		index,
+		// Gutenberg owns the Table DOM. The controller derives a pending move
+		// from its drag-start snapshot instead of allowing optimistic DOM sorting.
+		plugins: [],
 	} );
 
 	const setHandle = useCallback(
