@@ -1,17 +1,32 @@
 const isWithin = ( value: number, start: number, end: number ) => value >= start && value <= end;
 
+const isInteractiveTarget = ( target: EventTarget | null, defaultView: Window ) => {
+	const ElementConstructor = ( defaultView as unknown as { Element: typeof Element } ).Element;
+	if ( ! ElementConstructor || ! ( target instanceof ElementConstructor ) ) {
+		return false;
+	}
+
+	return Boolean(
+		target.closest(
+			'a, button, input, select, textarea, option, summary, [contenteditable="true"], [role="button"], [role="link"]'
+		)
+	);
+};
+
 const getEditableAtPointer = ( event: PointerEvent, blockElement: HTMLElement ) => {
-	const { defaultView } = blockElement.ownerDocument;
-	if ( ! defaultView || ! ( event.target instanceof defaultView.Element ) ) {
+	const table = blockElement.querySelector( 'table' );
+	if ( ! table ) {
 		return null;
 	}
 
-	const figure = event.target.closest( 'figure.wp-block-table' );
-	if ( event.target !== figure || ! figure || ! blockElement.contains( figure ) ) {
+	const tableRect = table.getBoundingClientRect();
+	if (
+		! isWithin( event.clientX, tableRect.left, tableRect.right ) ||
+		! isWithin( event.clientY, tableRect.top, tableRect.bottom )
+	) {
 		return null;
 	}
 
-	const table = figure.querySelector( 'table' );
 	const cell = Array.from( table?.querySelectorAll< HTMLTableCellElement >( 'td, th' ) ?? [] ).find(
 		( candidate ) => {
 			const rect = candidate.getBoundingClientRect();
@@ -29,7 +44,17 @@ export const focusTableCellFromPaddingClick = (
 	event: PointerEvent,
 	blockElement: HTMLElement
 ): boolean => {
-	if ( event.button !== 0 ) {
+	const { defaultView } = blockElement.ownerDocument;
+	if (
+		event.button !== 0 ||
+		event.defaultPrevented ||
+		event.shiftKey ||
+		event.ctrlKey ||
+		event.metaKey ||
+		event.altKey ||
+		! defaultView ||
+		isInteractiveTarget( event.target, defaultView )
+	) {
 		return false;
 	}
 
