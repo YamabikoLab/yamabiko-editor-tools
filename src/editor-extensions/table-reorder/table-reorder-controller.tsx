@@ -178,6 +178,7 @@ export function TableReorderController( {
 		null
 	);
 	const handleElements = useRef< Map< string, HTMLButtonElement > >( new Map() );
+	const hasFocusedInitialHandle = useRef( false );
 	const isDragging = useRef( false );
 	const keyboardReorderRef = useRef< KeyboardReorderState | null >( null );
 	const lastAnnouncement = useRef< string | null >( null );
@@ -225,10 +226,25 @@ export function TableReorderController( {
 		}
 
 		view.requestAnimationFrame( () => {
-			view.requestAnimationFrame( () => handleElements.current.get( id )?.focus() );
+			view.requestAnimationFrame( () => {
+				handleElements.current.get( id )?.focus( { preventScroll: true } );
+			} );
 		} );
 	}, [] );
+	const scrollRowIntoView = useCallback( ( row: TableRow ) => {
+		const view = row.element.ownerDocument.defaultView;
+		if ( ! view ) {
+			return;
+		}
 
+		view.requestAnimationFrame( () => {
+			row.element.scrollIntoView( {
+				behavior: 'auto',
+				block: 'nearest',
+				inline: 'nearest',
+			} );
+		} );
+	}, [] );
 	useEffect( () => {
 		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
 		dragVisuals.current = visuals;
@@ -255,14 +271,29 @@ export function TableReorderController( {
 		);
 	}, [ createErrorNotice ] );
 
-	const onHandleChange = useCallback( ( id: string, element: HTMLButtonElement | null ) => {
-		if ( element ) {
-			handleElements.current.set( id, element );
-			return;
-		}
+	const onHandleChange = useCallback(
+		( id: string, element: HTMLButtonElement | null ) => {
+			if ( element ) {
+				handleElements.current.set( id, element );
 
-		handleElements.current.delete( id );
-	}, [] );
+				if ( ! hasFocusedInitialHandle.current ) {
+					const firstMovableRow = rowsRef.current.find(
+						( row ) => ! nonMovableRows.has( row.index )
+					);
+
+					if ( firstMovableRow?.id === id ) {
+						hasFocusedInitialHandle.current = true;
+						focusHandle( id );
+					}
+				}
+
+				return;
+			}
+
+			handleElements.current.delete( id );
+		},
+		[ focusHandle, nonMovableRows ]
+	);
 	const onOverlayElementChange = useCallback( ( element: HTMLDivElement | null ) => {
 		overlayElement.current = element;
 	}, [] );
@@ -553,21 +584,55 @@ export function TableReorderController( {
 	const onHandleKeyDown = useCallback(
 		( event: KeyboardEvent< HTMLButtonElement >, id: string ) => {
 			const keyboardState = keyboardReorderRef.current;
+
+			if ( event.key === 'Tab' ) {
+				if ( keyboardState ) {
+					event.preventDefault();
+				}
+
+				return;
+			}
+
 			const direction = getKeyboardMoveDirection( event.key );
 			const isToggleKey = isKeyboardReorderToggleKey( event.key );
 			const isCancelKey = event.key === 'Escape';
+
 			if ( ! direction && ! isToggleKey && ! isCancelKey ) {
 				return;
 			}
 
 			event.preventDefault();
+
 			if ( keyboardState && keyboardState.sourceId !== id ) {
 				return;
 			}
 
 			if ( ! keyboardState ) {
 				const row = rowsRef.current.find( ( candidate ) => candidate.id === id );
-				if ( ! isToggleKey || ! row ) {
+
+				if ( ! row ) {
+					return;
+				}
+
+				/*
+				 * 並べ替え開始前は、上下矢印で
+				 * 前後の行ハンドルへフォーカスを移す。
+				 */
+				if ( direction ) {
+					const nextIndex = row.index + ( direction === 'up' ? -1 : 1 );
+					const nextRow = rowsRef.current[ nextIndex ];
+					const nextHandle = nextRow ? handleElements.current.get( nextRow.id ) : undefined;
+
+					if ( ! nextRow || ! nextHandle ) {
+						return;
+					}
+
+					nextHandle.focus( { preventScroll: true } );
+					scrollRowIntoView( nextRow );
+					return;
+				}
+
+				if ( ! isToggleKey ) {
 					return;
 				}
 
@@ -710,6 +775,7 @@ export function TableReorderController( {
 			} else {
 				clearDragVisuals();
 			}
+			scrollRowIntoView( targetRow );
 			announce(
 				sprintf(
 					/* translators: 1: destination table body row number, 2: total table body rows. */
@@ -719,7 +785,15 @@ export function TableReorderController( {
 				)
 			);
 		},
-		[ announce, body, clearDragVisuals, focusHandle, nonMovableRows, setAttributes ]
+		[
+			announce,
+			body,
+			clearDragVisuals,
+			focusHandle,
+			nonMovableRows,
+			scrollRowIntoView,
+			setAttributes,
+		]
 	);
 
 	const onDragEnd = useCallback(

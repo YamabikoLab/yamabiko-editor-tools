@@ -57,19 +57,33 @@ export function SortableRow( {
 		<button
 			aria-describedby={ instructionsId }
 			aria-disabled={ isNonMovable || undefined }
-			aria-label={ sprintf(
-				/* translators: %d: table body row number. */
-				__( '%d 行目を並べ替える', 'yamabiko-editor-tools' ),
-				index + 1
-			) }
-			aria-pressed={ isKeyboardReorderSource || undefined }
-			className={
-				isDragSource
-					? 'yamabiko-editor-tools-table-reorder-content__handle is-dragging'
-					: 'yamabiko-editor-tools-table-reorder-content__handle'
+			aria-label={
+				isKeyboardReorderSource
+					? sprintf(
+							/* translators: %d: table body row number. */
+							__( '%d 行目を並べ替え中', 'yamabiko-editor-tools' ),
+							index + 1
+					  )
+					: sprintf(
+							/* translators: %d: table body row number. */
+							__( '%d 行目を並べ替える', 'yamabiko-editor-tools' ),
+							index + 1
+					  )
 			}
+			className={ [
+				'yamabiko-editor-tools-table-reorder-content__handle',
+				isDragSource ? 'is-dragging' : '',
+				isKeyboardReorderSource ? 'is-keyboard-reordering' : '',
+			]
+				.filter( Boolean )
+				.join( ' ' ) }
 			data-table-reorder-row-id={ id }
 			onKeyDown={ ( event ) => onKeyDown( event, id ) }
+			onPointerDownCapture={ ( event ) => {
+				if ( event.button === 0 ) {
+					event.currentTarget.focus( { preventScroll: true } );
+				}
+			} }
 			ref={ setHandle }
 			style={ {
 				height: `${ height }px`,
