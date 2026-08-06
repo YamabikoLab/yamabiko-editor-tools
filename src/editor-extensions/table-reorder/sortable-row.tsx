@@ -1,33 +1,42 @@
 import { directionBiased } from '@dnd-kit/collision';
 import { useSortable } from '@dnd-kit/react/sortable';
+import type { KeyboardEvent } from 'react';
 import { useCallback } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
 type SortableRowProps = {
-	disabled: boolean;
 	element: HTMLTableRowElement;
 	height: number;
 	id: string;
 	index: number;
+	instructionsId: string;
+	isKeyboardReorderSource: boolean;
+	isPointerDragDisabled: boolean;
+	isNonMovable: boolean;
 	left: number;
 	onHandleChange: ( id: string, element: HTMLButtonElement | null ) => void;
+	onKeyDown: ( event: KeyboardEvent< HTMLButtonElement >, id: string ) => void;
 	top: number;
 };
 
 export function SortableRow( {
-	disabled,
 	element,
 	height,
 	id,
 	index,
+	instructionsId,
+	isKeyboardReorderSource,
+	isPointerDragDisabled,
+	isNonMovable,
 	left,
 	onHandleChange,
+	onKeyDown,
 	top,
 }: SortableRowProps ) {
 	const { handleRef, isDragSource } = useSortable( {
 		collisionDetector: directionBiased,
-		disabled: disabled ? { draggable: true } : false,
+		disabled: isNonMovable || isPointerDragDisabled ? { draggable: true } : false,
 		element,
 		id,
 		index,
@@ -46,18 +55,21 @@ export function SortableRow( {
 
 	return (
 		<button
+			aria-describedby={ instructionsId }
+			aria-disabled={ isNonMovable || undefined }
 			aria-label={ sprintf(
 				/* translators: %d: table body row number. */
 				__( '%d 行目を並べ替える', 'yamabiko-editor-tools' ),
 				index + 1
 			) }
+			aria-pressed={ isKeyboardReorderSource || undefined }
 			className={
 				isDragSource
 					? 'yamabiko-editor-tools-table-reorder-content__handle is-dragging'
 					: 'yamabiko-editor-tools-table-reorder-content__handle'
 			}
 			data-table-reorder-row-id={ id }
-			disabled={ disabled }
+			onKeyDown={ ( event ) => onKeyDown( event, id ) }
 			ref={ setHandle }
 			style={ {
 				height: `${ height }px`,

@@ -46,9 +46,16 @@ function TableCellPaddingClickController( { clientId }: { clientId: string } ) {
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithTableReorder( props: TableBlockEditProps ) {
 		const [ isReorderMode, setIsReorderMode ] = useState( false );
+		const modeToggleRef = useRef< HTMLButtonElement >( null );
 		const isTableBlock = props.name === 'core/table';
-		const exitReorderMode = useCallback( () => {
+		const instructionsId = `yamabiko-editor-tools-table-reorder-${ props.clientId }-instructions`;
+		const exitReorderMode = useCallback( ( restoreFocus = false ) => {
 			setIsReorderMode( false );
+			if ( restoreFocus ) {
+				modeToggleRef.current?.ownerDocument.defaultView?.requestAnimationFrame(
+					() => modeToggleRef.current?.focus()
+				);
+			}
 		}, [] );
 
 		useEffect( () => {
@@ -77,15 +84,32 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 							icon={ dragHandle }
 							isPressed={ isReorderMode }
 							label={ label }
-							onClick={ () => setIsReorderMode( ( mode ) => ! mode ) }
+							onClick={ () => {
+								if ( isReorderMode ) {
+									exitReorderMode( true );
+									return;
+								}
+
+								setIsReorderMode( true );
+							} }
+							ref={ modeToggleRef }
 						/>
 					</BlockControls>
+				) }
+				{ isReorderMode && props.isSelected && (
+					<p className="yamabiko-editor-tools-table-reorder__instructions" id={ instructionsId }>
+						{ __(
+							'ハンドルをドラッグして移動できます。キーボードでは Enter または Space で開始し、上下矢印で移動、Enter または Space で確定、Escape でキャンセルします。',
+							'yamabiko-editor-tools'
+						) }
+					</p>
 				) }
 				{ isReorderMode && props.isSelected && (
 					<TableReorderController
 						align={ props.attributes.align }
 						body={ props.attributes.body }
 						clientId={ props.clientId }
+						instructionsId={ instructionsId }
 						onExit={ exitReorderMode }
 						setAttributes={ props.setAttributes }
 					/>

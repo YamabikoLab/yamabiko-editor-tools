@@ -8,6 +8,7 @@ import {
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { useDispatch } from '@wordpress/data';
+import type { KeyboardEvent } from 'react';
 import {
 	createPortal,
 	useCallback,
@@ -16,7 +17,7 @@ import {
 	useRef,
 	useState,
 } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import {
@@ -28,6 +29,12 @@ import {
 } from './drag-session';
 import { TableReorderDragVisuals, type InsertionIndicator } from './drag-visuals';
 import { enableFullWidthTableReorder } from './full-width';
+import {
+	getInsertionIndexForKeyboardDestination,
+	getKeyboardDestination,
+	getKeyboardMoveDirection,
+	isKeyboardReorderToggleKey,
+} from './keyboard-reorder';
 import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
 
@@ -35,6 +42,7 @@ type TableReorderControllerProps = {
 	align: string | undefined;
 	body: unknown;
 	clientId: string;
+	instructionsId: string;
 	onExit: () => void;
 	setAttributes: ( attributes: { body: unknown[] } ) => void;
 };
@@ -50,6 +58,12 @@ type TableRowPosition = {
 	left: number;
 	top: number;
 	width: number;
+};
+
+type KeyboardReorderState = {
+	destinationIndex: number;
+	sourceId: string;
+	sourceIndex: number;
 };
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
@@ -147,6 +161,7 @@ export function TableReorderController( {
 	align,
 	body,
 	clientId,
+	instructionsId,
 	onExit,
 	setAttributes,
 }: TableReorderControllerProps ) {
@@ -157,11 +172,15 @@ export function TableReorderController( {
 		new Map()
 	);
 	const [ activeRow, setActiveRow ] = useState< TableRow | null >( null );
+	const [ keyboardReorder, setKeyboardReorder ] = useState< KeyboardReorderState | null >( null );
+	const [ liveMessage, setLiveMessage ] = useState( '' );
 	const [ insertionIndicator, setInsertionIndicator ] = useState< InsertionIndicator | null >(
 		null
 	);
 	const handleElements = useRef< Map< string, HTMLButtonElement > >( new Map() );
 	const isDragging = useRef( false );
+	const keyboardReorderRef = useRef< KeyboardReorderState | null >( null );
+	const lastAnnouncement = useRef< string | null >( null );
 	const hasShownForbiddenNotice = useRef( false );
 	const overlayElement = useRef< HTMLDivElement | null >( null );
 	const dragRows = useRef< Map< string, TableRow > >( new Map() );
@@ -190,6 +209,24 @@ export function TableReorderController( {
 
 	const clearDragVisuals = useCallback( () => {
 		dragVisuals.current?.clear();
+	}, [] );
+	const announce = useCallback( ( message: string ) => {
+		if ( lastAnnouncement.current === message ) {
+			return;
+		}
+
+		lastAnnouncement.current = message;
+		setLiveMessage( message );
+	}, [] );
+	const focusHandle = useCallback( ( id: string ) => {
+		const view = anchorRef.current?.ownerDocument.defaultView;
+		if ( ! view ) {
+			return;
+		}
+
+		view.requestAnimationFrame( () => {
+			view.requestAnimationFrame( () => handleElements.current.get( id )?.focus() );
+		} );
 	}, [] );
 
 	useEffect( () => {
@@ -411,6 +448,7 @@ export function TableReorderController( {
 			clearDragVisuals();
 			dragSession.current = null;
 			dragRows.current = new Map();
+			keyboardReorderRef.current = null;
 			stopWaitingForDragCleanup.current();
 		},
 		[ clearDragVisuals ]
@@ -418,6 +456,10 @@ export function TableReorderController( {
 
 	const onDragStart = useCallback(
 		( { operation: { source } }: DragStartEvent ) => {
+			if ( keyboardReorderRef.current ) {
+				return;
+			}
+
 			if ( ! isSortable( source ) ) {
 				return;
 			}
@@ -444,6 +486,11 @@ export function TableReorderController( {
 
 	const updateDragTarget = useCallback(
 		( event: DragMoveEvent | DragOverEvent ) => {
+			if ( keyboardReorderRef.current ) {
+				event.preventDefault();
+				return;
+			}
+
 			const { source, target } = event.operation;
 			const session = dragSession.current;
 			if ( ! session || ! isSortable( source ) || source.id !== session.sourceId ) {
@@ -503,8 +550,184 @@ export function TableReorderController( {
 		[ clearDragVisuals, showForbiddenNotice ]
 	);
 
+	const onHandleKeyDown = useCallback(
+		( event: KeyboardEvent< HTMLButtonElement >, id: string ) => {
+			const keyboardState = keyboardReorderRef.current;
+			const direction = getKeyboardMoveDirection( event.key );
+			const isToggleKey = isKeyboardReorderToggleKey( event.key );
+			const isCancelKey = event.key === 'Escape';
+			if ( ! direction && ! isToggleKey && ! isCancelKey ) {
+				return;
+			}
+
+			event.preventDefault();
+			if ( keyboardState && keyboardState.sourceId !== id ) {
+				return;
+			}
+
+			if ( ! keyboardState ) {
+				const row = rowsRef.current.find( ( candidate ) => candidate.id === id );
+				if ( ! isToggleKey || ! row ) {
+					return;
+				}
+
+				if ( nonMovableRows.has( row.index ) ) {
+					announce(
+						__(
+							'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
+							'yamabiko-editor-tools'
+						)
+					);
+					return;
+				}
+
+				const session = beginTableReorderDrag( body, row.id, row.index );
+				if ( ! session ) {
+					return;
+				}
+
+				const nextState = {
+					destinationIndex: row.index,
+					sourceId: row.id,
+					sourceIndex: row.index,
+				};
+				keyboardReorderRef.current = nextState;
+				setKeyboardReorder( nextState );
+				dragRows.current = new Map(
+					rowsRef.current.map( ( candidate ) => [ candidate.id, candidate ] )
+				);
+				dragSession.current = session;
+				lastAnnouncement.current = null;
+				announce(
+					sprintf(
+						/* translators: 1: table body row number, 2: total table body rows. */
+						__( '%1$d 行目の並べ替えを開始しました。全%2$d行です。', 'yamabiko-editor-tools' ),
+						row.index + 1,
+						rowsRef.current.length
+					)
+				);
+				return;
+			}
+
+			if ( isCancelKey ) {
+				clearDragVisuals();
+				dragSession.current = null;
+				dragRows.current = new Map();
+				keyboardReorderRef.current = null;
+				setKeyboardReorder( null );
+				announce(
+					sprintf(
+						/* translators: %d: table body row number. */
+						__( '並べ替えをキャンセルしました。%d 行目のままです。', 'yamabiko-editor-tools' ),
+						keyboardState.sourceIndex + 1
+					)
+				);
+				focusHandle( keyboardState.sourceId );
+				return;
+			}
+
+			if ( isToggleKey ) {
+				const session = dragSession.current;
+				const didCommit = commitTableReorderDrag(
+					session,
+					{
+						canceled: false,
+						sourceId: keyboardState.sourceId,
+						targetId: session?.target?.targetId ?? null,
+					},
+					( nextBody ) => setAttributes( { body: nextBody } )
+				);
+				clearDragVisuals();
+				dragSession.current = null;
+				dragRows.current = new Map();
+				keyboardReorderRef.current = null;
+				setKeyboardReorder( null );
+				if ( didCommit ) {
+					announce(
+						sprintf(
+							/* translators: 1: original table body row number, 2: destination table body row number. */
+							__( '%1$d 行目を%2$d 行目へ移動しました。', 'yamabiko-editor-tools' ),
+							keyboardState.sourceIndex + 1,
+							keyboardState.destinationIndex + 1
+						)
+					);
+				}
+				focusHandle( keyboardState.sourceId );
+				return;
+			}
+
+			const destination = getKeyboardDestination(
+				keyboardState.destinationIndex,
+				rowsRef.current.length,
+				direction!
+			);
+			if ( destination.reason === 'first-row' ) {
+				announce( __( 'これ以上上へ移動できません。', 'yamabiko-editor-tools' ) );
+				return;
+			}
+			if ( destination.reason === 'last-row' ) {
+				announce( __( 'これ以上下へ移動できません。', 'yamabiko-editor-tools' ) );
+				return;
+			}
+
+			const targetRow = rowsRef.current.find(
+				( candidate ) => candidate.index === destination.destinationIndex
+			);
+			const session = dragSession.current;
+			if ( ! targetRow || ! session ) {
+				return;
+			}
+
+			const insertionIndex = getInsertionIndexForKeyboardDestination(
+				keyboardState.sourceIndex,
+				destination.destinationIndex
+			);
+			const update = updateTableReorderDragTarget( session, targetRow.id, insertionIndex );
+			if ( update.isForbidden ) {
+				announce(
+					__(
+						'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
+						'yamabiko-editor-tools'
+					)
+				);
+				return;
+			}
+
+			dragSession.current = update.session;
+			const nextState = { ...keyboardState, destinationIndex: destination.destinationIndex };
+			keyboardReorderRef.current = nextState;
+			setKeyboardReorder( nextState );
+			if ( update.session.target ) {
+				dragVisuals.current?.showCandidate(
+					Array.from( dragRows.current.values(), ( candidate ) => ( {
+						...candidate,
+						height: candidate.element.getBoundingClientRect().height,
+					} ) ),
+					update.session.sourceId,
+					update.session.target.targetId,
+					update.session.target.insertionIndex
+				);
+			} else {
+				clearDragVisuals();
+			}
+			announce(
+				sprintf(
+					/* translators: 1: destination table body row number, 2: total table body rows. */
+					__( '%1$d 行目へ移動します。全%2$d行です。', 'yamabiko-editor-tools' ),
+					destination.destinationIndex + 1,
+					rowsRef.current.length
+				)
+			);
+		},
+		[ announce, body, clearDragVisuals, focusHandle, nonMovableRows, setAttributes ]
+	);
+
 	const onDragEnd = useCallback(
 		( { canceled, operation: { source, target } }: DragEndEvent ) => {
+			if ( keyboardReorderRef.current ) {
+				return;
+			}
+
 			const session = dragSession.current;
 			dragSession.current = null;
 			dragRows.current = new Map();
@@ -574,6 +797,14 @@ export function TableReorderController( {
 	return (
 		<>
 			<span aria-hidden="true" hidden ref={ anchorRef } />
+			<span
+				aria-atomic="true"
+				aria-live="polite"
+				className="yamabiko-editor-tools-table-reorder-content__live-region"
+				role="status"
+			>
+				{ liveMessage }
+			</span>
 			<DragDropProvider
 				onDragEnd={ onDragEnd }
 				onDragMove={ updateDragTarget }
@@ -586,14 +817,18 @@ export function TableReorderController( {
 						<>
 							{ rows.map( ( row ) => (
 								<SortableRow
-									disabled={ nonMovableRows.has( row.index ) }
 									element={ row.element }
 									height={ rowPositions.get( row.id )?.height ?? 0 }
 									id={ row.id }
 									index={ row.index }
+									instructionsId={ instructionsId }
+									isKeyboardReorderSource={ keyboardReorder?.sourceId === row.id }
+									isNonMovable={ nonMovableRows.has( row.index ) }
+									isPointerDragDisabled={ Boolean( keyboardReorder ) }
 									key={ row.id }
 									left={ rowPositions.get( row.id )?.left ?? 0 }
 									onHandleChange={ onHandleChange }
+									onKeyDown={ onHandleKeyDown }
 									top={ rowPositions.get( row.id )?.top ?? 0 }
 								/>
 							) ) }
