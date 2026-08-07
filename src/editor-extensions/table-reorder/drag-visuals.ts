@@ -32,12 +32,14 @@ const getTransform = ( transform: string, translateY: number ): string => {
 	return transform && transform !== 'none' ? `${ transform } ${ translation }` : translation;
 };
 
-const isKeyboardReorderSource = ( row: TableReorderVisualRow ): boolean =>
+const getKeyboardReorderHandle = (
+	row: TableReorderVisualRow
+): HTMLButtonElement | null =>
 	Array.from(
 		row.element.ownerDocument.querySelectorAll< HTMLButtonElement >(
 			'.yamabiko-editor-tools-table-reorder-content__handle.is-keyboard-reordering'
 		)
-	).some( ( handle ) => handle.dataset.tableReorderRowId === row.id );
+	).find( ( handle ) => handle.dataset.tableReorderRowId === row.id ) ?? null;
 
 export const getRowDisplacements = (
 	rows: readonly TableReorderRowPlacement[],
@@ -94,7 +96,7 @@ export const getSourceTranslateY = (
 };
 
 export class TableReorderDragVisuals {
-	private readonly originalStyles = new Map< HTMLTableRowElement, InlineStyles >();
+	private readonly originalStyles = new Map< HTMLElement, InlineStyles >();
 	private insertionIndicator: InsertionIndicator | null = null;
 
 	constructor(
@@ -115,30 +117,49 @@ export class TableReorderDragVisuals {
 			return;
 		}
 
+		const sourceHandle = getKeyboardReorderHandle( source );
 		const displacementById = new Map(
 			displacements.map( ( displacement ) => [ displacement.id, displacement.translateY ] )
 		);
-		const activeRows = new Set< HTMLTableRowElement >( [
+		const activeElements = new Set< HTMLElement >( [
 			source.element,
 			...rows.filter( ( row ) => displacementById.has( row.id ) ).map( ( row ) => row.element ),
 		] );
+		if ( sourceHandle ) {
+			activeElements.add( sourceHandle );
+		}
 
 		for ( const [ element, styles ] of this.originalStyles ) {
-			if ( ! activeRows.has( element ) ) {
+			if ( ! activeElements.has( element ) ) {
 				this.setAnimatedStyles( element, styles.transform, styles.opacity );
 			}
 		}
 
 		const sourceStyles = this.getOriginalStyles( source.element );
-		if ( isKeyboardReorderSource( source ) ) {
+		if ( sourceHandle ) {
+			const sourceTranslateY = getSourceTranslateY( rows, sourceId, insertionIndex );
 			this.setAnimatedStyles(
 				source.element,
-				getTransform(
-					sourceStyles.transform,
-					getSourceTranslateY( rows, sourceId, insertionIndex )
-				),
+				getTransform( sourceStyles.transform, sourceTranslateY ),
 				sourceStyles.opacity
 			);
+			const handleStyles = this.getOriginalStyles( sourceHandle );
+			this.setAnimatedStyles(
+				sourceHandle,
+				getTransform( handleStyles.transform, sourceTranslateY ),
+				handleStyles.opacity
+			);
+
+			if ( insertionIndex > source.index + 1 ) {
+				const nextRow = rows.find( ( row ) => row.index === insertionIndex );
+				if ( nextRow && typeof nextRow.element.scrollIntoView === 'function' ) {
+					nextRow.element.scrollIntoView( {
+						behavior: 'auto',
+						block: 'nearest',
+						inline: 'nearest',
+					} );
+				}
+			}
 		} else {
 			this.setAnimatedStyles( source.element, sourceStyles.transform, '0' );
 		}
@@ -182,7 +203,7 @@ export class TableReorderDragVisuals {
 		this.onInsertionIndicatorChange( indicator );
 	}
 
-	private getOriginalStyles( element: HTMLTableRowElement ): InlineStyles {
+	private getOriginalStyles( element: HTMLElement ): InlineStyles {
 		const existing = this.originalStyles.get( element );
 		if ( existing ) {
 			return existing;
@@ -197,11 +218,7 @@ export class TableReorderDragVisuals {
 		return styles;
 	}
 
-	private setAnimatedStyles(
-		element: HTMLTableRowElement,
-		transform: string,
-		opacity: string
-	): void {
+	private setAnimatedStyles( element: HTMLElement, transform: string, opacity: string ): void {
 		this.getOriginalStyles( element );
 		element.style.opacity = opacity;
 		element.style.transform = transform;
