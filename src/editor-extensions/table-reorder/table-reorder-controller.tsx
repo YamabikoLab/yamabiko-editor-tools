@@ -67,6 +67,10 @@ type KeyboardReorderState = {
 };
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
+const ROWSPAN_REORDER_ERROR_MESSAGE = __(
+	'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
+	'yamabiko-editor-tools'
+);
 
 function DragRowOverlay( {
 	element,
@@ -272,13 +276,7 @@ export function TableReorderController( {
 		}
 
 		hasShownForbiddenNotice.current = true;
-		createErrorNotice(
-			__(
-				'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
-				'yamabiko-editor-tools'
-			),
-			{ type: 'snackbar' }
-		);
+		createErrorNotice( ROWSPAN_REORDER_ERROR_MESSAGE, { type: 'snackbar' } );
 	}, [ createErrorNotice ] );
 
 	const onHandleChange = useCallback( ( id: string, element: HTMLButtonElement | null ) => {
@@ -599,12 +597,7 @@ export function TableReorderController( {
 				}
 
 				if ( nonMovableRows.has( row.index ) ) {
-					announce(
-						__(
-							'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
-							'yamabiko-editor-tools'
-						)
-					);
+					announce( ROWSPAN_REORDER_ERROR_MESSAGE );
 					return;
 				}
 
@@ -624,6 +617,7 @@ export function TableReorderController( {
 					rowsRef.current.map( ( candidate ) => [ candidate.id, candidate ] )
 				);
 				dragSession.current = session;
+				hasShownForbiddenNotice.current = false;
 				lastAnnouncement.current = null;
 				announce(
 					sprintf(
@@ -713,12 +707,8 @@ export function TableReorderController( {
 			);
 			const update = updateTableReorderDragTarget( session, targetRow.id, insertionIndex );
 			if ( update.isForbidden ) {
-				announce(
-					__(
-						'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
-						'yamabiko-editor-tools'
-					)
-				);
+				showForbiddenNotice();
+				announce( ROWSPAN_REORDER_ERROR_MESSAGE );
 				return;
 			}
 
@@ -757,6 +747,7 @@ export function TableReorderController( {
 			nonMovableRows,
 			scrollRowIntoView,
 			setAttributes,
+			showForbiddenNotice,
 		]
 	);
 
