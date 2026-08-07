@@ -130,10 +130,10 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				}
 
 				const rememberedIndex = lastFocusedRowIndex.current;
-				const rememberedHandle =
-					rememberedIndex !== null ? handles[ rememberedIndex ] : undefined;
+				const rememberedHandle = rememberedIndex !== null ? handles[ rememberedIndex ] : undefined;
 				const fallbackHandle = handles.find( ( handle ) => ! handle.disabled );
-				const targetHandle = rememberedHandle && ! rememberedHandle.disabled ? rememberedHandle : fallbackHandle;
+				const targetHandle =
+					rememberedHandle && ! rememberedHandle.disabled ? rememberedHandle : fallbackHandle;
 				if ( ! targetHandle ) {
 					return false;
 				}
