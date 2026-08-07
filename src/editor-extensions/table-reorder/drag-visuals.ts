@@ -25,11 +25,28 @@ type InlineStyles = {
 };
 
 const rowTransition = 'transform 150ms ease, opacity 150ms ease';
+const HANDLE_CONTAINER_SELECTOR = '.yamabiko-editor-tools-table-reorder-content';
+const KEYBOARD_SOURCE_ROW_CLASS = 'yamabiko-editor-tools-table-reorder__keyboard-source-row';
+const KEYBOARD_MOVE_CLASS = 'is-keyboard-reordering-active';
 
 const getTransform = ( transform: string, translateY: number ): string => {
 	const translation = `translateY(${ translateY }px)`;
 
 	return transform && transform !== 'none' ? `${ transform } ${ translation }` : translation;
+};
+
+const isKeyboardReorderSource = ( row: TableReorderVisualRow ): boolean =>
+	Array.from(
+		row.element.ownerDocument.querySelectorAll< HTMLButtonElement >(
+			'.yamabiko-editor-tools-table-reorder-content__handle.is-keyboard-reordering'
+		)
+	).some( ( handle ) => handle.dataset.tableReorderRowId === row.id );
+
+const setKeyboardMoveActive = ( row: TableReorderVisualRow, active: boolean ): void => {
+	row.element.classList.toggle( KEYBOARD_SOURCE_ROW_CLASS, active );
+	row.element.ownerDocument
+		.querySelector< HTMLElement >( HANDLE_CONTAINER_SELECTOR )
+		?.classList.toggle( KEYBOARD_MOVE_CLASS, active );
 };
 
 export const getRowDisplacements = (
@@ -58,9 +75,38 @@ export const getRowDisplacements = (
 	return rows.filter( isDisplaced ).map( ( row ) => ( { id: row.id, translateY } ) );
 };
 
+export const getSourceTranslateY = (
+	rows: readonly TableReorderRowPlacement[],
+	sourceId: string,
+	insertionIndex: number
+): number => {
+	const source = rows.find( ( row ) => row.id === sourceId );
+	if (
+		! source ||
+		! Number.isInteger( insertionIndex ) ||
+		insertionIndex < 0 ||
+		insertionIndex > rows.length ||
+		insertionIndex === source.index ||
+		insertionIndex === source.index + 1
+	) {
+		return 0;
+	}
+
+	if ( insertionIndex < source.index ) {
+		return -rows
+			.filter( ( row ) => row.index >= insertionIndex && row.index < source.index )
+			.reduce( ( total, row ) => total + row.height, 0 );
+	}
+
+	return rows
+		.filter( ( row ) => row.index > source.index && row.index < insertionIndex )
+		.reduce( ( total, row ) => total + row.height, 0 );
+};
+
 export class TableReorderDragVisuals {
 	private readonly originalStyles = new Map< HTMLTableRowElement, InlineStyles >();
 	private insertionIndicator: InsertionIndicator | null = null;
+	private keyboardSourceRow: TableReorderVisualRow | null = null;
 
 	constructor(
 		private readonly onInsertionIndicatorChange: ( indicator: InsertionIndicator | null ) => void
@@ -94,11 +140,35 @@ export class TableReorderDragVisuals {
 			}
 		}
 
-		this.setAnimatedStyles(
-			source.element,
-			this.getOriginalStyles( source.element ).transform,
-			'0'
-		);
+		const sourceStyles = this.getOriginalStyles( source.element );
+		if ( isKeyboardReorderSource( source ) ) {
+			if ( this.keyboardSourceRow && this.keyboardSourceRow.id !== source.id ) {
+				setKeyboardMoveActive( this.keyboardSourceRow, false );
+			}
+			this.keyboardSourceRow = source;
+			setKeyboardMoveActive( source, true );
+			this.setAnimatedStyles(
+				source.element,
+				getTransform(
+					sourceStyles.transform,
+					getSourceTranslateY( rows, sourceId, insertionIndex )
+				),
+				sourceStyles.opacity
+			);
+
+			if ( insertionIndex > source.index + 1 ) {
+				const nextRow = rows.find( ( row ) => row.index === insertionIndex );
+				if ( nextRow && typeof nextRow.element.scrollIntoView === 'function' ) {
+					nextRow.element.scrollIntoView( {
+						behavior: 'auto',
+						block: 'nearest',
+						inline: 'nearest',
+					} );
+				}
+			}
+		} else {
+			this.setAnimatedStyles( source.element, sourceStyles.transform, '0' );
+		}
 		for ( const row of rows ) {
 			const translateY = displacementById.get( row.id );
 			if ( translateY !== undefined ) {
@@ -124,6 +194,10 @@ export class TableReorderDragVisuals {
 		}
 
 		this.originalStyles.clear();
+		if ( this.keyboardSourceRow ) {
+			setKeyboardMoveActive( this.keyboardSourceRow, false );
+			this.keyboardSourceRow = null;
+		}
 		this.updateInsertionIndicator( null );
 	}
 
