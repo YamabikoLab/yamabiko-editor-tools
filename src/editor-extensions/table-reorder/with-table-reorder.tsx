@@ -22,7 +22,7 @@ function TableCellPaddingClickController( {
 	onFocusedRowIndexChange,
 }: {
 	clientId: string;
-	onFocusedRowIndexChange: ( index: number ) => void;
+	onFocusedRowIndexChange: ( index: number | null ) => void;
 } ) {
 	const anchorRef = useRef< HTMLSpanElement >( null );
 
@@ -55,6 +55,7 @@ function TableCellPaddingClickController( {
 			const row = cell.closest( 'tr' );
 			const tbody = row?.parentElement;
 			if ( ! row || tbody?.tagName !== 'TBODY' ) {
+				onFocusedRowIndexChange( null );
 				return;
 			}
 
@@ -93,7 +94,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				);
 			}
 		}, [] );
-		const rememberFocusedRow = useCallback( ( index: number ) => {
+		const rememberFocusedRow = useCallback( ( index: number | null ) => {
 			lastFocusedRowIndex.current = index;
 		}, [] );
 
@@ -116,25 +117,32 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 
 			let observer: MutationObserver | null = null;
 			let disposed = false;
-			const focusInitialHandle = () => {
-				const handles = Array.from(
+			const getHandles = () =>
+				Array.from(
 					document.querySelectorAll< HTMLButtonElement >(
 						`.yamabiko-editor-tools-table-reorder-content__handle[aria-describedby="${ instructionsId }"]`
 					)
 				);
+			const focusInitialHandle = () => {
+				const handles = getHandles();
 				if ( handles.length === 0 ) {
 					return false;
 				}
 
 				const rememberedIndex = lastFocusedRowIndex.current;
-				const rememberedHandle = rememberedIndex !== null ? handles[ rememberedIndex ] : undefined;
-				const handle =
-					rememberedHandle ?? handles.find( ( candidate ) => candidate.ariaDisabled !== 'true' );
-				if ( ! handle ) {
-					return false;
-				}
+				const targetIndex =
+					rememberedIndex !== null && handles[ rememberedIndex ] ? rememberedIndex : 0;
+				view.requestAnimationFrame( () => {
+					view.requestAnimationFrame( () => {
+						if ( disposed ) {
+							return;
+						}
 
-				handle.focus( { preventScroll: true } );
+						const currentHandles = getHandles();
+						const handle = currentHandles[ targetIndex ] ?? currentHandles[ 0 ];
+						handle?.focus( { preventScroll: true } );
+					} );
+				} );
 				return true;
 			};
 			const focusWhenReady = () => {
