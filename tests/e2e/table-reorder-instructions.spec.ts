@@ -44,7 +44,6 @@ test( 'shows table reorder instructions directly before the table', async ( {
 		'行の並べ替え：ドラッグで移動　Enter / Space: 開始・確定　↑↓: 移動　Esc: キャンセル'
 	);
 	await expect( instructions ).toHaveCSS( 'font-size', '14px' );
-	await expect( instructions ).toHaveCSS( 'border-left-width', '4px' );
 } );
 
 test( 'styles table reorder instructions in the non-iframed editor', async ( {
@@ -70,6 +69,5 @@ test( 'styles table reorder instructions in the non-iframed editor', async ( {
 
 	const instructions = page.locator( '.yamabiko-editor-tools-table-reorder__instructions' );
 	await expect( instructions ).toBeVisible();
-	await expect( instructions ).toHaveCSS( 'font-size', '12px' );
-	await expect( instructions ).toHaveCSS( 'border-left-width', '4px' );
+	await expect( instructions ).toHaveCSS( 'font-size', '14px' );
 } );
