@@ -115,7 +115,7 @@
 			outline-offset: 2px;
 		}
 
-		&[aria-disabled='true'] {
+		&.is-non-movable {
 			background: #757575;
 			cursor: not-allowed;
 		}
