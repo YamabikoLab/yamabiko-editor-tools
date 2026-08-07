@@ -3,19 +3,18 @@ import { enableTableHoverReorder } from './hover-reorder';
 type MediaQueryListener = ( event: MediaQueryListEvent ) => void;
 
 const createMatchMedia = ( matches: boolean ) => {
-	const listeners = new Set< MediaQueryListener >();
 	const mediaQueryList = {
 		matches,
 		media: '(hover: hover) and (pointer: fine)',
 		onchange: null,
-		addEventListener: ( _type: string, listener: MediaQueryListener ) => listeners.add( listener ),
-		removeEventListener: ( _type: string, listener: MediaQueryListener ) => listeners.delete( listener ),
-		addListener: () => {},
-		removeListener: () => {},
-		dispatchEvent: () => true,
+		addEventListener: jest.fn(),
+		removeEventListener: jest.fn(),
+		addListener: jest.fn(),
+		removeListener: jest.fn(),
+		dispatchEvent: jest.fn( () => true ),
 	} as unknown as MediaQueryList;
 
-	return { mediaQueryList, listeners };
+	return mediaQueryList;
 };
 
 const dispatchPointerEvent = (
@@ -33,19 +32,34 @@ const dispatchPointerEvent = (
 
 describe( 'enableTableHoverReorder', () => {
 	beforeEach( () => {
-		document.body.innerHTML = '<div><table><tbody><tr><td>Cell</td></tr></tbody></table></div>';
+		document.body.innerHTML = [
+			'<div data-block="table-1"><table><tbody><tr><td>Cell</td></tr></tbody></table></div>',
+			'<button class="yamabiko-editor-tools-table-reorder-content__handle"',
+			' aria-describedby="yamabiko-editor-tools-table-reorder-table-1-instructions"></button>',
+			'<div id="outside"></div>',
+		].join( '' );
 	} );
 
-	it( 'activates for mouse hover on a hover-capable device', () => {
-		const { mediaQueryList } = createMatchMedia( true );
+	const setup = ( matches = true ) => {
+		const mediaQueryList = createMatchMedia( matches );
 		Object.defineProperty( window, 'matchMedia', {
 			configurable: true,
 			value: () => mediaQueryList,
 		} );
-		const blockElement = document.body.firstElementChild as HTMLElement;
-		const table = blockElement.querySelector( 'table' )!;
+		const blockElement = document.querySelector< HTMLElement >( '[data-block="table-1"]' )!;
+		const table = blockElement.querySelector< HTMLTableElement >( 'table' )!;
+		const handle = document.querySelector< HTMLButtonElement >(
+			'.yamabiko-editor-tools-table-reorder-content__handle'
+		)!;
+		const outside = document.querySelector< HTMLElement >( '#outside' )!;
 		const onActiveChange = jest.fn();
 		const disable = enableTableHoverReorder( blockElement, table, onActiveChange );
+
+		return { disable, handle, onActiveChange, outside, table };
+	};
+
+	it( 'activates for mouse hover on a hover-capable device', () => {
+		const { disable, onActiveChange, table } = setup();
 
 		dispatchPointerEvent( table, 'pointerenter' );
 
@@ -54,68 +68,50 @@ describe( 'enableTableHoverReorder', () => {
 	} );
 
 	it( 'does not activate for touch pointers', () => {
-		const { mediaQueryList } = createMatchMedia( true );
-		Object.defineProperty( window, 'matchMedia', {
-			configurable: true,
-			value: () => mediaQueryList,
-		} );
-		const blockElement = document.body.firstElementChild as HTMLElement;
-		const table = blockElement.querySelector( 'table' )!;
-		const onActiveChange = jest.fn();
+		const { disable, onActiveChange, table } = setup();
 
-		enableTableHoverReorder( blockElement, table, onActiveChange );
 		dispatchPointerEvent( table, 'pointerenter', { pointerType: 'touch' } );
 
-		expect( onActiveChange ).not.toHaveBeenCalledWith( true );
+		expect( onActiveChange ).not.toHaveBeenCalled();
+		disable();
 	} );
 
-	it( 'deactivates when the mouse leaves without dragging', () => {
-		const { mediaQueryList } = createMatchMedia( true );
-		Object.defineProperty( window, 'matchMedia', {
-			configurable: true,
-			value: () => mediaQueryList,
-		} );
-		const blockElement = document.body.firstElementChild as HTMLElement;
-		const table = blockElement.querySelector( 'table' )!;
-		const onActiveChange = jest.fn();
-
-		enableTableHoverReorder( blockElement, table, onActiveChange );
+	it( 'stays active while the pointer moves from the table to its handle', () => {
+		const { disable, handle, onActiveChange, table } = setup();
 		dispatchPointerEvent( table, 'pointerenter' );
-		dispatchPointerEvent( blockElement, 'pointerleave' );
+
+		dispatchPointerEvent( handle, 'pointermove' );
+
+		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
+		disable();
+	} );
+
+	it( 'deactivates after moving outside the table and its handles', () => {
+		const { disable, onActiveChange, outside, table } = setup();
+		dispatchPointerEvent( table, 'pointerenter' );
+
+		dispatchPointerEvent( outside, 'pointermove' );
 
 		expect( onActiveChange ).toHaveBeenLastCalledWith( false );
+		disable();
 	} );
 
 	it( 'keeps hover reorder active while a mouse button is held', () => {
-		const { mediaQueryList } = createMatchMedia( true );
-		Object.defineProperty( window, 'matchMedia', {
-			configurable: true,
-			value: () => mediaQueryList,
-		} );
-		const blockElement = document.body.firstElementChild as HTMLElement;
-		const table = blockElement.querySelector( 'table' )!;
-		const onActiveChange = jest.fn();
-
-		enableTableHoverReorder( blockElement, table, onActiveChange );
+		const { disable, onActiveChange, outside, table } = setup();
 		dispatchPointerEvent( table, 'pointerenter' );
-		dispatchPointerEvent( blockElement, 'pointerleave', { buttons: 1 } );
 
-		expect( onActiveChange ).not.toHaveBeenLastCalledWith( false );
+		dispatchPointerEvent( outside, 'pointermove', { buttons: 1 } );
+
+		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
+		disable();
 	} );
 
 	it( 'does not activate when hover is unavailable', () => {
-		const { mediaQueryList } = createMatchMedia( false );
-		Object.defineProperty( window, 'matchMedia', {
-			configurable: true,
-			value: () => mediaQueryList,
-		} );
-		const blockElement = document.body.firstElementChild as HTMLElement;
-		const table = blockElement.querySelector( 'table' )!;
-		const onActiveChange = jest.fn();
+		const { disable, onActiveChange, table } = setup( false );
 
-		enableTableHoverReorder( blockElement, table, onActiveChange );
 		dispatchPointerEvent( table, 'pointerenter' );
 
 		expect( onActiveChange ).not.toHaveBeenCalled();
+		disable();
 	} );
 } );
