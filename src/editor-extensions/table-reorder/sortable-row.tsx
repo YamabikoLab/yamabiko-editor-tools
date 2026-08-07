@@ -78,7 +78,22 @@ export function SortableRow( {
 				.filter( Boolean )
 				.join( ' ' ) }
 			data-table-reorder-row-id={ id }
-			onKeyDown={ ( event ) => onKeyDown( event, id ) }
+			onKeyDown={ ( event ) => {
+				if (
+					! isKeyboardReorderSource &&
+					( event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar' )
+				) {
+					element.ownerDocument.defaultView?.requestAnimationFrame( () => {
+						element.scrollIntoView( {
+							behavior: 'auto',
+							block: 'nearest',
+							inline: 'nearest',
+						} );
+					} );
+				}
+
+				onKeyDown( event, id );
+			} }
 			ref={ setHandle }
 			style={ {
 				height: `${ height }px`,
