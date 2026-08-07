@@ -97,26 +97,36 @@ describe( 'TableReorderDragVisuals', () => {
 		expect( setInsertionIndicator ).toHaveBeenLastCalledWith( null );
 	} );
 
-	it( 'keeps the keyboard source visible while moving it to the candidate position', () => {
+	it( 'moves the keyboard handle with the source row and reveals the following row', () => {
 		const rows = createVisualRows();
 		const setInsertionIndicator = jest.fn< void, [ InsertionIndicator | null ] >();
 		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
-		const source = rows[ 4 ].element;
+		const source = rows[ 1 ].element;
 		const handle = document.createElement( 'button' );
 		handle.className = 'yamabiko-editor-tools-table-reorder-content__handle is-keyboard-reordering';
-		handle.dataset.tableReorderRowId = 'row-10';
+		handle.dataset.tableReorderRowId = 'row-7';
 		document.body.append( handle );
-		source.style.opacity = '0.75';
+		const followingRow = rows[ 4 ].element;
+		const scrollIntoView = jest.fn();
+		Object.defineProperty( followingRow, 'scrollIntoView', {
+			configurable: true,
+			value: scrollIntoView,
+		} );
 
-		visuals.showCandidate( rows, 'row-10', 'row-7', 1 );
+		visuals.showCandidate( rows, 'row-7', 'row-9', 4 );
 
-		expect( source.style.opacity ).toBe( '0.75' );
-		expect( source.style.transform ).toBe( 'translateY(-144px)' );
+		expect( source.style.transform ).toBe( 'translateY(108px)' );
+		expect( handle.style.transform ).toBe( 'translateY(108px)' );
+		expect( scrollIntoView ).toHaveBeenCalledWith( {
+			behavior: 'auto',
+			block: 'nearest',
+			inline: 'nearest',
+		} );
 
 		visuals.clear();
 
-		expect( source.style.opacity ).toBe( '0.75' );
 		expect( source.style.transform ).toBe( '' );
+		expect( handle.style.transform ).toBe( '' );
 	} );
 
 	it( 'notifies once when the insertion candidate is unchanged', () => {
