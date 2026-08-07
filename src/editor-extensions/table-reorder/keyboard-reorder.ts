@@ -19,6 +19,25 @@ export const getKeyboardMoveDirection = ( key: string ): KeyboardMoveDirection |
 export const isKeyboardReorderToggleKey = ( key: string ): boolean =>
 	key === 'Enter' || key === ' ' || key === 'Spacebar';
 
+export const getKeyboardTabDestinationIndex = (
+	currentIndex: number,
+	rowCount: number,
+	isReverse: boolean
+): number | null => {
+	if (
+		! Number.isInteger( currentIndex ) ||
+		! Number.isInteger( rowCount ) ||
+		rowCount <= 0 ||
+		currentIndex < 0 ||
+		currentIndex >= rowCount
+	) {
+		return null;
+	}
+
+	const nextIndex = currentIndex + ( isReverse ? -1 : 1 );
+	return nextIndex >= 0 && nextIndex < rowCount ? nextIndex : null;
+};
+
 export const getKeyboardDestination = (
 	destinationIndex: number,
 	rowCount: number,
