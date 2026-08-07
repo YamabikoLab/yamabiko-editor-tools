@@ -1,5 +1,6 @@
 import {
 	getRowDisplacements,
+	getSourceTranslateY,
 	TableReorderDragVisuals,
 	type InsertionIndicator,
 	type TableReorderRowPlacement,
@@ -46,6 +47,20 @@ describe( 'getRowDisplacements', () => {
 	} );
 } );
 
+describe( 'getSourceTranslateY', () => {
+	it( 'moves the keyboard source to the pending destination', () => {
+		expect( getSourceTranslateY( placements, 'row-10', 1 ) ).toBe( -144 );
+		expect( getSourceTranslateY( placements, 'row-7', 4 ) ).toBe( 108 );
+	} );
+
+	it( 'does not move the source for an invalid or same-position insertion', () => {
+		expect( getSourceTranslateY( placements, 'row-7', 1 ) ).toBe( 0 );
+		expect( getSourceTranslateY( placements, 'row-7', 2 ) ).toBe( 0 );
+		expect( getSourceTranslateY( placements, 'missing', 1 ) ).toBe( 0 );
+		expect( getSourceTranslateY( placements, 'row-7', -1 ) ).toBe( 0 );
+	} );
+} );
+
 describe( 'TableReorderDragVisuals', () => {
 	it( 'moves only the visual rows and clears transforms and the insertion candidate', () => {
 		const rows = createVisualRows();
@@ -80,6 +95,29 @@ describe( 'TableReorderDragVisuals', () => {
 		expect( secondDisplaced.style.transition ).toBe( 'color 1s linear' );
 		expect( thirdDisplaced.style.transform ).toBe( '' );
 		expect( setInsertionIndicator ).toHaveBeenLastCalledWith( null );
+	} );
+
+	it( 'keeps the keyboard source visible while moving it to the candidate position', () => {
+		const rows = createVisualRows();
+		const setInsertionIndicator = jest.fn< void, [ InsertionIndicator | null ] >();
+		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
+		const source = rows[ 4 ].element;
+		const handle = document.createElement( 'button' );
+		handle.className =
+			'yamabiko-editor-tools-table-reorder-content__handle is-keyboard-reordering';
+		handle.dataset.tableReorderRowId = 'row-10';
+		document.body.append( handle );
+		source.style.opacity = '0.75';
+
+		visuals.showCandidate( rows, 'row-10', 'row-7', 1 );
+
+		expect( source.style.opacity ).toBe( '0.75' );
+		expect( source.style.transform ).toBe( 'translateY(-144px)' );
+
+		visuals.clear();
+
+		expect( source.style.opacity ).toBe( '0.75' );
+		expect( source.style.transform ).toBe( '' );
 	} );
 
 	it( 'notifies once when the insertion candidate is unchanged', () => {
