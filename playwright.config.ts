@@ -26,6 +26,7 @@ export default defineConfig( {
 		},
 		{
 			name: 'chromium',
+			testMatch: '**/*.spec.ts',
 			dependencies: [ 'setup' ],
 			use: {
 				browserName: 'chromium',

@@ -41,9 +41,9 @@ test( 'shows table reorder instructions directly before the table', async ( {
 	expect( isInViewport ).toBe( true );
 
 	await expect( instructions ).toHaveText(
-		'ドラッグで移動　Enter / Space: 開始・確定　↑↓: 移動　Esc: キャンセル'
+		'行の並べ替え：ドラッグで移動　Enter / Space: 開始・確定　↑↓: 移動　Esc: キャンセル'
 	);
-	await expect( instructions ).toHaveCSS( 'font-size', '12px' );
+	await expect( instructions ).toHaveCSS( 'font-size', '14px' );
 	await expect( instructions ).toHaveCSS( 'border-left-width', '4px' );
 } );
 

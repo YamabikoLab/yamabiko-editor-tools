@@ -77,7 +77,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				{ isReorderMode && props.isSelected && (
 					<div className="yamabiko-editor-tools-table-reorder__instructions" id={ instructionsId }>
 						{ __(
-							'ドラッグで移動　Enter / Space: 開始・確定　↑↓: 移動　Esc: キャンセル',
+							'行の並べ替え：ドラッグで移動　Enter / Space: 開始・確定　↑↓: 移動　Esc: キャンセル',
 							'yamabiko-editor-tools'
 						) }
 					</div>
