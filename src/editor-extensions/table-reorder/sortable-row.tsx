@@ -90,12 +90,21 @@ export function SortableRow( {
 						return;
 					}
 
-					const handles = Array.from(
-						element.ownerDocument.querySelectorAll< HTMLButtonElement >( HANDLE_SELECTOR )
-					).filter( ( handle ) => handle.isConnected );
+					const handleContainer = event.currentTarget.parentElement;
+					const handles = handleContainer
+						? Array.from(
+								handleContainer.querySelectorAll< HTMLButtonElement >( HANDLE_SELECTOR )
+						  ).filter( ( handle ) => handle.isConnected )
+						: [];
+					const rowCount = element.parentElement?.children.length ?? 0;
+					if ( handles.length !== rowCount ) {
+						event.preventDefault();
+						return;
+					}
+
 					const destinationIndex = getKeyboardTabDestinationIndex(
 						index,
-						handles.length,
+						rowCount,
 						event.shiftKey
 					);
 					if ( destinationIndex !== null ) {
