@@ -46,6 +46,7 @@ function TableCellPaddingClickController( { clientId }: { clientId: string } ) {
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithTableReorder( props: TableBlockEditProps ) {
 		const [ isReorderMode, setIsReorderMode ] = useState( false );
+		const instructionsRef = useRef< HTMLDivElement >( null );
 		const modeToggleRef = useRef< HTMLButtonElement >( null );
 		const isTableBlock = props.name === 'core/table';
 		const instructionsId = `yamabiko-editor-tools-table-reorder-${ props.clientId }-instructions`;
@@ -64,6 +65,43 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			}
 		}, [ exitReorderMode, props.isSelected ] );
 
+		useEffect( () => {
+			if ( ! isReorderMode || ! props.isSelected ) {
+				return;
+			}
+
+			const document = instructionsRef.current?.ownerDocument;
+			const view = document?.defaultView;
+			if ( ! document || ! view ) {
+				return;
+			}
+
+			const focusFirstMovableHandle = () => {
+				const handle = document.querySelector< HTMLButtonElement >(
+					'.yamabiko-editor-tools-table-reorder-content__handle:not([aria-disabled="true"])'
+				);
+				if ( ! handle ) {
+					return false;
+				}
+
+				handle.focus( { preventScroll: true } );
+				return true;
+			};
+
+			if ( focusFirstMovableHandle() ) {
+				return;
+			}
+
+			const observer = new view.MutationObserver( () => {
+				if ( focusFirstMovableHandle() ) {
+					observer.disconnect();
+				}
+			} );
+			observer.observe( document.body, { childList: true, subtree: true } );
+
+			return () => observer.disconnect();
+		}, [ isReorderMode, props.isSelected ] );
+
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
 		}
@@ -75,7 +113,11 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 		return (
 			<>
 				{ isReorderMode && props.isSelected && (
-					<div className="yamabiko-editor-tools-table-reorder__instructions" id={ instructionsId }>
+					<div
+						className="yamabiko-editor-tools-table-reorder__instructions"
+						id={ instructionsId }
+						ref={ instructionsRef }
+					>
 						{ __(
 							'行の並べ替え：ドラッグで移動　Enter / Space: 開始・確定　↑↓: 移動　Esc: キャンセル',
 							'yamabiko-editor-tools'
