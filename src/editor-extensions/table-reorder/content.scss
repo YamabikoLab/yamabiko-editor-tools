@@ -45,7 +45,8 @@
 	}
 }
 
-.yamabiko-editor-tools-table-reorder__instructions-description {
+.yamabiko-editor-tools-table-reorder__instructions-description,
+.yamabiko-editor-tools-table-reorder-content__live-region {
 	border: 0;
 	clip: rect(0 0 0 0);
 	clip-path: inset(50%);
@@ -114,7 +115,7 @@
 			outline-offset: 2px;
 		}
 
-		&:disabled {
+		&[aria-disabled='true'] {
 			background: #757575;
 			cursor: not-allowed;
 		}
