@@ -137,7 +137,11 @@ test( 'keeps Tab focus on the source handle while keyboard reordering', async ( 
 	await expect( handles.nth( 5 ) ).toBeFocused();
 } );
 
-test( 'keeps rowspan rows focusable in the Tab sequence', async ( { admin, editor, page } ) => {
+test( 'skips rowspan rows in the Tab sequence and keeps their handles disabled', async ( {
+	admin,
+	editor,
+	page,
+} ) => {
 	await admin.createNewPost();
 	await editor.setContent( `
 		<!-- wp:table -->
@@ -157,10 +161,13 @@ test( 'keeps rowspan rows focusable in the Tab sequence', async ( { admin, edito
 
 	const handles = editor.canvas.locator( '.yamabiko-editor-tools-table-reorder-content__handle' );
 	await expect( handles ).toHaveCount( 4 );
-	await handles.first().press( 'Tab' );
-	await expect( handles.nth( 1 ) ).toBeFocused();
+	await expect( handles.nth( 1 ) ).toBeDisabled();
+	await expect( handles.nth( 2 ) ).toBeDisabled();
 	await expect( handles.nth( 1 ) ).toHaveAttribute( 'aria-disabled', 'true' );
-	await handles.nth( 1 ).press( 'Tab' );
-	await expect( handles.nth( 2 ) ).toBeFocused();
 	await expect( handles.nth( 2 ) ).toHaveAttribute( 'aria-disabled', 'true' );
+
+	await handles.first().press( 'Tab' );
+	await expect( handles.nth( 3 ) ).toBeFocused();
+	await handles.nth( 3 ).press( 'Shift+Tab' );
+	await expect( handles.first() ).toBeFocused();
 } );
