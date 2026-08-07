@@ -25,22 +25,33 @@ for ( const editorMode of [ 'iframe', 'non-iframe' ] as const ) {
 
 		const canvas = editorMode === 'non-iframe' ? page : editor.canvas;
 		const tableBlock = canvas.locator( '[data-type="core/table"]' );
+		const rows = tableBlock.locator( 'tbody tr' );
 		await editor.selectBlocks( tableBlock );
+		await rows.nth( 9 ).locator( 'td' ).first().focus();
 		await editor.showBlockToolbar();
 		await page.getByRole( 'button', { name: '行を並べ替え' } ).click();
 
 		const handles = canvas.locator( '.yamabiko-editor-tools-table-reorder-content__handle' );
-		const rows = tableBlock.locator( 'tbody tr' );
 		const liveRegion = canvas.locator(
 			'.yamabiko-editor-tools-table-reorder-content__live-region'
 		);
 		await expect( handles ).toHaveCount( 30 );
 
-		const initialHandle = handles.first();
+		const initialHandle = handles.nth( 9 );
 		await expect( initialHandle ).toBeFocused();
 		await initialHandle.press( 'Enter' );
-		await expect( initialHandle ).toHaveAccessibleName( '1 行目を並べ替え中' );
+		await expect( initialHandle ).toHaveAccessibleName( '10 行目を並べ替え中' );
 		await expect( page.getByRole( 'button', { name: '並べ替えを終了' } ) ).toBeVisible();
+		await expect
+			.poll( () =>
+				rows.nth( 9 ).evaluate( ( row ) => {
+					const bounds = row.getBoundingClientRect();
+					const view = row.ownerDocument.defaultView;
+
+					return view !== null && bounds.top >= 0 && bounds.bottom <= view.innerHeight;
+				} )
+			)
+			.toBe( true );
 		await initialHandle.press( 'Escape' );
 		await expect( initialHandle ).toBeFocused();
 
@@ -58,6 +69,10 @@ for ( const editorMode of [ 'iframe', 'non-iframe' ] as const ) {
 
 		await source.press( 'ArrowDown' );
 		await expect( liveRegion ).toHaveText( '4 行目へ移動します。全30行です。' );
+		await expect.poll( () => rows.nth( 2 ).evaluate( ( row ) => row.style.opacity ) ).not.toBe( '0' );
+		await expect
+			.poll( () => rows.nth( 2 ).evaluate( ( row ) => row.style.transform ) )
+			.toContain( 'translateY' );
 		await source.press( 'ArrowUp' );
 		await expect( liveRegion ).toHaveText( '3 行目へ移動します。全30行です。' );
 		await source.press( 'ArrowUp' );
