@@ -58,6 +58,34 @@ export const getRowDisplacements = (
 	return rows.filter( isDisplaced ).map( ( row ) => ( { id: row.id, translateY } ) );
 };
 
+export const getSourceTranslateY = (
+	rows: readonly TableReorderRowPlacement[],
+	sourceId: string,
+	insertionIndex: number
+): number => {
+	const source = rows.find( ( row ) => row.id === sourceId );
+	if (
+		! source ||
+		! Number.isInteger( insertionIndex ) ||
+		insertionIndex < 0 ||
+		insertionIndex > rows.length ||
+		insertionIndex === source.index ||
+		insertionIndex === source.index + 1
+	) {
+		return 0;
+	}
+
+	if ( insertionIndex < source.index ) {
+		return -rows
+			.filter( ( row ) => row.index >= insertionIndex && row.index < source.index )
+			.reduce( ( total, row ) => total + row.height, 0 );
+	}
+
+	return rows
+		.filter( ( row ) => row.index > source.index && row.index < insertionIndex )
+		.reduce( ( total, row ) => total + row.height, 0 );
+};
+
 export class TableReorderDragVisuals {
 	private readonly originalStyles = new Map< HTMLTableRowElement, InlineStyles >();
 	private insertionIndicator: InsertionIndicator | null = null;
