@@ -103,8 +103,7 @@ describe( 'TableReorderDragVisuals', () => {
 		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
 		const source = rows[ 4 ].element;
 		const handle = document.createElement( 'button' );
-		handle.className =
-			'yamabiko-editor-tools-table-reorder-content__handle is-keyboard-reordering';
+		handle.className = 'yamabiko-editor-tools-table-reorder-content__handle is-keyboard-reordering';
 		handle.dataset.tableReorderRowId = 'row-10';
 		document.body.append( handle );
 		source.style.opacity = '0.75';

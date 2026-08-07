@@ -69,7 +69,9 @@ for ( const editorMode of [ 'iframe', 'non-iframe' ] as const ) {
 
 		await source.press( 'ArrowDown' );
 		await expect( liveRegion ).toHaveText( '4 行目へ移動します。全30行です。' );
-		await expect.poll( () => rows.nth( 2 ).evaluate( ( row ) => row.style.opacity ) ).not.toBe( '0' );
+		await expect
+			.poll( () => rows.nth( 2 ).evaluate( ( row ) => row.style.opacity ) )
+			.not.toBe( '0' );
 		await expect
 			.poll( () => rows.nth( 2 ).evaluate( ( row ) => row.style.transform ) )
 			.toContain( 'translateY' );

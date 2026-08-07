@@ -133,7 +133,10 @@ export class TableReorderDragVisuals {
 		if ( isKeyboardReorderSource( source ) ) {
 			this.setAnimatedStyles(
 				source.element,
-				getTransform( sourceStyles.transform, getSourceTranslateY( rows, sourceId, insertionIndex ) ),
+				getTransform(
+					sourceStyles.transform,
+					getSourceTranslateY( rows, sourceId, insertionIndex )
+				),
 				sourceStyles.opacity
 			);
 		} else {

@@ -123,8 +123,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				}
 
 				const rememberedIndex = lastFocusedRowIndex.current;
-				const rememberedHandle =
-					rememberedIndex !== null ? handles[ rememberedIndex ] : undefined;
+				const rememberedHandle = rememberedIndex !== null ? handles[ rememberedIndex ] : undefined;
 				const handle =
 					rememberedHandle ?? handles.find( ( candidate ) => candidate.ariaDisabled !== 'true' );
 				if ( ! handle ) {
