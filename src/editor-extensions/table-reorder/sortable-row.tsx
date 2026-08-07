@@ -5,6 +5,8 @@ import { useCallback } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
+import { getKeyboardTabDestinationIndex } from './keyboard-reorder';
+
 type SortableRowProps = {
 	element: HTMLTableRowElement;
 	height: number;
@@ -19,6 +21,8 @@ type SortableRowProps = {
 	onKeyDown: ( event: KeyboardEvent< HTMLButtonElement >, id: string ) => void;
 	top: number;
 };
+
+const HANDLE_SELECTOR = '.yamabiko-editor-tools-table-reorder-content__handle';
 
 export function SortableRow( {
 	element,
@@ -78,7 +82,42 @@ export function SortableRow( {
 				.filter( Boolean )
 				.join( ' ' ) }
 			data-table-reorder-row-id={ id }
+			data-table-reorder-row-index={ index }
 			onKeyDown={ ( event ) => {
+				if ( event.key === 'Tab' ) {
+					if ( isPointerDragDisabled ) {
+						event.preventDefault();
+						return;
+					}
+
+					const handles = Array.from(
+						element.ownerDocument.querySelectorAll< HTMLButtonElement >( HANDLE_SELECTOR )
+					).filter( ( handle ) => handle.isConnected );
+					const destinationIndex = getKeyboardTabDestinationIndex(
+						index,
+						handles.length,
+						event.shiftKey
+					);
+					if ( destinationIndex !== null ) {
+						const destinationHandle = handles.find(
+							( handle ) => Number( handle.dataset.tableReorderRowIndex ) === destinationIndex
+						);
+						if ( destinationHandle ) {
+							event.preventDefault();
+							destinationHandle.focus( { preventScroll: true } );
+							const destinationRow = element.parentElement?.children.item( destinationIndex );
+							if ( destinationRow instanceof HTMLTableRowElement ) {
+								destinationRow.scrollIntoView( {
+									behavior: 'auto',
+									block: 'nearest',
+									inline: 'nearest',
+								} );
+							}
+							return;
+						}
+					}
+				}
+
 				if (
 					! isKeyboardReorderSource &&
 					( event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar' )
