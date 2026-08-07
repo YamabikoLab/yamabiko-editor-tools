@@ -1,14 +1,7 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { ToolbarButton } from '@wordpress/components';
-import {
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-	type ComponentType,
-	type KeyboardEvent,
-} from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
@@ -23,6 +16,8 @@ type TableAttributes = Record< string, unknown > & {
 type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
+
+type KeyboardKeyEvent = Pick< globalThis.KeyboardEvent, 'key' >;
 
 function TableCellPaddingClickController( {
 	clientId,
@@ -305,7 +300,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 
 								setIsReorderMode( true );
 							} }
-							onKeyDown={ ( event: KeyboardEvent< HTMLButtonElement > ) => {
+							onKeyDown={ ( event: KeyboardKeyEvent ) => {
 								if (
 									! isReorderMode &&
 									( event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar' )
@@ -313,7 +308,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 									modeActivationKeyRef.current = event.key;
 								}
 							} }
-							onKeyUp={ ( event: KeyboardEvent< HTMLButtonElement > ) => {
+							onKeyUp={ ( event: KeyboardKeyEvent ) => {
 								if ( modeActivationKeyRef.current === event.key ) {
 									modeActivationKeyRef.current = null;
 								}
