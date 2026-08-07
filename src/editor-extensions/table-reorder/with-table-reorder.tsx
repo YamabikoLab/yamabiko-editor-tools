@@ -80,10 +80,12 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 		const [ isReorderMode, setIsReorderMode ] = useState( false );
 		const instructionsRef = useRef< HTMLDivElement >( null );
 		const lastFocusedRowIndex = useRef< number | null >( null );
+		const modeActivationKeyRef = useRef< string | null >( null );
 		const modeToggleRef = useRef< HTMLButtonElement >( null );
 		const isTableBlock = props.name === 'core/table';
 		const instructionsId = `yamabiko-editor-tools-table-reorder-${ props.clientId }-instructions`;
 		const exitReorderMode = useCallback( ( restoreFocus = false ) => {
+			modeActivationKeyRef.current = null;
 			setIsReorderMode( false );
 			if ( restoreFocus ) {
 				modeToggleRef.current?.ownerDocument.defaultView?.requestAnimationFrame(
@@ -112,6 +114,8 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				return;
 			}
 
+			let observer: MutationObserver | null = null;
+			let disposed = false;
 			const focusInitialHandle = () => {
 				const handles = Array.from(
 					document.querySelectorAll< HTMLButtonElement >(
@@ -133,19 +137,46 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				handle.focus( { preventScroll: true } );
 				return true;
 			};
+			const focusWhenReady = () => {
+				if ( disposed || focusInitialHandle() ) {
+					return;
+				}
 
-			if ( focusInitialHandle() ) {
-				return;
+				observer ??= new view.MutationObserver( () => {
+					if ( focusInitialHandle() ) {
+						observer?.disconnect();
+						observer = null;
+					}
+				} );
+				observer.observe( document.body, { childList: true, subtree: true } );
+			};
+
+			const activationKey = modeActivationKeyRef.current;
+			const activationDocument = modeToggleRef.current?.ownerDocument;
+			if ( activationKey && activationDocument ) {
+				const onActivationKeyUp = ( event: globalThis.KeyboardEvent ) => {
+					if ( event.key !== activationKey ) {
+						return;
+					}
+
+					modeActivationKeyRef.current = null;
+					activationDocument.removeEventListener( 'keyup', onActivationKeyUp, true );
+					focusWhenReady();
+				};
+				activationDocument.addEventListener( 'keyup', onActivationKeyUp, true );
+
+				return () => {
+					disposed = true;
+					observer?.disconnect();
+					activationDocument.removeEventListener( 'keyup', onActivationKeyUp, true );
+				};
 			}
 
-			const observer = new view.MutationObserver( () => {
-				if ( focusInitialHandle() ) {
-					observer.disconnect();
-				}
-			} );
-			observer.observe( document.body, { childList: true, subtree: true } );
-
-			return () => observer.disconnect();
+			focusWhenReady();
+			return () => {
+				disposed = true;
+				observer?.disconnect();
+			};
 		}, [ instructionsId, isReorderMode, props.isSelected ] );
 
 		if ( ! isTableBlock ) {
@@ -190,6 +221,22 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 								}
 
 								setIsReorderMode( true );
+							} }
+							onKeyDown={ ( event ) => {
+								if (
+									! isReorderMode &&
+									( event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar' )
+								) {
+									modeActivationKeyRef.current = event.key;
+								}
+							} }
+							onKeyUp={ ( event ) => {
+								if ( modeActivationKeyRef.current === event.key ) {
+									modeActivationKeyRef.current = null;
+								}
+							} }
+							onPointerDown={ () => {
+								modeActivationKeyRef.current = null;
 							} }
 							ref={ modeToggleRef }
 						/>
