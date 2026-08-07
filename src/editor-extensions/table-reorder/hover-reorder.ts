@@ -1,4 +1,5 @@
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
+const HANDLE_SELECTOR = '.yamabiko-editor-tools-table-reorder-content__handle';
 
 const isMousePointer = ( event: PointerEvent ) => event.pointerType === 'mouse';
 
@@ -14,59 +15,67 @@ export const enableTableHoverReorder = (
 	}
 
 	const hoverMedia = view.matchMedia( HOVER_REORDER_MEDIA_QUERY );
-	let animationFrame = 0;
+	const instructionsId = `yamabiko-editor-tools-table-reorder-${ blockElement.dataset.block }-instructions`;
+	let isActive = false;
 
 	const canUseHover = () => hoverMedia.matches;
-	const deactivateAfterPointerUp = () => {
-		if ( animationFrame ) {
-			view.cancelAnimationFrame( animationFrame );
+	const isWithinHoverRegion = ( target: EventTarget | null ) => {
+		if ( ! ( target instanceof view.Element ) ) {
+			return false;
+		}
+		if ( blockElement.contains( target ) ) {
+			return true;
 		}
 
-		animationFrame = view.requestAnimationFrame( () => {
-			animationFrame = 0;
-			if ( ! blockElement.matches( ':hover' ) ) {
-				onActiveChange( false );
-			}
-		} );
+		const handle = target.closest< HTMLButtonElement >( HANDLE_SELECTOR );
+		return handle?.getAttribute( 'aria-describedby' ) === instructionsId;
+	};
+	const setActive = ( nextActive: boolean ) => {
+		if ( isActive === nextActive ) {
+			return;
+		}
+
+		isActive = nextActive;
+		onActiveChange( nextActive );
 	};
 	const onPointerEnter = ( event: PointerEvent ) => {
 		if ( canUseHover() && isMousePointer( event ) ) {
-			onActiveChange( true );
+			setActive( true );
 		}
 	};
-	const onPointerLeave = ( event: PointerEvent ) => {
-		if ( isMousePointer( event ) && event.buttons === 0 ) {
-			onActiveChange( false );
+	const onPointerMove = ( event: PointerEvent ) => {
+		if ( ! isActive || ! isMousePointer( event ) || event.buttons !== 0 ) {
+			return;
+		}
+		if ( ! isWithinHoverRegion( event.target ) ) {
+			setActive( false );
 		}
 	};
 	const onPointerUp = ( event: PointerEvent ) => {
-		if ( isMousePointer( event ) ) {
-			deactivateAfterPointerUp();
+		if ( isActive && isMousePointer( event ) && ! isWithinHoverRegion( event.target ) ) {
+			setActive( false );
 		}
 	};
 	const onPointerCancel = ( event: PointerEvent ) => {
 		if ( isMousePointer( event ) ) {
-			onActiveChange( false );
+			setActive( false );
 		}
 	};
 	const onHoverCapabilityChange = () => {
 		if ( ! canUseHover() ) {
-			onActiveChange( false );
+			setActive( false );
 		}
 	};
 
 	table.addEventListener( 'pointerenter', onPointerEnter );
-	blockElement.addEventListener( 'pointerleave', onPointerLeave );
+	document.addEventListener( 'pointermove', onPointerMove, true );
 	document.addEventListener( 'pointerup', onPointerUp, true );
 	document.addEventListener( 'pointercancel', onPointerCancel, true );
 	hoverMedia.addEventListener( 'change', onHoverCapabilityChange );
 
 	return () => {
-		if ( animationFrame ) {
-			view.cancelAnimationFrame( animationFrame );
-		}
 		table.removeEventListener( 'pointerenter', onPointerEnter );
-		blockElement.removeEventListener( 'pointerleave', onPointerLeave );
+		document.removeEventListener( 'pointermove', onPointerMove, true );
 		document.removeEventListener( 'pointerup', onPointerUp, true );
 		document.removeEventListener( 'pointercancel', onPointerCancel, true );
 		hoverMedia.removeEventListener( 'change', onHoverCapabilityChange );
