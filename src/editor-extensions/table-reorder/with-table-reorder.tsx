@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ComponentType } from '@w
 import { __ } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
+import { enableTableHoverReorder } from './hover-reorder';
 import { focusTableCellFromPaddingClick } from './table-cell-padding-click';
 import { TableReorderController } from './table-reorder-controller';
 
@@ -87,9 +88,38 @@ function TableCellPaddingClickController( {
 	return <span aria-hidden="true" hidden ref={ anchorRef } />;
 }
 
+function TableHoverReorderController( {
+	clientId,
+	onActiveChange,
+}: {
+	clientId: string;
+	onActiveChange: ( isActive: boolean ) => void;
+} ) {
+	const anchorRef = useRef< HTMLSpanElement >( null );
+
+	useEffect( () => {
+		const anchor = anchorRef.current;
+		if ( ! anchor ) {
+			return;
+		}
+
+		const document = anchor.ownerDocument;
+		const blockElement = document.querySelector< HTMLElement >( `[data-block="${ clientId }"]` );
+		const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
+		if ( ! blockElement ) {
+			return;
+		}
+
+		return enableTableHoverReorder( blockElement, table, onActiveChange );
+	}, [ clientId, onActiveChange ] );
+
+	return <span aria-hidden="true" hidden ref={ anchorRef } />;
+}
+
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithTableReorder( props: TableBlockEditProps ) {
 		const [ isReorderMode, setIsReorderMode ] = useState( false );
+		const [ isHoverReorderActive, setIsHoverReorderActive ] = useState( false );
 		const [ isInstructionsVisible, setIsInstructionsVisible ] = useState( false );
 		const instructionsRef = useRef< HTMLDivElement >( null );
 		const lastFocusedRowIndex = useRef< number | null >( null );
@@ -109,6 +139,14 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 		const rememberFocusedRow = useCallback( ( index: number | null ) => {
 			lastFocusedRowIndex.current = index;
 		}, [] );
+		const handleHoverActiveChange = useCallback( ( isActive: boolean ) => {
+			setIsHoverReorderActive( isActive );
+		}, [] );
+		const handleControllerExit = useCallback( () => {
+			if ( isReorderMode ) {
+				exitReorderMode();
+			}
+		}, [ exitReorderMode, isReorderMode ] );
 
 		useEffect( () => {
 			if ( ! props.isSelected ) {
@@ -280,6 +318,10 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					</>
 				) }
 				<BlockEdit { ...props } />
+				<TableHoverReorderController
+					clientId={ props.clientId }
+					onActiveChange={ handleHoverActiveChange }
+				/>
 				{ props.isSelected && ! isReorderMode && (
 					<TableCellPaddingClickController
 						clientId={ props.clientId }
@@ -320,13 +362,13 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 						/>
 					</BlockControls>
 				) }
-				{ isReorderMode && props.isSelected && (
+				{ ( isReorderMode || isHoverReorderActive ) && (
 					<TableReorderController
 						align={ props.attributes.align }
 						body={ props.attributes.body }
 						clientId={ props.clientId }
 						instructionsId={ instructionsId }
-						onExit={ exitReorderMode }
+						onExit={ handleControllerExit }
 						setAttributes={ props.setAttributes }
 					/>
 				) }
