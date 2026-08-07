@@ -106,8 +106,8 @@ export function SortableRow( {
 							event.preventDefault();
 							destinationHandle.focus( { preventScroll: true } );
 							const destinationRow = element.parentElement?.children.item( destinationIndex );
-							if ( destinationRow instanceof HTMLTableRowElement ) {
-								destinationRow.scrollIntoView( {
+							if ( destinationRow?.tagName === 'TR' ) {
+								( destinationRow as HTMLTableRowElement ).scrollIntoView( {
 									behavior: 'auto',
 									block: 'nearest',
 									inline: 'nearest',
