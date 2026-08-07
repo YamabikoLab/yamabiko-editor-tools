@@ -1,7 +1,14 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { ToolbarButton } from '@wordpress/components';
-import { useCallback, useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
+import {
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	type ComponentType,
+	type KeyboardEvent,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
@@ -74,7 +81,7 @@ function TableCellPaddingClickController( {
 		// On the first selection after a page reload, the cell can receive focus
 		// before this controller mounts and registers its focusin listener.
 		// Seed the remembered row from the focus that already exists.
-		rememberRowFromTarget( document.activeElement );
+		rememberRowFromTarget( anchor.ownerDocument.activeElement );
 
 		return () => {
 			document.removeEventListener( 'focusin', onFocusIn, true );
@@ -298,7 +305,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 
 								setIsReorderMode( true );
 							} }
-							onKeyDown={ ( event ) => {
+							onKeyDown={ ( event: KeyboardEvent< HTMLButtonElement > ) => {
 								if (
 									! isReorderMode &&
 									( event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar' )
@@ -306,7 +313,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 									modeActivationKeyRef.current = event.key;
 								}
 							} }
-							onKeyUp={ ( event ) => {
+							onKeyUp={ ( event: KeyboardEvent< HTMLButtonElement > ) => {
 								if ( modeActivationKeyRef.current === event.key ) {
 									modeActivationKeyRef.current = null;
 								}
