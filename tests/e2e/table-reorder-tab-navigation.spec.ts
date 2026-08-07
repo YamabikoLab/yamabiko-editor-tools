@@ -66,6 +66,42 @@ for ( const editorMode of [ 'iframe', 'non-iframe' ] as const ) {
 		);
 		expect( lastBoundaryAllowed ).toBe( true );
 	} );
+
+	test( `keeps keyboard mode activation separate from row reorder in the ${ editorMode } editor`, async ( {
+		admin,
+		editor,
+		page,
+	} ) => {
+		await admin.createNewPost();
+		if ( editorMode === 'non-iframe' ) {
+			await editor.switchToLegacyCanvas();
+		}
+
+		await editor.setContent( `
+			<!-- wp:table -->
+			<figure class="wp-block-table"><table><tbody>${ tableRows }</tbody></table></figure>
+			<!-- /wp:table -->
+			${ editorMode === 'non-iframe' ? '<!-- wp:test/v2 /-->' : '' }
+		` );
+
+		const canvas = editorMode === 'non-iframe' ? page : editor.canvas;
+		const tableBlock = canvas.locator( '[data-type="core/table"]' );
+		await editor.selectBlocks( tableBlock );
+		await editor.showBlockToolbar();
+
+		const modeToggle = page.getByRole( 'button', { name: '行を並べ替え' } );
+		await modeToggle.focus();
+		await modeToggle.press( 'Enter' );
+
+		const handles = canvas.locator( '.yamabiko-editor-tools-table-reorder-content__handle' );
+		await expect( handles ).toHaveCount( 30 );
+		await expect( handles.first() ).toBeFocused();
+		await expect( handles.first() ).toHaveAccessibleName( '1 行目を並べ替える' );
+		await expect( handles.first() ).not.toHaveClass( /is-keyboard-reordering/ );
+
+		await handles.first().press( 'Tab' );
+		await expect( handles.nth( 1 ) ).toBeFocused();
+	} );
 }
 
 test( 'keeps Tab focus on the source handle while keyboard reordering', async ( {
