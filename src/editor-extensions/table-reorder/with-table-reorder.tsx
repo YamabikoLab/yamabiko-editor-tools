@@ -39,15 +39,12 @@ function TableCellPaddingClickController( {
 			return;
 		}
 
-		const onPointerDown = ( event: PointerEvent ) => {
-			focusTableCellFromPaddingClick( event, blockElement );
-		};
-		const onFocusIn = ( event: FocusEvent ) => {
-			if ( ! ( event.target instanceof view.Element ) ) {
+		const rememberRowFromTarget = ( target: EventTarget | null ) => {
+			if ( ! ( target instanceof view.Element ) ) {
 				return;
 			}
 
-			const cell = event.target.closest( 'td, th' );
+			const cell = target.closest( 'td, th' );
 			if ( ! cell || ! blockElement.contains( cell ) ) {
 				return;
 			}
@@ -64,9 +61,21 @@ function TableCellPaddingClickController( {
 				onFocusedRowIndexChange( index );
 			}
 		};
+		const onPointerDown = ( event: PointerEvent ) => {
+			focusTableCellFromPaddingClick( event, blockElement );
+		};
+		const onFocusIn = ( event: FocusEvent ) => {
+			rememberRowFromTarget( event.target );
+		};
 
 		document.addEventListener( 'focusin', onFocusIn, true );
 		document.addEventListener( 'pointerdown', onPointerDown, true );
+
+		// On the first selection after a page reload, the cell can receive focus
+		// before this controller mounts and registers its focusin listener.
+		// Seed the remembered row from the focus that already exists.
+		rememberRowFromTarget( document.activeElement );
+
 		return () => {
 			document.removeEventListener( 'focusin', onFocusIn, true );
 			document.removeEventListener( 'pointerdown', onPointerDown, true );
