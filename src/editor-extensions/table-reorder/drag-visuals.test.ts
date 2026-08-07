@@ -119,9 +119,11 @@ describe( 'TableReorderDragVisuals', () => {
 		visuals.showCandidate( rows, 'row-7', 'row-9', 4 );
 
 		expect( source.style.transform ).toBe( 'translateY(108px)' );
-		expect( source ).toHaveClass( 'yamabiko-editor-tools-table-reorder__keyboard-source-row' );
+		expect(
+			source.classList.contains( 'yamabiko-editor-tools-table-reorder__keyboard-source-row' )
+		).toBe( true );
 		expect( handle.style.transform ).toBe( '' );
-		expect( handleContainer ).toHaveClass( 'is-keyboard-reordering-active' );
+		expect( handleContainer.classList.contains( 'is-keyboard-reordering-active' ) ).toBe( true );
 		expect( scrollIntoView ).toHaveBeenCalledWith( {
 			behavior: 'auto',
 			block: 'nearest',
@@ -131,8 +133,10 @@ describe( 'TableReorderDragVisuals', () => {
 		visuals.clear();
 
 		expect( source.style.transform ).toBe( '' );
-		expect( source ).not.toHaveClass( 'yamabiko-editor-tools-table-reorder__keyboard-source-row' );
-		expect( handleContainer ).not.toHaveClass( 'is-keyboard-reordering-active' );
+		expect(
+			source.classList.contains( 'yamabiko-editor-tools-table-reorder__keyboard-source-row' )
+		).toBe( false );
+		expect( handleContainer.classList.contains( 'is-keyboard-reordering-active' ) ).toBe( false );
 	} );
 
 	it( 'notifies once when the insertion candidate is unchanged', () => {
