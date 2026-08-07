@@ -77,6 +77,7 @@ export function SortableRow( {
 				'yamabiko-editor-tools-table-reorder-content__handle',
 				isDragSource ? 'is-dragging' : '',
 				isKeyboardReorderSource ? 'is-keyboard-reordering' : '',
+				isNonMovable ? 'is-non-movable' : '',
 			]
 				.filter( Boolean )
 				.join( ' ' ) }
