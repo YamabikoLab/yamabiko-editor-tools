@@ -130,8 +130,14 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				}
 
 				const rememberedIndex = lastFocusedRowIndex.current;
-				const targetIndex =
-					rememberedIndex !== null && handles[ rememberedIndex ] ? rememberedIndex : 0;
+				const rememberedHandle =
+					rememberedIndex !== null ? handles[ rememberedIndex ] : undefined;
+				const fallbackHandle = handles.find( ( handle ) => ! handle.disabled );
+				const targetHandle = rememberedHandle && ! rememberedHandle.disabled ? rememberedHandle : fallbackHandle;
+				if ( ! targetHandle ) {
+					return false;
+				}
+				const targetIndex = handles.indexOf( targetHandle );
 				view.requestAnimationFrame( () => {
 					view.requestAnimationFrame( () => {
 						if ( disposed ) {
@@ -139,8 +145,10 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 						}
 
 						const currentHandles = getHandles();
-						const handle = currentHandles[ targetIndex ] ?? currentHandles[ 0 ];
-						handle?.focus( { preventScroll: true } );
+						const handle = currentHandles[ targetIndex ];
+						if ( handle && ! handle.disabled ) {
+							handle.focus( { preventScroll: true } );
+						}
 					} );
 				} );
 				return true;
