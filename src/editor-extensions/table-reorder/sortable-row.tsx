@@ -83,7 +83,6 @@ export function SortableRow( {
 				.join( ' ' ) }
 			data-table-reorder-row-id={ id }
 			data-table-reorder-row-index={ index }
-			disabled={ isNonMovable }
 			onKeyDown={ ( event ) => {
 				if ( event.key === 'Tab' ) {
 					if ( isPointerDragDisabled ) {
@@ -103,17 +102,16 @@ export function SortableRow( {
 						return;
 					}
 
-					const focusableHandles = handles.filter( ( handle ) => ! handle.disabled );
-					const currentFocusableIndex = focusableHandles.findIndex(
+					const currentHandleIndex = handles.findIndex(
 						( handle ) => Number( handle.dataset.tableReorderRowIndex ) === index
 					);
-					const destinationFocusableIndex = getKeyboardTabDestinationIndex(
-						currentFocusableIndex,
-						focusableHandles.length,
+					const destinationHandleIndex = getKeyboardTabDestinationIndex(
+						currentHandleIndex,
+						handles.length,
 						event.shiftKey
 					);
-					if ( destinationFocusableIndex !== null ) {
-						const destinationHandle = focusableHandles[ destinationFocusableIndex ];
+					if ( destinationHandleIndex !== null ) {
+						const destinationHandle = handles[ destinationHandleIndex ];
 						const destinationIndex = Number( destinationHandle.dataset.tableReorderRowIndex );
 						if ( Number.isInteger( destinationIndex ) ) {
 							event.preventDefault();
