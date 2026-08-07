@@ -97,15 +97,18 @@ describe( 'TableReorderDragVisuals', () => {
 		expect( setInsertionIndicator ).toHaveBeenLastCalledWith( null );
 	} );
 
-	it( 'moves the keyboard handle with the source row and reveals the following row', () => {
+	it( 'highlights the moved keyboard source row without transforming its handle', () => {
 		const rows = createVisualRows();
 		const setInsertionIndicator = jest.fn< void, [ InsertionIndicator | null ] >();
 		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
 		const source = rows[ 1 ].element;
+		const handleContainer = document.createElement( 'div' );
+		handleContainer.className = 'yamabiko-editor-tools-table-reorder-content';
 		const handle = document.createElement( 'button' );
 		handle.className = 'yamabiko-editor-tools-table-reorder-content__handle is-keyboard-reordering';
 		handle.dataset.tableReorderRowId = 'row-7';
-		document.body.append( handle );
+		handleContainer.append( handle );
+		document.body.append( handleContainer );
 		const followingRow = rows[ 4 ].element;
 		const scrollIntoView = jest.fn();
 		Object.defineProperty( followingRow, 'scrollIntoView', {
@@ -116,7 +119,9 @@ describe( 'TableReorderDragVisuals', () => {
 		visuals.showCandidate( rows, 'row-7', 'row-9', 4 );
 
 		expect( source.style.transform ).toBe( 'translateY(108px)' );
-		expect( handle.style.transform ).toBe( 'translateY(108px)' );
+		expect( source ).toHaveClass( 'yamabiko-editor-tools-table-reorder__keyboard-source-row' );
+		expect( handle.style.transform ).toBe( '' );
+		expect( handleContainer ).toHaveClass( 'is-keyboard-reordering-active' );
 		expect( scrollIntoView ).toHaveBeenCalledWith( {
 			behavior: 'auto',
 			block: 'nearest',
@@ -126,7 +131,8 @@ describe( 'TableReorderDragVisuals', () => {
 		visuals.clear();
 
 		expect( source.style.transform ).toBe( '' );
-		expect( handle.style.transform ).toBe( '' );
+		expect( source ).not.toHaveClass( 'yamabiko-editor-tools-table-reorder__keyboard-source-row' );
+		expect( handleContainer ).not.toHaveClass( 'is-keyboard-reordering-active' );
 	} );
 
 	it( 'notifies once when the insertion candidate is unchanged', () => {
