@@ -43,29 +43,28 @@ for ( const editorMode of [ 'iframe', 'non-iframe' ] as const ) {
 			await expect( handles.nth( index ) ).toBeFocused();
 		}
 
-		await expect(
-			handles.first().evaluate( ( handle ) =>
-				handle.dispatchEvent(
-					new KeyboardEvent( 'keydown', {
-						bubbles: true,
-						cancelable: true,
-						key: 'Tab',
-						shiftKey: true,
-					} )
-				)
+		const firstBoundaryAllowed = await handles.first().evaluate( ( handle ) =>
+			handle.dispatchEvent(
+				new KeyboardEvent( 'keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Tab',
+					shiftKey: true,
+				} )
 			)
-		).resolves.toBe( true );
-		await expect(
-			handles.last().evaluate( ( handle ) =>
-				handle.dispatchEvent(
-					new KeyboardEvent( 'keydown', {
-						bubbles: true,
-						cancelable: true,
-						key: 'Tab',
-					} )
-				)
+		);
+		expect( firstBoundaryAllowed ).toBe( true );
+
+		const lastBoundaryAllowed = await handles.last().evaluate( ( handle ) =>
+			handle.dispatchEvent(
+				new KeyboardEvent( 'keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Tab',
+				} )
 			)
-		).resolves.toBe( true );
+		);
+		expect( lastBoundaryAllowed ).toBe( true );
 	} );
 }
 
