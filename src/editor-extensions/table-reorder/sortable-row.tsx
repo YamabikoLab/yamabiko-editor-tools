@@ -40,7 +40,6 @@ export function SortableRow( {
 }: SortableRowProps ) {
 	const { handleRef, isDragSource } = useSortable( {
 		collisionDetector: directionBiased,
-		disabled: isNonMovable || isPointerDragDisabled ? { draggable: true } : false,
 		element,
 		id,
 		index,
@@ -83,6 +82,12 @@ export function SortableRow( {
 				.join( ' ' ) }
 			data-table-reorder-row-id={ id }
 			data-table-reorder-row-index={ index }
+			onPointerDownCapture={ ( event ) => {
+				if ( isNonMovable || isPointerDragDisabled ) {
+					event.preventDefault();
+					event.stopPropagation();
+				}
+			} }
 			onKeyDown={ ( event ) => {
 				if ( event.key === 'Tab' ) {
 					if ( isPointerDragDisabled ) {
