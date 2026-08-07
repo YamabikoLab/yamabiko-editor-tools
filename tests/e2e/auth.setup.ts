@@ -22,6 +22,7 @@ setup( 'authenticate as the WordPress administrator', async ( { page } ) => {
 	await page.goto( '/wp-login.php' );
 	await page.getByLabel( /username|ユーザー名|メールアドレス/i ).fill( username );
 	await page.getByRole( 'textbox', { name: /password|パスワード/i } ).fill( password );
+	await page.getByRole( 'button', { name: /log in|ログイン/i } ).click();
 
 	await expect( page ).toHaveURL( /\/wp-admin(?:\/|$|\?)/ );
 
