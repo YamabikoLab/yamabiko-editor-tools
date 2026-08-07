@@ -182,6 +182,7 @@ export function TableReorderController( {
 	const keyboardReorderRef = useRef< KeyboardReorderState | null >( null );
 	const lastAnnouncement = useRef< string | null >( null );
 	const hasShownForbiddenNotice = useRef( false );
+	const pendingFocusId = useRef< string | null >( null );
 	const overlayElement = useRef< HTMLDivElement | null >( null );
 	const dragRows = useRef< Map< string, TableRow > >( new Map() );
 	const dragSession = useRef< TableReorderDragSession | null >( null );
@@ -225,9 +226,34 @@ export function TableReorderController( {
 		}
 
 		view.requestAnimationFrame( () => {
-			view.requestAnimationFrame( () => handleElements.current.get( id )?.focus() );
+			view.requestAnimationFrame( () => {
+				handleElements.current.get( id )?.focus( { preventScroll: true } );
+			} );
 		} );
 	}, [] );
+	const scrollRowIntoView = useCallback( ( row: TableRow ) => {
+		const view = row.element.ownerDocument.defaultView;
+		if ( ! view ) {
+			return;
+		}
+
+		view.requestAnimationFrame( () => {
+			row.element.scrollIntoView( {
+				behavior: 'auto',
+				block: 'nearest',
+				inline: 'nearest',
+			} );
+		} );
+	}, [] );
+	useEffect( () => {
+		const id = pendingFocusId.current;
+		if ( ! id || ! rows.some( ( row ) => row.id === id ) ) {
+			return;
+		}
+
+		pendingFocusId.current = null;
+		focusHandle( id );
+	}, [ focusHandle, rows ] );
 
 	useEffect( () => {
 		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
@@ -311,17 +337,16 @@ export function TableReorderController( {
 
 		const getRowId = ( row: unknown, index: number, element: HTMLTableRowElement ) => {
 			const existingElementId = rowElementIds.current.get( element );
-			if ( existingElementId ) {
-				return existingElementId;
-			}
-
 			let id: string;
 			if ( row === null || typeof row !== 'object' ) {
-				id = `row-${ index }`;
+				id = existingElementId ?? `row-${ index }`;
 			} else {
 				const existingId = rowIds.current.get( row );
 				if ( existingId ) {
 					id = existingId;
+				} else if ( existingElementId ) {
+					id = existingElementId;
+					rowIds.current.set( row, id );
 				} else {
 					id = `row-${ nextRowId.current }`;
 					nextRowId.current += 1;
@@ -329,6 +354,8 @@ export function TableReorderController( {
 				}
 			}
 
+			// Gutenberg can reuse a DOM row at a different data index. Prefer the
+			// data object's ID for a committed move, then update the DOM mapping.
 			rowElementIds.current.set( element, id );
 			return id;
 		};
@@ -643,6 +670,7 @@ export function TableReorderController( {
 				keyboardReorderRef.current = null;
 				setKeyboardReorder( null );
 				if ( didCommit ) {
+					pendingFocusId.current = keyboardState.sourceId;
 					announce(
 						sprintf(
 							/* translators: 1: original table body row number, 2: destination table body row number. */
@@ -651,8 +679,9 @@ export function TableReorderController( {
 							keyboardState.destinationIndex + 1
 						)
 					);
+				} else {
+					focusHandle( keyboardState.sourceId );
 				}
-				focusHandle( keyboardState.sourceId );
 				return;
 			}
 
@@ -710,6 +739,7 @@ export function TableReorderController( {
 			} else {
 				clearDragVisuals();
 			}
+			scrollRowIntoView( targetRow );
 			announce(
 				sprintf(
 					/* translators: 1: destination table body row number, 2: total table body rows. */
@@ -719,7 +749,15 @@ export function TableReorderController( {
 				)
 			);
 		},
-		[ announce, body, clearDragVisuals, focusHandle, nonMovableRows, setAttributes ]
+		[
+			announce,
+			body,
+			clearDragVisuals,
+			focusHandle,
+			nonMovableRows,
+			scrollRowIntoView,
+			setAttributes,
+		]
 	);
 
 	const onDragEnd = useCallback(
