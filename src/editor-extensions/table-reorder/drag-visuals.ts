@@ -32,6 +32,13 @@ const getTransform = ( transform: string, translateY: number ): string => {
 	return transform && transform !== 'none' ? `${ transform } ${ translation }` : translation;
 };
 
+const isKeyboardReorderSource = ( row: TableReorderVisualRow ): boolean =>
+	Array.from(
+		row.element.ownerDocument.querySelectorAll< HTMLButtonElement >(
+			'.yamabiko-editor-tools-table-reorder-content__handle.is-keyboard-reordering'
+		)
+	).some( ( handle ) => handle.dataset.tableReorderRowId === row.id );
+
 export const getRowDisplacements = (
 	rows: readonly TableReorderRowPlacement[],
 	sourceId: string,
@@ -122,11 +129,16 @@ export class TableReorderDragVisuals {
 			}
 		}
 
-		this.setAnimatedStyles(
-			source.element,
-			this.getOriginalStyles( source.element ).transform,
-			'0'
-		);
+		const sourceStyles = this.getOriginalStyles( source.element );
+		if ( isKeyboardReorderSource( source ) ) {
+			this.setAnimatedStyles(
+				source.element,
+				getTransform( sourceStyles.transform, getSourceTranslateY( rows, sourceId, insertionIndex ) ),
+				sourceStyles.opacity
+			);
+		} else {
+			this.setAnimatedStyles( source.element, sourceStyles.transform, '0' );
+		}
 		for ( const row of rows ) {
 			const translateY = displacementById.get( row.id );
 			if ( translateY !== undefined ) {
