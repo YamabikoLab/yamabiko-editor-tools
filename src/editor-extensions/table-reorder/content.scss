@@ -53,6 +53,11 @@
 		}
 	}
 
+	&.is-keyboard-reordering-active &__handle.is-keyboard-reordering {
+		box-shadow: none;
+		outline: 0;
+	}
+
 	&__insertion-indicator {
 		background: var(--wp-components-color-accent, #3858e9);
 		height: 3px;
@@ -66,6 +71,11 @@
 		opacity: 0.9;
 		pointer-events: none;
 	}
+}
+
+.yamabiko-editor-tools-table-reorder__keyboard-source-row {
+	outline: 3px solid var(--wp-components-color-accent, #3858e9);
+	outline-offset: -3px;
 }
 
 .yamabiko-editor-tools-table-reorder--full-width table {
