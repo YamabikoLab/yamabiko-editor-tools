@@ -88,6 +88,7 @@ function TableCellPaddingClickController( {
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithTableReorder( props: TableBlockEditProps ) {
 		const [ isReorderMode, setIsReorderMode ] = useState( false );
+		const [ isInstructionsVisible, setIsInstructionsVisible ] = useState( false );
 		const instructionsRef = useRef< HTMLDivElement >( null );
 		const lastFocusedRowIndex = useRef< number | null >( null );
 		const modeActivationKeyRef = useRef< string | null >( null );
@@ -112,6 +113,25 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				exitReorderMode();
 			}
 		}, [ exitReorderMode, props.isSelected ] );
+
+		useEffect( () => {
+			if ( ! isReorderMode || ! props.isSelected ) {
+				setIsInstructionsVisible( false );
+				return;
+			}
+
+			setIsInstructionsVisible( true );
+			const view = instructionsRef.current?.ownerDocument.defaultView;
+			if ( ! view ) {
+				return;
+			}
+
+			const timeoutId = view.setTimeout( () => {
+				setIsInstructionsVisible( false );
+			}, 6000 );
+
+			return () => view.clearTimeout( timeoutId );
+		}, [ isReorderMode, props.isSelected ] );
 
 		useEffect( () => {
 			if ( ! isReorderMode || ! props.isSelected ) {
@@ -215,16 +235,47 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 		return (
 			<>
 				{ isReorderMode && props.isSelected && (
-					<div
-						className="yamabiko-editor-tools-table-reorder__instructions"
-						id={ instructionsId }
-						ref={ instructionsRef }
-					>
-						{ __(
-							'行の並べ替え：ドラッグで移動　Enter / Space: 開始・確定　↑↓: 移動　Esc: キャンセル',
-							'yamabiko-editor-tools'
+					<>
+						<div
+							className="yamabiko-editor-tools-table-reorder__instructions-description"
+							id={ instructionsId }
+							ref={ instructionsRef }
+						>
+							{ __(
+								'行はドラッグまたはキーボードで並べ替えできます。キーボード操作では Tab または Shift+Tab で行を選択し、Enter または Space で並べ替えを開始し、上下矢印キーで移動し、Enter または Space で確定します。Esc でキャンセルできます。',
+								'yamabiko-editor-tools'
+							) }
+						</div>
+						{ isInstructionsVisible && (
+							<div className="yamabiko-editor-tools-table-reorder__instructions">
+								<button
+									aria-label={ __( '操作ガイドを閉じる', 'yamabiko-editor-tools' ) }
+									className="yamabiko-editor-tools-table-reorder__instructions-close"
+									onClick={ () => setIsInstructionsVisible( false ) }
+									type="button"
+								>
+									×
+								</button>
+								<div className="yamabiko-editor-tools-table-reorder__instructions-title">
+									{ __(
+										'行はドラッグまたはキーボードで並べ替えできます',
+										'yamabiko-editor-tools'
+									) }
+								</div>
+								<div className="yamabiko-editor-tools-table-reorder__instructions-method">
+									<strong>{ __( 'ドラッグ操作：', 'yamabiko-editor-tools' ) }</strong>
+									{ __( '左のハンドルをドラッグして移動', 'yamabiko-editor-tools' ) }
+								</div>
+								<div className="yamabiko-editor-tools-table-reorder__instructions-method">
+									<strong>{ __( 'キーボード操作：', 'yamabiko-editor-tools' ) }</strong>
+									{ __(
+										'Tab / Shift+Tabで行を選択 → Enter / Spaceで開始 → ↑↓で移動 → Enter / Spaceで確定（Escでキャンセル）',
+										'yamabiko-editor-tools'
+									) }
+								</div>
+							</div>
 						) }
-					</div>
+					</>
 				) }
 				<BlockEdit { ...props } />
 				{ props.isSelected && ! isReorderMode && (
