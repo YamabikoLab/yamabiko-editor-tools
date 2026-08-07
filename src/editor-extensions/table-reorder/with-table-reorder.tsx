@@ -128,7 +128,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 
 			const timeoutId = view.setTimeout( () => {
 				setIsInstructionsVisible( false );
-			}, 6000 );
+			}, 10000 );
 
 			return () => view.clearTimeout( timeoutId );
 		}, [ isReorderMode, props.isSelected ] );
