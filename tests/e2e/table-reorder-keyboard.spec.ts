@@ -36,6 +36,14 @@ for ( const editorMode of [ 'iframe', 'non-iframe' ] as const ) {
 		);
 		await expect( handles ).toHaveCount( 30 );
 
+		const initialHandle = handles.first();
+		await expect( initialHandle ).toBeFocused();
+		await initialHandle.press( 'Enter' );
+		await expect( initialHandle ).toHaveAccessibleName( '1 行目を並べ替え中' );
+		await expect( page.getByRole( 'button', { name: '並べ替えを終了' } ) ).toBeVisible();
+		await initialHandle.press( 'Escape' );
+		await expect( initialHandle ).toBeFocused();
+
 		const source = handles.nth( 2 );
 		const sourceId = await source.getAttribute( 'data-table-reorder-row-id' );
 		if ( ! sourceId ) {
