@@ -113,6 +113,50 @@ for ( const editorMode of [ 'iframe', 'non-iframe' ] as const ) {
 	} );
 }
 
+test( 'shows a visible notice when keyboard reordering crosses a rowspan range', async ( {
+	admin,
+	editor,
+	page,
+} ) => {
+	await admin.createNewPost();
+	await editor.setContent( `
+		<!-- wp:table {"body":[{"cells":[{"content":"outside","tag":"td"}]},{"cells":[{"content":"merged","rowspan":2,"tag":"td"}]},{"cells":[{"content":"continuation","tag":"td"}]},{"cells":[{"content":"last","tag":"td"}]}]} -->
+		<figure class="wp-block-table"><table><tbody>
+			<tr><td>outside</td></tr>
+			<tr><td rowspan="2">merged</td></tr>
+			<tr><td>continuation</td></tr>
+			<tr><td>last</td></tr>
+		</tbody></table></figure>
+		<!-- /wp:table -->
+	` );
+
+	const tableBlock = editor.canvas.locator( '[data-type="core/table"]' );
+	await editor.selectBlocks( tableBlock );
+	await editor.showBlockToolbar();
+	await page.getByRole( 'button', { name: '行を並べ替え' } ).click();
+
+	const handles = editor.canvas.locator( '.yamabiko-editor-tools-table-reorder-content__handle' );
+	const source = handles.nth( 3 );
+	const liveRegion = editor.canvas.locator(
+		'.yamabiko-editor-tools-table-reorder-content__live-region'
+	);
+	await expect( handles.nth( 1 ) ).toBeDisabled();
+	await expect( handles.nth( 2 ) ).toBeDisabled();
+
+	await source.focus();
+	await source.press( 'Enter' );
+	await source.press( 'ArrowUp' );
+
+	await expect( liveRegion ).toContainText( '結合セルを分断する位置には行を移動できません' );
+	const notice = page
+		.locator( '.components-snackbar' )
+		.filter( { hasText: '結合セルを分断する位置には行を移動できません' } );
+	await expect( notice ).toHaveCount( 1 );
+
+	await source.press( 'ArrowUp' );
+	await expect( notice ).toHaveCount( 1 );
+} );
+
 test( 'keeps pointer drag-and-drop row reordering working', async ( { admin, editor, page } ) => {
 	await admin.createNewPost();
 	await editor.setContent( `
