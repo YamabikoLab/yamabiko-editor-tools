@@ -21,8 +21,10 @@
 		"test:unit": "wp-scripts test-unit-js"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.62.1",
 		"@types/jest": "^30.0.0",
 		"@types/wordpress__block-editor": "^15.0.6",
+		"@wordpress/e2e-test-utils-playwright": "^1.52.0",
 		"@wordpress/eslint-plugin": "^25.8.0",
 		"@wordpress/prettier-config": "^4.52.0",
 		"@wordpress/scripts": "^34.0.0",
