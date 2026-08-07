@@ -25,6 +25,9 @@ type InlineStyles = {
 };
 
 const rowTransition = 'transform 150ms ease, opacity 150ms ease';
+const HANDLE_CONTAINER_SELECTOR = '.yamabiko-editor-tools-table-reorder-content';
+const KEYBOARD_SOURCE_ROW_CLASS = 'yamabiko-editor-tools-table-reorder__keyboard-source-row';
+const KEYBOARD_MOVE_CLASS = 'is-keyboard-reordering-active';
 
 const getTransform = ( transform: string, translateY: number ): string => {
 	const translation = `translateY(${ translateY }px)`;
@@ -32,14 +35,19 @@ const getTransform = ( transform: string, translateY: number ): string => {
 	return transform && transform !== 'none' ? `${ transform } ${ translation }` : translation;
 };
 
-const getKeyboardReorderHandle = (
-	row: TableReorderVisualRow
-): HTMLButtonElement | null =>
+const isKeyboardReorderSource = ( row: TableReorderVisualRow ): boolean =>
 	Array.from(
 		row.element.ownerDocument.querySelectorAll< HTMLButtonElement >(
 			'.yamabiko-editor-tools-table-reorder-content__handle.is-keyboard-reordering'
 		)
-	).find( ( handle ) => handle.dataset.tableReorderRowId === row.id ) ?? null;
+	).some( ( handle ) => handle.dataset.tableReorderRowId === row.id );
+
+const setKeyboardMoveActive = ( row: TableReorderVisualRow, active: boolean ): void => {
+	row.element.classList.toggle( KEYBOARD_SOURCE_ROW_CLASS, active );
+	row.element.ownerDocument
+		.querySelector< HTMLElement >( HANDLE_CONTAINER_SELECTOR )
+		?.classList.toggle( KEYBOARD_MOVE_CLASS, active );
+};
 
 export const getRowDisplacements = (
 	rows: readonly TableReorderRowPlacement[],
@@ -96,8 +104,9 @@ export const getSourceTranslateY = (
 };
 
 export class TableReorderDragVisuals {
-	private readonly originalStyles = new Map< HTMLElement, InlineStyles >();
+	private readonly originalStyles = new Map< HTMLTableRowElement, InlineStyles >();
 	private insertionIndicator: InsertionIndicator | null = null;
+	private keyboardSourceRow: TableReorderVisualRow | null = null;
 
 	constructor(
 		private readonly onInsertionIndicatorChange: ( indicator: InsertionIndicator | null ) => void
@@ -117,37 +126,34 @@ export class TableReorderDragVisuals {
 			return;
 		}
 
-		const sourceHandle = getKeyboardReorderHandle( source );
 		const displacementById = new Map(
 			displacements.map( ( displacement ) => [ displacement.id, displacement.translateY ] )
 		);
-		const activeElements = new Set< HTMLElement >( [
+		const activeRows = new Set< HTMLTableRowElement >( [
 			source.element,
 			...rows.filter( ( row ) => displacementById.has( row.id ) ).map( ( row ) => row.element ),
 		] );
-		if ( sourceHandle ) {
-			activeElements.add( sourceHandle );
-		}
 
 		for ( const [ element, styles ] of this.originalStyles ) {
-			if ( ! activeElements.has( element ) ) {
+			if ( ! activeRows.has( element ) ) {
 				this.setAnimatedStyles( element, styles.transform, styles.opacity );
 			}
 		}
 
 		const sourceStyles = this.getOriginalStyles( source.element );
-		if ( sourceHandle ) {
-			const sourceTranslateY = getSourceTranslateY( rows, sourceId, insertionIndex );
+		if ( isKeyboardReorderSource( source ) ) {
+			if ( this.keyboardSourceRow && this.keyboardSourceRow.id !== source.id ) {
+				setKeyboardMoveActive( this.keyboardSourceRow, false );
+			}
+			this.keyboardSourceRow = source;
+			setKeyboardMoveActive( source, true );
 			this.setAnimatedStyles(
 				source.element,
-				getTransform( sourceStyles.transform, sourceTranslateY ),
+				getTransform(
+					sourceStyles.transform,
+					getSourceTranslateY( rows, sourceId, insertionIndex )
+				),
 				sourceStyles.opacity
-			);
-			const handleStyles = this.getOriginalStyles( sourceHandle );
-			this.setAnimatedStyles(
-				sourceHandle,
-				getTransform( handleStyles.transform, sourceTranslateY ),
-				handleStyles.opacity
 			);
 
 			if ( insertionIndex > source.index + 1 ) {
@@ -188,6 +194,10 @@ export class TableReorderDragVisuals {
 		}
 
 		this.originalStyles.clear();
+		if ( this.keyboardSourceRow ) {
+			setKeyboardMoveActive( this.keyboardSourceRow, false );
+			this.keyboardSourceRow = null;
+		}
 		this.updateInsertionIndicator( null );
 	}
 
@@ -203,7 +213,7 @@ export class TableReorderDragVisuals {
 		this.onInsertionIndicatorChange( indicator );
 	}
 
-	private getOriginalStyles( element: HTMLElement ): InlineStyles {
+	private getOriginalStyles( element: HTMLTableRowElement ): InlineStyles {
 		const existing = this.originalStyles.get( element );
 		if ( existing ) {
 			return existing;
@@ -218,7 +228,11 @@ export class TableReorderDragVisuals {
 		return styles;
 	}
 
-	private setAnimatedStyles( element: HTMLElement, transform: string, opacity: string ): void {
+	private setAnimatedStyles(
+		element: HTMLTableRowElement,
+		transform: string,
+		opacity: string
+	): void {
 		this.getOriginalStyles( element );
 		element.style.opacity = opacity;
 		element.style.transform = transform;
