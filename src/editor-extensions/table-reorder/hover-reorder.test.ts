@@ -106,6 +106,31 @@ describe( 'enableTableHoverReorder', () => {
 		disable();
 	} );
 
+	it( 'deactivates after the fade interval when the pointer leaves the table', () => {
+		const { disable, onActiveChange, table } = setup();
+		dispatchPointerEvent( table, 'pointerenter' );
+
+		dispatchPointerEvent( table, 'pointerleave' );
+		jest.advanceTimersByTime( 299 );
+		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
+		jest.advanceTimersByTime( 1 );
+
+		expect( onActiveChange ).toHaveBeenLastCalledWith( false );
+		disable();
+	} );
+
+	it( 'keeps hover reorder active when leaving the table during a drag', () => {
+		const { disable, onActiveChange, table } = setup();
+		dispatchPointerEvent( table, 'pointerenter' );
+
+		dispatchPointerEvent( table, 'pointerleave', { buttons: 1 } );
+		jest.advanceTimersByTime( 300 );
+
+		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
+		expect( onActiveChange ).toHaveBeenLastCalledWith( true );
+		disable();
+	} );
+
 	it( 'hides handles when a table cell is clicked for editing', () => {
 		const { cell, disable, handle, onActiveChange, table } = setup();
 		dispatchPointerEvent( table, 'pointerenter' );
@@ -132,13 +157,13 @@ describe( 'enableTableHoverReorder', () => {
 		disable();
 	} );
 
-	it( 'reactivates only after leaving the table and hovering it again', () => {
-		const { cell, disable, onActiveChange, outside, table } = setup();
+	it( 'reactivates after editing when the table is left and entered again', () => {
+		const { cell, disable, onActiveChange, table } = setup();
 		dispatchPointerEvent( table, 'pointerenter' );
 		dispatchPointerEvent( cell, 'pointerdown' );
 		jest.advanceTimersByTime( 300 );
 
-		dispatchPointerEvent( outside, 'pointermove' );
+		dispatchPointerEvent( table, 'pointerleave' );
 		dispatchPointerEvent( table, 'pointerenter' );
 
 		expect( onActiveChange ).toHaveBeenLastCalledWith( true );
