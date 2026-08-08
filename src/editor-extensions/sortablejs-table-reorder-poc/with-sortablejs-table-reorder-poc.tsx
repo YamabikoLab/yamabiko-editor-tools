@@ -124,23 +124,18 @@ const stopHandleInteractionPropagation = ( event: Event ) => {
 	}
 };
 
-const findBlockElement = (
-	rootDocument: Document,
-	clientId: string
-): { block: HTMLElement; document: Document } | null => {
+const findBlockElement = ( rootDocument: Document, clientId: string ): HTMLElement | null => {
 	const selector = `[data-block="${ clientId }"]`;
 	const directBlock = rootDocument.querySelector< HTMLElement >( selector );
 	if ( directBlock ) {
-		return { block: directBlock, document: rootDocument };
+		return directBlock;
 	}
 
 	const iframe = rootDocument.querySelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
-	const iframeDocument = iframe?.contentDocument ?? null;
-	const iframeBlock = iframeDocument?.querySelector< HTMLElement >( selector ) ?? null;
-	return iframeBlock && iframeDocument ? { block: iframeBlock, document: iframeDocument } : null;
+	return iframe?.contentDocument?.querySelector< HTMLElement >( selector ) ?? null;
 };
 
-const ensureIframeSortable = (
+const ensureSortableRuntime = (
 	document: Document,
 	view: SortableWindow,
 	runtimeUrl: string
@@ -208,14 +203,14 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const runtimeUrl = ( window as PocConfigWindow ).yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
+			const configWindow = anchor.ownerDocument.defaultView as PocConfigWindow | null;
+			const runtimeUrl = configWindow?.yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
 			if ( ! runtimeUrl ) {
 				return;
 			}
 
-			const target = findBlockElement( anchor.ownerDocument, clientId );
-			const blockElement = target?.block ?? null;
-			const document = target?.document ?? null;
+			const blockElement = findBlockElement( anchor.ownerDocument, clientId );
+			const document = blockElement?.ownerDocument ?? null;
 			const view = document?.defaultView as SortableWindow | null;
 			const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
 			const tbody = table?.tBodies.item( 0 ) ?? null;
@@ -235,7 +230,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			let dragRows: HTMLTableRowElement[] | null = null;
 			let lastMoveRelatedIndex: number | null = null;
 
-			void ensureIframeSortable( document, view, runtimeUrl ).then( ( Sortable ) => {
+			void ensureSortableRuntime( document, view, runtimeUrl ).then( ( Sortable ) => {
 				if ( cancelled || ! Sortable ) {
 					return;
 				}
