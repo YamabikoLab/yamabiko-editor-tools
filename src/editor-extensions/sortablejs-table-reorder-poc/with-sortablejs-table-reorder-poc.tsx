@@ -34,6 +34,7 @@ type SortableRuntime = {
 		options: {
 			animation: number;
 			draggable: string;
+			forceFallback: boolean;
 			handle: string;
 			onChoose: () => void;
 			onEnd: ( event: SortableEventLike ) => void;
@@ -222,6 +223,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				sortable = Sortable.create( tbody, {
 					animation: 150,
 					draggable: 'tr',
+					forceFallback: true,
 					handle: `.${ HANDLE_CLASS }`,
 					onChoose: () => {
 						console.info( LOG_PREFIX, 'onChoose' );
