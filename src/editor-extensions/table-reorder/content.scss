@@ -110,7 +110,7 @@
 		}
 
 		&.is-dragging {
-			opacity: 0.5;
+			opacity: 0;
 		}
 
 		&:focus {
@@ -147,6 +147,21 @@
 		box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
 		opacity: 0.9;
 		pointer-events: none;
+		position: relative;
+	}
+
+	&__overlay-handle {
+		align-items: center;
+		background: var(--wp-components-color-accent, #3858e9);
+		border-radius: 2px;
+		color: #fff;
+		display: flex;
+		height: 100%;
+		justify-content: center;
+		left: -28px;
+		position: absolute;
+		top: 0;
+		width: 24px;
 	}
 }
 
