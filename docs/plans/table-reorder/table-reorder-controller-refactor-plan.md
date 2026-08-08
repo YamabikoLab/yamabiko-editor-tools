@@ -340,7 +340,7 @@ Gutenberg固有タイミング依存を最初に controller の外へ出す。
 - full-width cleanup。
 - ドラッグ中再同期抑止と終了後再同期。
 
-この段階ではDnD制御を変更しない。
+この段階では Pointer DnD handler 自体は controller に残し、DnD制御は変更しない。ただし再同期の suspend / resume / request 呼び出しだけは `useTableReorderDom` が返す公開callbackへ接続し、raw `isDragging` ref は DOM hook へ渡さない。Step 4 で、このcallback呼び出し責務を既存の挙動のまま `usePointerReorder` へ移す。
 
 抽出後に `npm run test` と関連E2Eを実行する。
 
