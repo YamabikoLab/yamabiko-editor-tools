@@ -9,9 +9,6 @@ import {
 	getRowspanRanges,
 } from '../table-reorder/rowspan';
 
-const ENABLE_ATTRIBUTE = 'data-yamabiko-sortablejs-poc';
-const REORDER_EVENT = 'yamabiko-sortablejs-poc-reorder';
-
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
 };
@@ -20,10 +17,17 @@ type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
 
-type ReorderEventDetail = {
-	clientId?: string;
-	sourceIndex?: number;
-	targetIndex?: number;
+type SortableJsPocApi = {
+	bind: (
+		block: HTMLElement,
+		options: {
+			onReorder: ( sourceIndex: number, targetIndex: number ) => void;
+		}
+	) => () => void;
+};
+
+type PocWindow = Window & {
+	YamabikoSortableJsPoc?: SortableJsPocApi;
 };
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
@@ -50,7 +54,8 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			const blockElement = document.querySelector< HTMLElement >(
 				`[data-block="${ props.clientId }"]`
 			);
-			if ( ! blockElement ) {
+			const view = blockElement?.ownerDocument.defaultView as PocWindow | null;
+			if ( ! blockElement || ! view ) {
 				return;
 			}
 
@@ -59,20 +64,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			const forbiddenInsertionIndices = new Set( getForbiddenInsertionIndices( ranges ) );
 			const nonMovableRowIndices = new Set( getNonMovableRowIndices( ranges ) );
 
-			const onReorder = ( event: Event ) => {
-				const detail = ( event as CustomEvent< ReorderEventDetail > ).detail;
-				const sourceIndex = detail?.sourceIndex;
-				const targetIndex = detail?.targetIndex;
-				if (
-					detail?.clientId !== props.clientId ||
-					! Number.isInteger( sourceIndex ) ||
-					! Number.isInteger( targetIndex )
-				) {
-					return;
-				}
-
-				const source = sourceIndex as number;
-				const target = targetIndex as number;
+			const onReorder = ( source: number, target: number ) => {
 				if (
 					source < 0 ||
 					target < 0 ||
@@ -96,12 +88,26 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				} );
 			};
 
-			blockElement.setAttribute( ENABLE_ATTRIBUTE, 'true' );
-			blockElement.addEventListener( REORDER_EVENT, onReorder );
+			let unbind: ( () => void ) | null = null;
+			let cancelled = false;
+			const bindWhenReady = () => {
+				if ( cancelled || unbind ) {
+					return;
+				}
+
+				const api = view.YamabikoSortableJsPoc;
+				if ( api ) {
+					unbind = api.bind( blockElement, { onReorder } );
+					return;
+				}
+
+				view.requestAnimationFrame( bindWhenReady );
+			};
+			bindWhenReady();
 
 			return () => {
-				blockElement.removeEventListener( REORDER_EVENT, onReorder );
-				blockElement.removeAttribute( ENABLE_ATTRIBUTE );
+				cancelled = true;
+				unbind?.();
 			};
 		}, [
 			isTableBlock,
