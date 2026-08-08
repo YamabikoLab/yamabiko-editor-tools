@@ -18,10 +18,15 @@ type DragSnapshot = {
 	sourceIndex: number;
 };
 
+type SelectionStart = {
+	clientId?: string;
+};
+
 type BlockEditorSelectors = {
 	getBlockAttributes: ( clientId: string ) => TableAttributes | null;
 	getBlockName: ( clientId: string ) => string | null;
 	getSelectedBlockClientId: () => string | null;
+	getSelectionStart: () => SelectionStart | null;
 };
 
 type BlockEditorActions = {
@@ -232,7 +237,8 @@ const syncBindings = () => {
 		return;
 	}
 
-	const selectedClientId = selectors.getSelectedBlockClientId();
+	const selectedClientId =
+		selectors.getSelectedBlockClientId() ?? selectors.getSelectionStart()?.clientId ?? null;
 	const activeTbodies = new Set< HTMLTableSectionElement >();
 
 	if ( selectedClientId && selectors.getBlockName( selectedClientId ) === 'core/table' ) {
