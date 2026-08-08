@@ -79,7 +79,7 @@
 
 ### 1. Gutenberg DOM同期と行レイアウト
 
-候補: `use-table-rows.ts`
+候補: `use-table-reorder-dom.ts`
 
 担当する。
 
@@ -102,7 +102,7 @@
 - body の並べ替え確定。
 - live region のメッセージ文言。
 
-このhookを Gutenberg DOMタイミング依存の主な境界とし、controller やDnD hooksが `MutationObserver` や `ResizeObserver` を直接扱わない構造を目指す。
+このhookを Gutenberg DOMライフサイクル依存の主な境界とし、controller やDnD hooksが `MutationObserver` や `ResizeObserver` を直接扱わない構造を目指す。
 
 ### 2. キーボード並べ替え
 
@@ -192,7 +192,7 @@ controller は各担当の実装詳細を持たず、必要な値とcallbackを�
 ```text
 src/editor-extensions/table-reorder/
 ├─ table-reorder-controller.tsx
-├─ use-table-rows.ts
+├─ use-table-reorder-dom.ts
 ├─ use-keyboard-reorder.ts
 ├─ use-pointer-reorder.ts
 ├─ drag-row-overlay.tsx
@@ -252,6 +252,49 @@ React描画へ直接反映される値はstateを基本とする。
 
 逆に、同じ責務内でstateだけで安全に表現できることが明確になった場合は重複refを削除する。
 
+## Cross-hook contracts
+
+### 原則
+
+責務分割後も mutable ref を複数hookへそのまま渡す構造にはしない。
+
+- mutable ref は原則として単一の責務が所有する。
+- 他責務が必要とする場合は、生のrefではなく用途を限定した callback または読み取り値を渡す。
+- keyboard と pointer は、それぞれ独立した drag session と行スナップショットを所有する。現在の `dragSession` / `dragRows` を両者で共有し続けない。
+- DOM再同期は `useTableReorderDom` が所有し、他責務は `requestRowsReconciliation()` のような明示的な入口から依頼する。
+- hook同士を直接呼び合わず、`TableReorderController` が narrow な値とcallbackを接続する。
+
+### 現在の共有refの移動先
+
+| 現在の値 | 分割後の主な所有者 | hook間の契約 |
+|---|---|---|
+| `handleElements` | `TableReorderController` | Reactで描画するハンドル登録をcontrollerが所有し、keyboardには `focusHandle(id)`、PointerSensorには activator取得callbackだけを渡す。生のMapは渡さない。 |
+| `isDragging` | `usePointerReorder` | Pointer DnD固有状態として閉じ込める。`useTableReorderDom` はこのrefを読まない。 |
+| `dragSession` | keyboard / pointer 各hook | `useKeyboardReorder` と `usePointerReorder` がそれぞれ独立したsessionを所有する。 |
+| `dragRows` | keyboard / pointer 各hook | 操作開始時の行スナップショットは各hookが独立して所有する。 |
+| `dragVisuals` | `usePointerReorder` | ポインター候補表示のライフサイクルとcleanupをPointer DnD側へ閉じ込める。 |
+| `hasShownForbiddenNotice` | 各操作hook | 通知の重複抑止が必要な責務ごとに所有し、keyboardとpointerで共有refにしない。 |
+| `pendingFocusId` | `useKeyboardReorder` | DOM同期後のフォーカス復元もkeyboard orchestrationの一部として所有する。必要なハンドル操作は `focusHandle(id)` callbackを使う。 |
+| `overlayElement` | `usePointerReorder` | `DragRowOverlay` へ `onElementChange` callbackを渡し、cleanup待ちに必要な要素参照はPointer DnD側で所有する。 |
+| `scheduleRowsUpdate` | `useTableReorderDom` | 共有refは廃止し、`requestRowsReconciliation()` のような明示的callbackを返す。 |
+| `stopWaitingForDragCleanup` | `usePointerReorder` | dnd-kit cleanup待ちの開始・停止をPointer DnD内に閉じ込める。 |
+
+`rowsRef`、行ID用WeakMap、observer、portal containerなどGutenberg DOM同期に必要なmutable値は `useTableReorderDom` 内部へ移す。`keyboardReorderRef`、announcement重複抑止などキーボード操作に閉じる値は `useKeyboardReorder` が所有する。
+
+### DOM再同期とPointer DnDの契約
+
+現在最も絡まりやすい「ドラッグ中は再同期を抑止し、cleanup後に再同期する」処理は次の契約で接続する。
+
+1. `useTableReorderDom` が再同期スケジューラと「再同期を一時保留する状態」を内部で所有する。
+2. `useTableReorderDom` は用途を限定した `suspendRowsReconciliation()`、`resumeRowsReconciliation()`、`requestRowsReconciliation()` 相当のcallbackを返す。実際の命名は実装時に多少調整してよいが、生のrefは公開しない。
+3. `usePointerReorder` は有効なdrag開始時に再同期をsuspendする。
+4. commit / cancel後はdnd-kit overlay cleanup完了までsuspendを維持する。
+5. cleanup完了後にresumeし、必要な行再同期をrequestする。
+6. unmountや途中終了でもsuspend状態が残らないcleanupを必ず持つ。
+7. `usePointerReorder` の `isDragging` はPointer DnD内部だけで使い、DOM hookの抑止判定にrefそのものを渡さない。
+
+Keyboard reorderはPointer DnDのcleanup待ちを共有せず、commit後に必要な場合だけ `requestRowsReconciliation()` を呼ぶ。
+
 ## Implementation order
 
 ### Step 0: Baseline
@@ -272,7 +315,7 @@ React描画へ直接反映される値はstateを基本とする。
 - class名変更なし。
 - 抽出後にテスト実行。
 
-### Step 2: DOM同期を `useTableRows` へ抽出する
+### Step 2: DOM同期を `useTableReorderDom` へ抽出する
 
 Gutenberg固有タイミング依存を最初に controller の外へ出す。
 
@@ -397,7 +440,7 @@ Codexへ実装を依頼する際は次を明示する。
 
 | 領域 | 主な所有者 |
 |---|---|
-| Gutenberg DOM同期・位置計測 | `use-table-rows.ts` |
+| Gutenberg DOM同期・位置計測 | `use-table-reorder-dom.ts` |
 | キーボード並べ替え orchestration | `use-keyboard-reorder.ts` |
 | ポインターDnD orchestration | `use-pointer-reorder.ts` |
 | DragOverlay表示 | `drag-row-overlay.tsx` |
@@ -416,6 +459,8 @@ Codexへ実装を依頼する際は次を明示する。
 - [ ] controller が統合と描画を中心とする構造になっている。
 - [ ] 既存の純粋ロジックが不要に再実装されていない。
 - [ ] state / ref の所有者が整理されている。
+- [ ] hook間でmutable refを直接共有せず、narrowなcallback / valueで接続されている。
+- [ ] DOM再同期とPointer DnD cleanupの契約が実装されている。
 - [ ] 新しい過剰な抽象化やライブラリを導入していない。
 - [ ] `npm run test` が成功する。
 - [ ] `npm run test:e2e` が成功する。
