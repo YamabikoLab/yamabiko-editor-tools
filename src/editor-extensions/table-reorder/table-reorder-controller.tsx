@@ -1,36 +1,14 @@
-import {
-	PointerSensor,
-	type DragEndEvent,
-	type DragMoveEvent,
-	type DragOverEvent,
-	type DragStartEvent,
-} from '@dnd-kit/dom';
+import { PointerSensor } from '@dnd-kit/dom';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
-import { isSortable } from '@dnd-kit/react/sortable';
-import { useDispatch } from '@wordpress/data';
-import {
-	createPortal,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from '@wordpress/element';
-import { store as noticesStore } from '@wordpress/notices';
+import { createPortal, useCallback, useEffect, useMemo, useRef, useState } from '@wordpress/element';
 
-import {
-	beginTableReorderDrag,
-	clearTableReorderDragTarget,
-	commitTableReorderDrag,
-	type TableReorderDragSession,
-	updateTableReorderDragTarget,
-} from './drag-session';
 import { TableReorderDragVisuals, type InsertionIndicator } from './drag-visuals';
 import { DragRowOverlay } from './drag-row-overlay';
 import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
-import { ROWSPAN_REORDER_ERROR_MESSAGE, useKeyboardReorder } from './use-keyboard-reorder';
-import { type TableRow, useTableReorderDom } from './use-table-reorder-dom';
+import { useKeyboardReorder } from './use-keyboard-reorder';
+import { usePointerReorder } from './use-pointer-reorder';
+import { useTableReorderDom } from './use-table-reorder-dom';
 
 type TableReorderControllerProps = {
 	align: string | undefined;
@@ -59,18 +37,11 @@ export function TableReorderController( {
 		rows,
 		suspendRowsReconciliation,
 	} = useTableReorderDom( { align, body, clientId, onExit } );
-	const [ activeRow, setActiveRow ] = useState< TableRow | null >( null );
 	const [ insertionIndicator, setInsertionIndicator ] = useState< InsertionIndicator | null >(
 		null
 	);
 	const handleElements = useRef< Map< string, HTMLButtonElement > >( new Map() );
-	const hasShownForbiddenNotice = useRef( false );
-	const overlayElement = useRef< HTMLDivElement | null >( null );
-	const dragRows = useRef< Map< string, TableRow > >( new Map() );
-	const dragSession = useRef< TableReorderDragSession | null >( null );
-	const stopWaitingForDragCleanup = useRef( () => {} );
 	const dragVisuals = useRef< TableReorderDragVisuals | null >( null );
-	const { createErrorNotice } = useDispatch( noticesStore );
 	const rowspanRanges = useMemo( () => getRowspanRanges( body ), [ body ] );
 	const nonMovableRows = useMemo(
 		() => new Set( getNonMovableRowIndices( rowspanRanges ) ),
@@ -121,14 +92,6 @@ export function TableReorderController( {
 			}
 		};
 	}, [] );
-	const showForbiddenNotice = useCallback( () => {
-		if ( hasShownForbiddenNotice.current ) {
-			return;
-		}
-
-		hasShownForbiddenNotice.current = true;
-		createErrorNotice( ROWSPAN_REORDER_ERROR_MESSAGE, { type: 'snackbar' } );
-	}, [ createErrorNotice ] );
 
 	const { keyboardReorder, liveMessage, onHandleKeyDown } = useKeyboardReorder( {
 		body,
@@ -140,6 +103,18 @@ export function TableReorderController( {
 		setAttributes,
 		showCandidate,
 	} );
+	const { activeRow, onDragEnd, onDragStart, onOverlayElementChange, updateDragTarget } =
+		usePointerReorder( {
+			body,
+			clearCandidate,
+			isKeyboardReordering: Boolean( keyboardReorder ),
+			requestRowsReconciliation,
+			resumeRowsReconciliation,
+			rows,
+			setAttributes,
+			showCandidate,
+			suspendRowsReconciliation,
+		} );
 
 	const onHandleChange = useCallback( ( id: string, element: HTMLButtonElement | null ) => {
 		if ( element ) {
@@ -149,190 +124,6 @@ export function TableReorderController( {
 
 		handleElements.current.delete( id );
 	}, [] );
-	const onOverlayElementChange = useCallback( ( element: HTMLDivElement | null ) => {
-		overlayElement.current = element;
-	}, [] );
-
-	useEffect(
-		() => () => {
-			clearCandidate();
-			dragSession.current = null;
-			dragRows.current = new Map();
-			stopWaitingForDragCleanup.current();
-			resumeRowsReconciliation();
-		},
-		[ clearCandidate, resumeRowsReconciliation ]
-	);
-
-	const onDragStart = useCallback(
-		( { operation: { source } }: DragStartEvent ) => {
-			if ( keyboardReorder ) {
-				return;
-			}
-
-			if ( ! isSortable( source ) ) {
-				return;
-			}
-
-			const row = rows.find( ( candidate ) => candidate.id === source.id );
-			if ( ! row ) {
-				return;
-			}
-			const session = beginTableReorderDrag( body, row.id, row.index );
-			if ( ! session || session.nonMovableRowIndices.includes( row.index ) ) {
-				return;
-			}
-
-			suspendRowsReconciliation();
-			hasShownForbiddenNotice.current = false;
-			dragRows.current = new Map( rows.map( ( candidate ) => [ candidate.id, candidate ] ) );
-			dragSession.current = session;
-			stopWaitingForDragCleanup.current();
-			clearCandidate();
-			setActiveRow( row );
-		},
-		[ body, clearCandidate, keyboardReorder, rows, suspendRowsReconciliation ]
-	);
-
-	const updateDragTarget = useCallback(
-		( event: DragMoveEvent | DragOverEvent ) => {
-			if ( keyboardReorder ) {
-				event.preventDefault();
-				return;
-			}
-
-			const { source, target } = event.operation;
-			const session = dragSession.current;
-			if ( ! session || ! isSortable( source ) || source.id !== session.sourceId ) {
-				if ( session ) {
-					dragSession.current = clearTableReorderDragTarget( session );
-				}
-				event.preventDefault();
-				clearCandidate();
-				return;
-			}
-
-			if ( ! isSortable( target ) || source.sortable.group !== target.sortable.group ) {
-				dragSession.current = clearTableReorderDragTarget( session );
-				event.preventDefault();
-				clearCandidate();
-				return;
-			}
-
-			const targetRow = dragRows.current.get( String( target.id ) );
-			if ( ! targetRow ) {
-				dragSession.current = clearTableReorderDragTarget( session );
-				event.preventDefault();
-				clearCandidate();
-				return;
-			}
-
-			const targetRect = targetRow.element.getBoundingClientRect();
-			const insertionIndex =
-				event.operation.position.current.y < targetRect.top + targetRect.height / 2
-					? targetRow.index
-					: targetRow.index + 1;
-			const update = updateTableReorderDragTarget( session, targetRow.id, insertionIndex );
-			dragSession.current = update.session;
-
-			if ( update.isForbidden ) {
-				event.preventDefault();
-				showForbiddenNotice();
-				clearCandidate();
-				return;
-			}
-
-			if ( ! update.session.target ) {
-				clearCandidate();
-				return;
-			}
-
-			showCandidate(
-				Array.from( dragRows.current.values(), ( row ) => ( {
-					...row,
-					height: row.element.getBoundingClientRect().height,
-				} ) ),
-				update.session.sourceId,
-				update.session.target.targetId,
-				update.session.target.insertionIndex
-			);
-		},
-		[ clearCandidate, keyboardReorder, showCandidate, showForbiddenNotice ]
-	);
-
-	const onDragEnd = useCallback(
-		( { canceled, operation: { source, target } }: DragEndEvent ) => {
-			if ( keyboardReorder ) {
-				return;
-			}
-
-			const session = dragSession.current;
-			dragSession.current = null;
-			dragRows.current = new Map();
-			const isValidTarget =
-				isSortable( source ) &&
-				isSortable( target ) &&
-				source.sortable.group === target.sortable.group;
-			clearCandidate();
-			commitTableReorderDrag(
-				session,
-				{
-					canceled: canceled || ! isValidTarget,
-					sourceId: isSortable( source ) ? String( source.id ) : '',
-					targetId: isSortable( target ) ? String( target.id ) : null,
-				},
-				( nextBody ) => setAttributes( { body: nextBody } )
-			);
-
-			const overlay = overlayElement.current?.parentElement;
-			const view = activeRow?.element.ownerDocument.defaultView;
-			const finish = () => {
-				resumeRowsReconciliation();
-				setActiveRow( null );
-				requestRowsReconciliation();
-			};
-
-			if ( ! overlay || ! view ) {
-				finish();
-				return;
-			}
-
-			let animationFrame = 0;
-			const isCleaningUp = () =>
-				overlay.hasAttribute( 'data-dnd-dragging' ) || overlay.hasAttribute( 'data-dnd-dropping' );
-			const observer = new view.MutationObserver( () => {
-				if ( isCleaningUp() ) {
-					return;
-				}
-
-				observer.disconnect();
-				animationFrame = view.requestAnimationFrame( finish );
-			} );
-			observer.observe( overlay, {
-				attributeFilter: [ 'data-dnd-dragging', 'data-dnd-dropping' ],
-				attributes: true,
-			} );
-			if ( ! isCleaningUp() ) {
-				observer.disconnect();
-				animationFrame = view.requestAnimationFrame( finish );
-			}
-
-			stopWaitingForDragCleanup.current = () => {
-				observer.disconnect();
-				if ( animationFrame ) {
-					view.cancelAnimationFrame( animationFrame );
-				}
-			};
-		},
-		[
-			activeRow,
-			clearCandidate,
-			keyboardReorder,
-			requestRowsReconciliation,
-			resumeRowsReconciliation,
-			setAttributes,
-		]
-	);
 
 	const indicatorPosition = insertionIndicator
 		? rowPositions.get( insertionIndicator.rowId )
