@@ -57,6 +57,28 @@ const restoreOriginalRowOrder = (
 	}
 };
 
+const reorderRows = (
+	rows: readonly unknown[],
+	oldIndex: number,
+	newIndex: number
+): unknown[] | null => {
+	if (
+		! Number.isInteger( oldIndex ) ||
+		! Number.isInteger( newIndex ) ||
+		oldIndex < 0 ||
+		newIndex < 0 ||
+		oldIndex >= rows.length ||
+		newIndex >= rows.length
+	) {
+		return null;
+	}
+
+	const reordered = [ ...rows ];
+	const [ movedRow ] = reordered.splice( oldIndex, 1 );
+	reordered.splice( newIndex, 0, movedRow );
+	return reordered;
+};
+
 const addMinimalHandles = (
 	document: Document,
 	tbody: HTMLTableSectionElement
@@ -254,9 +276,41 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 							dragRows = null;
 						}
 						lastMoveRelatedIndex = null;
+
 						console.info( LOG_PREFIX, 'onEnd', {
 							newIndex: event.newIndex,
 							oldIndex: event.oldIndex,
+						} );
+
+						const { oldIndex, newIndex } = event;
+						if (
+							oldIndex === undefined ||
+							newIndex === undefined ||
+							oldIndex === newIndex
+						) {
+							return;
+						}
+
+						const body = props.attributes.body;
+						if ( ! Array.isArray( body ) ) {
+							console.warn( LOG_PREFIX, 'Table body attribute is unavailable' );
+							return;
+						}
+
+						const reorderedBody = reorderRows( body, oldIndex, newIndex );
+						if ( ! reorderedBody ) {
+							console.warn( LOG_PREFIX, 'invalid reorder indices', {
+								bodyRows: body.length,
+								newIndex,
+								oldIndex,
+							} );
+							return;
+						}
+
+						props.setAttributes( { body: reorderedBody } );
+						console.info( LOG_PREFIX, 'Table body attribute reordered', {
+							newIndex,
+							oldIndex,
 						} );
 					},
 				} );
@@ -278,7 +332,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					handle.remove();
 				}
 			};
-		}, [ isTableBlock, props.clientId, props.isSelected ] );
+		}, [ isTableBlock, props.attributes.body, props.clientId, props.isSelected ] );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
