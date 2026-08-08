@@ -1,6 +1,13 @@
 import { PointerSensor } from '@dnd-kit/dom';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
-import { createPortal, useCallback, useEffect, useMemo, useRef, useState } from '@wordpress/element';
+import {
+	createPortal,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from '@wordpress/element';
 
 import { TableReorderDragVisuals, type InsertionIndicator } from './drag-visuals';
 import { DragRowOverlay } from './drag-row-overlay';
