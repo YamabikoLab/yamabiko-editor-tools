@@ -1,14 +1,31 @@
+import { store as blockEditorStore } from '@wordpress/block-editor';
+import { dispatch, select, subscribe } from '@wordpress/data';
 import Sortable, { type SortableEvent } from 'sortablejs';
 
+import { reorderRows } from '../table-reorder/reorder';
+
 const GUTTER_WIDTH = 32;
-const ENABLE_ATTRIBUTE = 'data-yamabiko-sortablejs-poc';
 const ACTIVE_CLASS = 'yamabiko-sortablejs-poc--active';
-const REORDER_EVENT = 'yamabiko-sortablejs-poc-reorder';
 const STYLE_ATTRIBUTE = 'data-yamabiko-sortablejs-poc-style';
 
+type TableAttributes = Record< string, unknown > & {
+	body?: unknown[];
+};
+
 type DragSnapshot = {
+	body: unknown[];
 	rows: HTMLTableRowElement[];
 	sourceIndex: number;
+};
+
+type BlockEditorSelectors = {
+	getBlockAttributes: ( clientId: string ) => TableAttributes | null;
+	getBlockName: ( clientId: string ) => string | null;
+	getSelectedBlockClientId: () => string | null;
+};
+
+type BlockEditorActions = {
+	updateBlockAttributes: ( clientId: string, attributes: TableAttributes ) => void;
 };
 
 type SortableBinding = {
@@ -17,6 +34,11 @@ type SortableBinding = {
 };
 
 const bindings = new Map< HTMLTableSectionElement, SortableBinding >();
+
+const getSelectors = () => select( blockEditorStore ) as unknown as BlockEditorSelectors;
+const getActions = () => dispatch( blockEditorStore ) as unknown as BlockEditorActions;
+
+const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 
 const getEventClientX = ( event: Event ): number | null => {
 	const mouseLike = event as Event & { clientX?: unknown };
@@ -65,6 +87,7 @@ const installStyles = () => {
 	style.textContent = `
 .${ ACTIVE_CLASS } tbody > tr > :first-child {
 	box-sizing: border-box;
+	cursor: grab;
 	padding-inline-start: 40px !important;
 	position: relative;
 }
@@ -85,10 +108,6 @@ const installStyles = () => {
 	width: ${ GUTTER_WIDTH }px;
 }
 
-.${ ACTIVE_CLASS } tbody > tr > :first-child {
-	cursor: grab;
-}
-
 .${ ACTIVE_CLASS } .yamabiko-sortablejs-poc__ghost {
 	opacity: 0.28;
 }
@@ -96,11 +115,6 @@ const installStyles = () => {
 .${ ACTIVE_CLASS } .yamabiko-sortablejs-poc__chosen > * {
 	outline: 2px solid var(--wp-components-color-accent, #3858e9);
 	outline-offset: -2px;
-}
-
-.yamabiko-sortablejs-poc__fallback {
-	box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-	opacity: 0.92;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -112,7 +126,11 @@ const installStyles = () => {
 	document.head.append( style );
 };
 
-const createBinding = ( block: HTMLElement, tbody: HTMLTableSectionElement ) => {
+const createBinding = (
+	clientId: string,
+	block: HTMLElement,
+	tbody: HTMLTableSectionElement
+) => {
 	let dragSnapshot: DragSnapshot | null = null;
 
 	const sortable = Sortable.create( tbody, {
@@ -122,8 +140,6 @@ const createBinding = ( block: HTMLElement, tbody: HTMLTableSectionElement ) => 
 		dragClass: 'yamabiko-sortablejs-poc__drag',
 		draggable: 'tr',
 		easing: 'ease',
-		fallbackClass: 'yamabiko-sortablejs-poc__fallback',
-		fallbackTolerance: 3,
 		filter: ( event, target ) => {
 			const row = target.closest( 'tr' ) as HTMLTableRowElement | null;
 			const firstCell = row?.cells.item( 0 ) ?? null;
@@ -133,14 +149,19 @@ const createBinding = ( block: HTMLElement, tbody: HTMLTableSectionElement ) => 
 
 			return ! isPointerInsideGutter( event, firstCell );
 		},
-		forceFallback: true,
 		ghostClass: 'yamabiko-sortablejs-poc__ghost',
 		handle: 'td:first-child, th:first-child',
 		preventOnFilter: false,
 		onStart: ( event: SortableEvent ) => {
 			const rows = Array.from( tbody.rows );
 			const sourceIndex = rows.indexOf( event.item as HTMLTableRowElement );
-			dragSnapshot = sourceIndex < 0 ? null : { rows, sourceIndex };
+			const attributes = getSelectors().getBlockAttributes( clientId );
+			const body = getBodyRows( attributes?.body );
+
+			dragSnapshot =
+				sourceIndex < 0 || body.length !== rows.length
+					? null
+					: { body: [ ...body ], rows, sourceIndex };
 		},
 		onEnd: ( event: SortableEvent ) => {
 			const snapshot = dragSnapshot;
@@ -150,27 +171,24 @@ const createBinding = ( block: HTMLElement, tbody: HTMLTableSectionElement ) => 
 			}
 
 			const targetIndex = event.newDraggableIndex ?? event.newIndex;
+
+			// SortableJS owns the DOM only during the gesture. Restore Gutenberg's
+			// original order first, then let the block-editor store render the new
+			// canonical row order from attributes.
 			restoreOriginalRowOrder( tbody, snapshot.rows );
 
 			if (
 				targetIndex === undefined ||
 				targetIndex < 0 ||
-				targetIndex >= snapshot.rows.length ||
+				targetIndex >= snapshot.body.length ||
 				targetIndex === snapshot.sourceIndex
 			) {
 				return;
 			}
 
-			block.dispatchEvent(
-				new CustomEvent( REORDER_EVENT, {
-					bubbles: true,
-					detail: {
-						clientId: block.dataset.block,
-						sourceIndex: snapshot.sourceIndex,
-						targetIndex,
-					},
-				} )
-			);
+			getActions().updateBlockAttributes( clientId, {
+				body: reorderRows( snapshot.body, snapshot.sourceIndex, targetIndex ),
+			} );
 		},
 	} );
 
@@ -180,20 +198,26 @@ const createBinding = ( block: HTMLElement, tbody: HTMLTableSectionElement ) => 
 const syncBindings = () => {
 	installStyles();
 
+	const selectors = getSelectors();
+	const selectedClientId = selectors.getSelectedBlockClientId();
 	const activeTbodies = new Set< HTMLTableSectionElement >();
-	for ( const block of document.querySelectorAll< HTMLElement >(
-		`[${ ENABLE_ATTRIBUTE }="true"]`
-	) ) {
-		const table = block.querySelector< HTMLTableElement >( 'table' );
-		const tbody = table?.tBodies.item( 0 ) ?? null;
-		if ( ! tbody ) {
-			continue;
-		}
 
-		activeTbodies.add( tbody );
-		block.classList.add( ACTIVE_CLASS );
-		if ( ! bindings.has( tbody ) ) {
-			createBinding( block, tbody );
+	if (
+		selectedClientId &&
+		selectors.getBlockName( selectedClientId ) === 'core/table'
+	) {
+		const block = document.querySelector< HTMLElement >(
+			`[data-block="${ selectedClientId }"]`
+		);
+		const table = block?.querySelector< HTMLTableElement >( 'table' ) ?? null;
+		const tbody = table?.tBodies.item( 0 ) ?? null;
+
+		if ( block && tbody ) {
+			activeTbodies.add( tbody );
+			block.classList.add( ACTIVE_CLASS );
+			if ( ! bindings.has( tbody ) ) {
+				createBinding( selectedClientId, block, tbody );
+			}
 		}
 	}
 
@@ -210,10 +234,23 @@ const syncBindings = () => {
 
 const observer = new MutationObserver( syncBindings );
 observer.observe( document.documentElement, {
-	attributeFilter: [ ENABLE_ATTRIBUTE ],
-	attributes: true,
 	childList: true,
 	subtree: true,
 } );
+
+const unsubscribe = subscribe( syncBindings );
+
+window.addEventListener(
+	'unload',
+	() => {
+		observer.disconnect();
+		unsubscribe();
+		for ( const { sortable } of bindings.values() ) {
+			sortable.destroy();
+		}
+		bindings.clear();
+	},
+	{ once: true }
+);
 
 syncBindings();
