@@ -83,6 +83,17 @@ const addMinimalHandles = (
 	return handles;
 };
 
+const isHandleInteraction = ( event: Event ): boolean => {
+	const target = event.target as Element | null;
+	return Boolean( target?.closest?.( `.${ HANDLE_CLASS }` ) );
+};
+
+const stopHandleInteractionPropagation = ( event: Event ) => {
+	if ( isHandleInteraction( event ) ) {
+		event.stopPropagation();
+	}
+};
+
 const findBlockElement = (
 	rootDocument: Document,
 	clientId: string
@@ -187,6 +198,11 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				handles: handles.length,
 			} );
 
+			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
+			for ( const eventName of blockSelectionEvents ) {
+				tbody.addEventListener( eventName, stopHandleInteractionPropagation );
+			}
+
 			let cancelled = false;
 			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
@@ -225,6 +241,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
+				for ( const eventName of blockSelectionEvents ) {
+					tbody.removeEventListener( eventName, stopHandleInteractionPropagation );
+				}
 				if ( dragRows ) {
 					restoreOriginalRowOrder( tbody, dragRows );
 					dragRows = null;
