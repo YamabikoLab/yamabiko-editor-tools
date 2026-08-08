@@ -83,7 +83,7 @@ final class Plugin {
 		}
 
 		wp_enqueue_script(
-			'yamabiko-editor-tools-sortablejs-table-reorder-poc-runtime',
+			'yamabiko-editor-tools-sortablejs-table-reorder-poc-content',
 			plugins_url( 'build/editor-extensions/sortablejs-table-reorder-poc/sortable.min.js', __FILE__ ),
 			array(),
 			(string) filemtime( $file_path ),
