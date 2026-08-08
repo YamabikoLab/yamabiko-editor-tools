@@ -70,6 +70,61 @@ for ( const canvasMode of [ 'iframe', 'non-iframe' ] as const ) {
 		await rowHandle( canvas, 3 ).press( 'Shift+Tab' );
 		await expect( rowHandle( canvas, 2 ) ).toBeFocused();
 	} );
+
+	test( `keeps full-width table row handles in position after keyboard actions in the ${ canvasName } editor`, async ( {
+		admin,
+		editor,
+		page,
+		pageUtils,
+	} ) => {
+		const fixtures: TestFixtures = { admin, editor, page, pageUtils };
+		const { canvas, table } = await prepareTable(
+			fixtures,
+			basicTable( { align: 'full' } ),
+			canvasMode
+		);
+		const handle = await enableReorderMode( {
+			canvas,
+			editor: fixtures.editor,
+			page: fixtures.page,
+			table,
+			row: 2,
+		} );
+		const expectHandlePosition = async ( row: number ) => {
+			const currentHandle = rowHandle( canvas, row );
+			const rowElement = table.locator( 'tbody > tr' ).nth( row - 1 );
+			await expect( currentHandle ).toBeVisible();
+
+			const [ handleBox, rowBox, viewport ] = await Promise.all( [
+				currentHandle.boundingBox(),
+				rowElement.boundingBox(),
+				fixtures.page.evaluate( () => ( {
+					height: window.innerHeight,
+					width: window.innerWidth,
+				} ) ),
+			] );
+			expect( handleBox ).not.toBeNull();
+			expect( rowBox ).not.toBeNull();
+			expect( handleBox!.x ).toBeGreaterThanOrEqual( 0 );
+			expect( handleBox!.x + handleBox!.width ).toBeLessThanOrEqual( viewport.width );
+			expect( handleBox!.y ).toBeGreaterThanOrEqual( rowBox!.y );
+			expect( handleBox!.y + handleBox!.height ).toBeLessThanOrEqual( rowBox!.y + rowBox!.height );
+			await expect( currentHandle ).toBeInViewport();
+		};
+
+		await expectHandlePosition( 2 );
+		await handle.press( 'Tab' );
+		await expect( rowHandle( canvas, 3 ) ).toBeFocused();
+		await expectHandlePosition( 3 );
+		await rowHandle( canvas, 3 ).press( 'Shift+Tab' );
+		await expect( rowHandle( canvas, 2 ) ).toBeFocused();
+		await expectHandlePosition( 2 );
+		await handle.press( 'Enter' );
+		await expectHandlePosition( 2 );
+		await handle.press( 'Escape' );
+		await handle.press( ' ' );
+		await expectHandlePosition( 2 );
+	} );
 }
 
 test( 'keeps a keyboard reorder focused while scrolling a long table in the iframe editor', async ( {

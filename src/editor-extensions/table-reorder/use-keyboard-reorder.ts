@@ -16,6 +16,7 @@ import {
 	getKeyboardMoveDirection,
 	isKeyboardReorderToggleKey,
 } from './keyboard-reorder';
+import { scrollTableRowIntoView } from './scroll-table-row-into-view';
 import type { TableRow } from './use-table-reorder-dom';
 
 type KeyboardReorderState = {
@@ -77,17 +78,8 @@ export function useKeyboardReorder( {
 		setLiveMessage( message );
 	}, [] );
 	const scrollRowIntoView = useCallback( ( row: TableRow ) => {
-		const view = row.element.ownerDocument.defaultView;
-		if ( ! view ) {
-			return;
-		}
-
-		view.requestAnimationFrame( () => {
-			row.element.scrollIntoView( {
-				behavior: 'auto',
-				block: 'nearest',
-				inline: 'nearest',
-			} );
+		row.element.ownerDocument.defaultView?.requestAnimationFrame( () => {
+			scrollTableRowIntoView( row.element );
 		} );
 	}, [] );
 	const showForbiddenNotice = useCallback( () => {

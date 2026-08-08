@@ -6,6 +6,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import { dragHandle } from '@wordpress/icons';
 
 import { getKeyboardTabDestinationIndex } from './keyboard-reorder';
+import { scrollTableRowIntoView } from './scroll-table-row-into-view';
 
 type SortableRowProps = {
 	element: HTMLTableRowElement;
@@ -124,11 +125,7 @@ export function SortableRow( {
 							destinationHandle.focus( { preventScroll: true } );
 							const destinationRow = element.parentElement?.children.item( destinationIndex );
 							if ( destinationRow?.tagName === 'TR' ) {
-								( destinationRow as HTMLTableRowElement ).scrollIntoView( {
-									behavior: 'auto',
-									block: 'nearest',
-									inline: 'nearest',
-								} );
+								scrollTableRowIntoView( destinationRow as HTMLTableRowElement );
 							}
 							return;
 						}
@@ -140,11 +137,7 @@ export function SortableRow( {
 					( event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar' )
 				) {
 					element.ownerDocument.defaultView?.requestAnimationFrame( () => {
-						element.scrollIntoView( {
-							behavior: 'auto',
-							block: 'nearest',
-							inline: 'nearest',
-						} );
+						scrollTableRowIntoView( element );
 					} );
 				}
 
