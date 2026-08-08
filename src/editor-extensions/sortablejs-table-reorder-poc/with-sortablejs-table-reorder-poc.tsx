@@ -32,11 +32,28 @@ type PocWindow = Window & {
 
 const CONTENT_SCRIPT_ID = 'yamabiko-editor-tools-sortablejs-table-reorder-poc-content-js';
 const RUNTIME_SCRIPT_ID = `${ CONTENT_SCRIPT_ID }-runtime`;
+const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 
 const targetIndexToInsertionIndex = ( sourceIndex: number, targetIndex: number ): number =>
 	targetIndex > sourceIndex ? targetIndex + 1 : targetIndex;
+
+const findBlockElement = (
+	rootDocument: Document,
+	clientId: string
+): { block: HTMLElement; document: Document } | null => {
+	const selector = `[data-block="${ clientId }"]`;
+	const directBlock = rootDocument.querySelector< HTMLElement >( selector );
+	if ( directBlock ) {
+		return { block: directBlock, document: rootDocument };
+	}
+
+	const iframe = rootDocument.querySelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
+	const iframeDocument = iframe?.contentDocument ?? null;
+	const iframeBlock = iframeDocument?.querySelector< HTMLElement >( selector ) ?? null;
+	return iframeBlock && iframeDocument ? { block: iframeBlock, document: iframeDocument } : null;
+};
 
 const ensureIframeApi = (
 	document: Document,
@@ -48,6 +65,7 @@ const ensureIframeApi = (
 
 	const sourceScript = document.getElementById( CONTENT_SCRIPT_ID ) as HTMLScriptElement | null;
 	if ( ! sourceScript?.src ) {
+		console.warn( LOG_PREFIX, 'iframe content script source not found' );
 		return Promise.resolve( null );
 	}
 
@@ -75,7 +93,14 @@ const ensureIframeApi = (
 			() => resolve( view.YamabikoSortableJsPoc ?? null ),
 			{ once: true }
 		);
-		runtimeScript.addEventListener( 'error', () => resolve( null ), { once: true } );
+		runtimeScript.addEventListener(
+			'error',
+			() => {
+				console.warn( LOG_PREFIX, 'failed to load iframe runtime script' );
+				resolve( null );
+			},
+			{ once: true }
+		);
 		document.body.append( runtimeScript );
 	} );
 };
@@ -95,32 +120,37 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const document = anchor.ownerDocument;
-			const blockElement = document.querySelector< HTMLElement >(
-				`[data-block="${ props.clientId }"]`
-			);
-			const view = blockElement?.ownerDocument.defaultView as PocWindow | null;
-			if ( ! blockElement || ! view ) {
+			const target = findBlockElement( anchor.ownerDocument, props.clientId );
+			const blockElement = target?.block ?? null;
+			const document = target?.document ?? null;
+			const view = document?.defaultView as PocWindow | null;
+			if ( ! blockElement || ! document || ! view ) {
+				console.warn( LOG_PREFIX, 'selected Table DOM not found', props.clientId );
 				return;
 			}
+
+			console.info( LOG_PREFIX, 'selected Table DOM found', {
+				clientId: props.clientId,
+				inIframe: view !== window,
+			} );
 
 			const bodyRows = getBodyRows( props.attributes.body );
 			const ranges = getRowspanRanges( bodyRows );
 			const forbiddenInsertionIndices = new Set( getForbiddenInsertionIndices( ranges ) );
 			const nonMovableRowIndices = new Set( getNonMovableRowIndices( ranges ) );
 
-			const onReorder = ( source: number, target: number ) => {
+			const onReorder = ( source: number, targetIndex: number ) => {
 				if (
 					source < 0 ||
-					target < 0 ||
+					targetIndex < 0 ||
 					source >= bodyRows.length ||
-					target >= bodyRows.length ||
+					targetIndex >= bodyRows.length ||
 					nonMovableRowIndices.has( source )
 				) {
 					return;
 				}
 
-				const insertionIndex = targetIndexToInsertionIndex( source, target );
+				const insertionIndex = targetIndexToInsertionIndex( source, targetIndex );
 				if (
 					forbiddenInsertionIndices.has( insertionIndex ) ||
 					crossesRowspanBoundary( ranges, source, insertionIndex )
@@ -129,7 +159,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				}
 
 				props.setAttributes( {
-					body: reorderRows( bodyRows, source, target ),
+					body: reorderRows( bodyRows, source, targetIndex ),
 				} );
 			};
 
