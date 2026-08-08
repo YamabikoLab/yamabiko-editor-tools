@@ -79,10 +79,7 @@ const reorderRows = (
 	return reordered;
 };
 
-const addMinimalHandles = (
-	document: Document,
-	tbody: HTMLTableSectionElement
-): HTMLElement[] => {
+const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement ): HTMLElement[] => {
 	const handles: HTMLElement[] = [];
 
 	for ( const row of Array.from( tbody.rows ) ) {
@@ -268,9 +265,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					},
 					onMove: ( event, originalEvent ) => {
 						const relatedRow = event.related.closest( 'tr' );
-						const relatedIndex = relatedRow
-							? Array.from( tbody.rows ).indexOf( relatedRow )
-							: -1;
+						const relatedIndex = relatedRow ? Array.from( tbody.rows ).indexOf( relatedRow ) : -1;
 
 						if ( relatedIndex !== lastMoveRelatedIndex ) {
 							lastMoveRelatedIndex = relatedIndex;
@@ -295,11 +290,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						} );
 
 						const { oldIndex, newIndex } = event;
-						if (
-							oldIndex === undefined ||
-							newIndex === undefined ||
-							oldIndex === newIndex
-						) {
+						if ( oldIndex === undefined || newIndex === undefined || oldIndex === newIndex ) {
 							return;
 						}
 
