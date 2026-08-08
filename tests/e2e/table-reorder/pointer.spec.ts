@@ -1,4 +1,4 @@
-import { test } from '@wordpress/e2e-test-utils-playwright';
+import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 import {
 	basicRows,
@@ -8,6 +8,7 @@ import {
 	moveRowWithPointer,
 	prepareTable,
 	redo,
+	tableRows,
 	type TestFixtures,
 	undo,
 } from './support';
@@ -35,7 +36,7 @@ test( 'reorders a row with the pointer in the non-iframe editor', async ( {
 		table,
 		to: 0,
 	} );
-	await expectRows( table, [ 'Row 3', 'Row 1', 'Row 2', 'Row 4' ] );
+	await expect( tableRows( table ) ).toHaveText( [ 'Row 3', 'Row 1', 'Row 2', 'Row 4' ] );
 } );
 
 test( 'reorders a row with the pointer and supports undo and redo in the iframe editor', async ( {
@@ -56,7 +57,7 @@ test( 'reorders a row with the pointer and supports undo and redo in the iframe 
 
 	await moveRowWithPointer( { canvas, from: 3, page, table, to: 1 } );
 	const movedRows = [ 'Row 1', 'Row 2', 'Row 4', 'Row 3' ];
-	await expectRows( table, movedRows );
+	await expect( tableRows( table ) ).toHaveText( movedRows );
 	await undo( fixtures.pageUtils );
 	await expectRows( table, basicRows );
 	await redo( fixtures.pageUtils );
