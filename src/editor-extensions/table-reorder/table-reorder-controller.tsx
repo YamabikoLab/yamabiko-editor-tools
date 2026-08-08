@@ -29,7 +29,6 @@ import {
 } from './drag-session';
 import { TableReorderDragVisuals, type InsertionIndicator } from './drag-visuals';
 import { DragRowOverlay } from './drag-row-overlay';
-import { enableFullWidthTableReorder } from './full-width';
 import {
 	getInsertionIndexForKeyboardDestination,
 	getKeyboardDestination,
@@ -38,6 +37,7 @@ import {
 } from './keyboard-reorder';
 import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
+import { type TableRow, useTableReorderDom } from './use-table-reorder-dom';
 
 type TableReorderControllerProps = {
 	align: string | undefined;
@@ -48,26 +48,12 @@ type TableReorderControllerProps = {
 	setAttributes: ( attributes: { body: unknown[] } ) => void;
 };
 
-type TableRow = {
-	element: HTMLTableRowElement;
-	id: string;
-	index: number;
-};
-
-type TableRowPosition = {
-	height: number;
-	left: number;
-	top: number;
-	width: number;
-};
-
 type KeyboardReorderState = {
 	destinationIndex: number;
 	sourceId: string;
 	sourceIndex: number;
 };
 
-const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 const ROWSPAN_REORDER_ERROR_MESSAGE = __(
 	'Rows cannot be moved to a position that splits merged cells. Unmerge the cells before reordering.',
 	'yamabiko-editor-tools'
@@ -81,12 +67,16 @@ export function TableReorderController( {
 	onExit,
 	setAttributes,
 }: TableReorderControllerProps ) {
-	const anchorRef = useRef< HTMLSpanElement >( null );
-	const [ container, setContainer ] = useState< HTMLDivElement | null >( null );
-	const [ rows, setRows ] = useState< TableRow[] >( [] );
-	const [ rowPositions, setRowPositions ] = useState< Map< string, TableRowPosition > >(
-		new Map()
-	);
+	const {
+		anchorRef,
+		container,
+		getRows,
+		requestRowsReconciliation,
+		resumeRowsReconciliation,
+		rowPositions,
+		rows,
+		suspendRowsReconciliation,
+	} = useTableReorderDom( { align, body, clientId, onExit } );
 	const [ activeRow, setActiveRow ] = useState< TableRow | null >( null );
 	const [ keyboardReorder, setKeyboardReorder ] = useState< KeyboardReorderState | null >( null );
 	const [ liveMessage, setLiveMessage ] = useState( '' );
@@ -94,7 +84,6 @@ export function TableReorderController( {
 		null
 	);
 	const handleElements = useRef< Map< string, HTMLButtonElement > >( new Map() );
-	const isDragging = useRef( false );
 	const keyboardReorderRef = useRef< KeyboardReorderState | null >( null );
 	const lastAnnouncement = useRef< string | null >( null );
 	const hasShownForbiddenNotice = useRef( false );
@@ -102,12 +91,7 @@ export function TableReorderController( {
 	const overlayElement = useRef< HTMLDivElement | null >( null );
 	const dragRows = useRef< Map< string, TableRow > >( new Map() );
 	const dragSession = useRef< TableReorderDragSession | null >( null );
-	const rowsRef = useRef< TableRow[] >( [] );
-	const scheduleRowsUpdate = useRef( () => {} );
 	const stopWaitingForDragCleanup = useRef( () => {} );
-	const rowElementIds = useRef< WeakMap< HTMLTableRowElement, string > >( new WeakMap() );
-	const rowIds = useRef( new WeakMap< object, string >() );
-	const nextRowId = useRef( 0 );
 	const dragVisuals = useRef< TableReorderDragVisuals | null >( null );
 	const { createErrorNotice } = useDispatch( noticesStore );
 	const rowspanRanges = useMemo( () => getRowspanRanges( body ), [ body ] );
@@ -135,18 +119,21 @@ export function TableReorderController( {
 		lastAnnouncement.current = message;
 		setLiveMessage( message );
 	}, [] );
-	const focusHandle = useCallback( ( id: string ) => {
-		const view = anchorRef.current?.ownerDocument.defaultView;
-		if ( ! view ) {
-			return;
-		}
+	const focusHandle = useCallback(
+		( id: string ) => {
+			const view = anchorRef.current?.ownerDocument.defaultView;
+			if ( ! view ) {
+				return;
+			}
 
-		view.requestAnimationFrame( () => {
 			view.requestAnimationFrame( () => {
-				handleElements.current.get( id )?.focus( { preventScroll: true } );
+				view.requestAnimationFrame( () => {
+					handleElements.current.get( id )?.focus( { preventScroll: true } );
+				} );
 			} );
-		} );
-	}, [] );
+		},
+		[ anchorRef ]
+	);
 	const scrollRowIntoView = useCallback( ( row: TableRow ) => {
 		const view = row.element.ownerDocument.defaultView;
 		if ( ! view ) {
@@ -203,183 +190,6 @@ export function TableReorderController( {
 		overlayElement.current = element;
 	}, [] );
 
-	useEffect( () => {
-		const anchor = anchorRef.current;
-		if ( ! anchor ) {
-			return;
-		}
-
-		const anchorDocument = anchor.ownerDocument;
-		const blockElement = anchorDocument.querySelector< HTMLElement >(
-			`[data-block="${ clientId }"]`
-		);
-
-		if ( ! blockElement ) {
-			return;
-		}
-
-		const document = blockElement.ownerDocument;
-		const view = document.defaultView;
-		if ( ! view ) {
-			return;
-		}
-		const table = blockElement.querySelector< HTMLTableElement >( 'table' );
-		const disableFullWidthReorder = enableFullWidthTableReorder( blockElement, table );
-		const onPointerDown = ( event: PointerEvent ) => {
-			if ( event.button !== 0 || ! ( event.target instanceof view.Element ) ) {
-				return;
-			}
-
-			const cell = event.target.closest( 'td, th' );
-			if ( cell && blockElement.contains( cell ) ) {
-				onExit();
-			}
-		};
-
-		const handleContainer = document.createElement( 'div' );
-		handleContainer.className = 'yamabiko-editor-tools-table-reorder-content';
-		document.body.append( handleContainer );
-		setContainer( handleContainer );
-
-		let animationFrame = 0;
-		let shouldReconcileRows = false;
-		let resizeObserver: ResizeObserver | undefined;
-
-		const getRowId = ( row: unknown, index: number, element: HTMLTableRowElement ) => {
-			const existingElementId = rowElementIds.current.get( element );
-			let id: string;
-			if ( row === null || typeof row !== 'object' ) {
-				id = existingElementId ?? `row-${ index }`;
-			} else {
-				const existingId = rowIds.current.get( row );
-				if ( existingId ) {
-					id = existingId;
-				} else if ( existingElementId ) {
-					id = existingElementId;
-					rowIds.current.set( row, id );
-				} else {
-					id = `row-${ nextRowId.current }`;
-					nextRowId.current += 1;
-					rowIds.current.set( row, id );
-				}
-			}
-
-			// Gutenberg can reuse a DOM row at a different data index. Prefer the
-			// data object's ID for a committed move, then update the DOM mapping.
-			rowElementIds.current.set( element, id );
-			return id;
-		};
-
-		const updateRowPositions = ( currentRows = rowsRef.current ) => {
-			const nextPositions = new Map< string, TableRowPosition >();
-			for ( const row of currentRows ) {
-				const rect = row.element.getBoundingClientRect();
-				nextPositions.set( row.id, {
-					height: rect.height,
-					left: rect.left,
-					top: rect.top,
-					width: rect.width,
-				} );
-			}
-
-			setRowPositions( ( current ) => {
-				if (
-					current.size === nextPositions.size &&
-					Array.from( nextPositions ).every( ( [ id, position ] ) => {
-						const previous = current.get( id );
-						return (
-							previous?.height === position.height &&
-							previous.left === position.left &&
-							previous.top === position.top &&
-							previous.width === position.width
-						);
-					} )
-				) {
-					return current;
-				}
-
-				return nextPositions;
-			} );
-		};
-
-		const updateRows = () => {
-			const tbody = table?.tBodies.item( 0 );
-			const tableRows = tbody ? Array.from( tbody.rows ) : [];
-			const bodyRows = getBodyRows( body );
-
-			if ( tableRows.length !== bodyRows.length ) {
-				rowsRef.current = [];
-				setRows( [] );
-				setRowPositions( new Map() );
-				return;
-			}
-
-			const nextRows = tableRows.map( ( row, index ) => ( {
-				element: row,
-				id: getRowId( bodyRows[ index ], index, row ),
-				index,
-			} ) );
-			rowsRef.current = nextRows;
-			setRows( nextRows );
-			updateRowPositions( nextRows );
-		};
-
-		const scheduleUpdate = ( reconcileRows: boolean ) => {
-			shouldReconcileRows ||= reconcileRows;
-			if ( animationFrame ) {
-				view.cancelAnimationFrame( animationFrame );
-			}
-
-			animationFrame = view.requestAnimationFrame( () => {
-				animationFrame = 0;
-				if ( shouldReconcileRows && ! isDragging.current ) {
-					shouldReconcileRows = false;
-					updateRows();
-					return;
-				}
-
-				shouldReconcileRows = false;
-				updateRowPositions();
-			} );
-		};
-		const schedulePositionUpdate = () => scheduleUpdate( false );
-		const scheduleRowReconciliation = () => scheduleUpdate( true );
-		scheduleRowsUpdate.current = scheduleRowReconciliation;
-
-		const mutationObserver = new view.MutationObserver( scheduleRowReconciliation );
-		mutationObserver.observe( blockElement, { childList: true, subtree: true } );
-
-		if ( view.ResizeObserver ) {
-			resizeObserver = new view.ResizeObserver( schedulePositionUpdate );
-			resizeObserver.observe( blockElement );
-			if ( table ) {
-				resizeObserver.observe( table );
-			}
-		}
-
-		document.addEventListener( 'scroll', schedulePositionUpdate, true );
-		document.addEventListener( 'pointerdown', onPointerDown, true );
-		view.addEventListener( 'resize', schedulePositionUpdate );
-		updateRows();
-
-		return () => {
-			if ( animationFrame ) {
-				view.cancelAnimationFrame( animationFrame );
-			}
-			mutationObserver.disconnect();
-			resizeObserver?.disconnect();
-			document.removeEventListener( 'scroll', schedulePositionUpdate, true );
-			document.removeEventListener( 'pointerdown', onPointerDown, true );
-			view.removeEventListener( 'resize', schedulePositionUpdate );
-			rowsRef.current = [];
-			scheduleRowsUpdate.current = () => {};
-			clearDragVisuals();
-			disableFullWidthReorder();
-			handleContainer.remove();
-			setContainer( null );
-		};
-	}, [ align, body, clearDragVisuals, clientId, onExit ] );
-
 	useEffect(
 		() => () => {
 			clearDragVisuals();
@@ -387,8 +197,9 @@ export function TableReorderController( {
 			dragRows.current = new Map();
 			keyboardReorderRef.current = null;
 			stopWaitingForDragCleanup.current();
+			resumeRowsReconciliation();
 		},
-		[ clearDragVisuals ]
+		[ clearDragVisuals, resumeRowsReconciliation ]
 	);
 
 	const onDragStart = useCallback(
@@ -410,7 +221,7 @@ export function TableReorderController( {
 				return;
 			}
 
-			isDragging.current = true;
+			suspendRowsReconciliation();
 			hasShownForbiddenNotice.current = false;
 			dragRows.current = new Map( rows.map( ( candidate ) => [ candidate.id, candidate ] ) );
 			dragSession.current = session;
@@ -418,7 +229,7 @@ export function TableReorderController( {
 			clearDragVisuals();
 			setActiveRow( row );
 		},
-		[ body, clearDragVisuals, rows ]
+		[ body, clearDragVisuals, rows, suspendRowsReconciliation ]
 	);
 
 	const updateDragTarget = useCallback(
@@ -503,7 +314,8 @@ export function TableReorderController( {
 			}
 
 			if ( ! keyboardState ) {
-				const row = rowsRef.current.find( ( candidate ) => candidate.id === id );
+				const currentRows = getRows();
+				const row = currentRows.find( ( candidate ) => candidate.id === id );
 				if ( ! isToggleKey || ! row ) {
 					return;
 				}
@@ -526,7 +338,7 @@ export function TableReorderController( {
 				keyboardReorderRef.current = nextState;
 				setKeyboardReorder( nextState );
 				dragRows.current = new Map(
-					rowsRef.current.map( ( candidate ) => [ candidate.id, candidate ] )
+					currentRows.map( ( candidate ) => [ candidate.id, candidate ] )
 				);
 				dragSession.current = session;
 				hasShownForbiddenNotice.current = false;
@@ -536,7 +348,7 @@ export function TableReorderController( {
 						/* translators: 1: table body row number, 2: total table body rows. */
 						__( 'Started reordering row %1$d of %2$d.', 'yamabiko-editor-tools' ),
 						row.index + 1,
-						rowsRef.current.length
+						currentRows.length
 					)
 				);
 				return;
@@ -591,9 +403,10 @@ export function TableReorderController( {
 				return;
 			}
 
+			const currentRows = getRows();
 			const destination = getKeyboardDestination(
 				keyboardState.destinationIndex,
-				rowsRef.current.length,
+				currentRows.length,
 				direction!
 			);
 			if ( destination.reason === 'first-row' ) {
@@ -605,7 +418,7 @@ export function TableReorderController( {
 				return;
 			}
 
-			const targetRow = rowsRef.current.find(
+			const targetRow = currentRows.find(
 				( candidate ) => candidate.index === destination.destinationIndex
 			);
 			const session = dragSession.current;
@@ -647,7 +460,7 @@ export function TableReorderController( {
 					/* translators: 1: destination table body row number, 2: total table body rows. */
 					__( 'Moving to position %1$d of %2$d.', 'yamabiko-editor-tools' ),
 					destination.destinationIndex + 1,
-					rowsRef.current.length
+					currentRows.length
 				)
 			);
 		},
@@ -656,6 +469,7 @@ export function TableReorderController( {
 			body,
 			clearDragVisuals,
 			focusHandle,
+			getRows,
 			nonMovableRows,
 			scrollRowIntoView,
 			setAttributes,
@@ -690,9 +504,9 @@ export function TableReorderController( {
 			const overlay = overlayElement.current?.parentElement;
 			const view = activeRow?.element.ownerDocument.defaultView;
 			const finish = () => {
-				isDragging.current = false;
+				resumeRowsReconciliation();
 				setActiveRow( null );
-				scheduleRowsUpdate.current();
+				requestRowsReconciliation();
 			};
 
 			if ( ! overlay || ! view ) {
@@ -727,7 +541,13 @@ export function TableReorderController( {
 				}
 			};
 		},
-		[ activeRow, clearDragVisuals, setAttributes ]
+		[
+			activeRow,
+			clearDragVisuals,
+			requestRowsReconciliation,
+			resumeRowsReconciliation,
+			setAttributes,
+		]
 	);
 
 	const indicatorPosition = insertionIndicator
