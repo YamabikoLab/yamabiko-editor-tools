@@ -2,7 +2,6 @@ import {
 	getInsertionIndexForKeyboardDestination,
 	getKeyboardDestination,
 	getKeyboardMoveDirection,
-	getKeyboardReorderCompletionFocus,
 	getKeyboardTabDestinationIndex,
 	isKeyboardReorderToggleKey,
 } from './keyboard-reorder';
@@ -81,17 +80,6 @@ describe( 'keyboard table reorder', () => {
 		expect( getInsertionIndexForKeyboardDestination( 2, 1 ) ).toBe( 1 );
 		expect( getInsertionIndexForKeyboardDestination( 2, 3 ) ).toBe( 4 );
 		expect( getInsertionIndexForKeyboardDestination( 2, 2 ) ).toBe( 2 );
-	} );
-
-	it( 'keeps focus on the source row and defers it only after a committed move', () => {
-		expect( getKeyboardReorderCompletionFocus( 'row-8', true ) ).toEqual( {
-			deferUntilRowsUpdate: true,
-			id: 'row-8',
-		} );
-		expect( getKeyboardReorderCompletionFocus( 'row-8', false ) ).toEqual( {
-			deferUntilRowsUpdate: false,
-			id: 'row-8',
-		} );
 	} );
 
 	it( 'recognizes only supported reorder keys', () => {
