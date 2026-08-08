@@ -19,6 +19,11 @@ type SortableEventLike = {
 	oldIndex?: number;
 };
 
+type SortableMoveEventLike = {
+	related: HTMLElement;
+	willInsertAfter: boolean;
+};
+
 type SortableInstance = {
 	destroy: () => void;
 };
@@ -32,6 +37,7 @@ type SortableRuntime = {
 			handle: string;
 			onChoose: () => void;
 			onEnd: ( event: SortableEventLike ) => void;
+			onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => void;
 			onStart: () => void;
 		}
 	) => SortableInstance;
@@ -206,6 +212,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			let cancelled = false;
 			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
+			let lastMoveRelatedIndex: number | null = null;
 
 			void ensureIframeSortable( document, view ).then( ( Sortable ) => {
 				if ( cancelled || ! Sortable ) {
@@ -221,13 +228,30 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					},
 					onStart: () => {
 						dragRows = Array.from( tbody.rows );
+						lastMoveRelatedIndex = null;
 						console.info( LOG_PREFIX, 'onStart' );
+					},
+					onMove: ( event, originalEvent ) => {
+						const relatedRow = event.related.closest( 'tr' );
+						const relatedIndex = relatedRow
+							? Array.from( tbody.rows ).indexOf( relatedRow )
+							: -1;
+
+						if ( relatedIndex !== lastMoveRelatedIndex ) {
+							lastMoveRelatedIndex = relatedIndex;
+							console.info( LOG_PREFIX, 'onMove', {
+								originalEvent: originalEvent.type,
+								relatedIndex,
+								willInsertAfter: event.willInsertAfter,
+							} );
+						}
 					},
 					onEnd: ( event ) => {
 						if ( dragRows ) {
 							restoreOriginalRowOrder( tbody, dragRows );
 							dragRows = null;
 						}
+						lastMoveRelatedIndex = null;
 						console.info( LOG_PREFIX, 'onEnd', {
 							newIndex: event.newIndex,
 							oldIndex: event.oldIndex,
