@@ -190,10 +190,16 @@ const ensureIframeSortable = (
 export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithSortableJsTableReorderPoc( props: TableBlockEditProps ) {
 		const anchorRef = useRef< HTMLSpanElement >( null );
+		const {
+			attributes: { body },
+			clientId,
+			isSelected,
+			setAttributes,
+		} = props;
 		const isTableBlock = props.name === 'core/table';
 
 		useEffect( () => {
-			if ( ! isTableBlock || ! props.isSelected ) {
+			if ( ! isTableBlock || ! isSelected ) {
 				return;
 			}
 
@@ -207,7 +213,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const target = findBlockElement( anchor.ownerDocument, props.clientId );
+			const target = findBlockElement( anchor.ownerDocument, clientId );
 			const blockElement = target?.block ?? null;
 			const document = target?.document ?? null;
 			const view = document?.defaultView as SortableWindow | null;
@@ -265,7 +271,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 							return;
 						}
 
-						const body = props.attributes.body;
 						if ( ! Array.isArray( body ) ) {
 							return;
 						}
@@ -275,7 +280,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 							return;
 						}
 
-						props.setAttributes( { body: reorderedBody } );
+						setAttributes( { body: reorderedBody } );
 					},
 				} );
 			} );
@@ -294,7 +299,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					handle.remove();
 				}
 			};
-		}, [ isTableBlock, props.attributes.body, props.clientId, props.isSelected ] );
+		}, [ body, clientId, isSelected, isTableBlock, setAttributes ] );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
@@ -303,7 +308,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		return (
 			<>
 				<BlockEdit { ...props } />
-				{ props.isSelected && <span aria-hidden="true" hidden ref={ anchorRef } /> }
+				{ isSelected && <span aria-hidden="true" hidden ref={ anchorRef } /> }
 			</>
 		);
 	};
