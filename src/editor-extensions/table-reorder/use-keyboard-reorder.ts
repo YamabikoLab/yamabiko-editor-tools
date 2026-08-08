@@ -61,7 +61,6 @@ export function useKeyboardReorder( {
 }: UseKeyboardReorderOptions ) {
 	const [ keyboardReorder, setKeyboardReorder ] = useState< KeyboardReorderState | null >( null );
 	const [ liveMessage, setLiveMessage ] = useState( '' );
-	const keyboardReorderRef = useRef< KeyboardReorderState | null >( null );
 	const lastAnnouncement = useRef< string | null >( null );
 	const hasShownForbiddenNotice = useRef( false );
 	const pendingFocusId = useRef< string | null >( null );
@@ -112,7 +111,7 @@ export function useKeyboardReorder( {
 
 	const onHandleKeyDown = useCallback(
 		( event: KeyboardEvent< HTMLButtonElement >, id: string ) => {
-			const keyboardState = keyboardReorderRef.current;
+			const keyboardState = keyboardReorder;
 			const direction = getKeyboardMoveDirection( event.key );
 			const isToggleKey = isKeyboardReorderToggleKey( event.key );
 			const isCancelKey = event.key === 'Escape';
@@ -147,7 +146,6 @@ export function useKeyboardReorder( {
 					sourceId: row.id,
 					sourceIndex: row.index,
 				};
-				keyboardReorderRef.current = nextState;
 				setKeyboardReorder( nextState );
 				dragRows.current = new Map(
 					currentRows.map( ( candidate ) => [ candidate.id, candidate ] )
@@ -170,7 +168,6 @@ export function useKeyboardReorder( {
 				clearCandidate();
 				dragSession.current = null;
 				dragRows.current = new Map();
-				keyboardReorderRef.current = null;
 				setKeyboardReorder( null );
 				announce(
 					sprintf(
@@ -197,7 +194,6 @@ export function useKeyboardReorder( {
 				clearCandidate();
 				dragSession.current = null;
 				dragRows.current = new Map();
-				keyboardReorderRef.current = null;
 				setKeyboardReorder( null );
 				if ( didCommit ) {
 					pendingFocusId.current = keyboardState.sourceId;
@@ -251,7 +247,6 @@ export function useKeyboardReorder( {
 
 			dragSession.current = update.session;
 			const nextState = { ...keyboardState, destinationIndex: destination.destinationIndex };
-			keyboardReorderRef.current = nextState;
 			setKeyboardReorder( nextState );
 			if ( update.session.target ) {
 				showCandidate(
@@ -282,6 +277,7 @@ export function useKeyboardReorder( {
 			clearCandidate,
 			focusHandle,
 			getRows,
+			keyboardReorder,
 			nonMovableRows,
 			scrollRowIntoView,
 			setAttributes,
