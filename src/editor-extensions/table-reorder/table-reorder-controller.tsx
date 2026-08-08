@@ -29,10 +29,7 @@ import { TableReorderDragVisuals, type InsertionIndicator } from './drag-visuals
 import { DragRowOverlay } from './drag-row-overlay';
 import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
-import {
-	ROWSPAN_REORDER_ERROR_MESSAGE,
-	useKeyboardReorder,
-} from './use-keyboard-reorder';
+import { ROWSPAN_REORDER_ERROR_MESSAGE, useKeyboardReorder } from './use-keyboard-reorder';
 import { type TableRow, useTableReorderDom } from './use-table-reorder-dom';
 
 type TableReorderControllerProps = {
