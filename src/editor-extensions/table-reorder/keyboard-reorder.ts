@@ -4,11 +4,6 @@ export type KeyboardDestination =
 	| { destinationIndex: number; reason: 'valid' }
 	| { destinationIndex: number; reason: 'first-row' | 'last-row' };
 
-export type KeyboardReorderCompletionFocus = {
-	deferUntilRowsUpdate: boolean;
-	id: string;
-};
-
 export const getKeyboardMoveDirection = ( key: string ): KeyboardMoveDirection | null => {
 	if ( key === 'ArrowUp' ) {
 		return 'up';
@@ -64,11 +59,3 @@ export const getInsertionIndexForKeyboardDestination = (
 	sourceIndex: number,
 	destinationIndex: number
 ): number => ( destinationIndex > sourceIndex ? destinationIndex + 1 : destinationIndex );
-
-export const getKeyboardReorderCompletionFocus = (
-	sourceId: string,
-	didCommit: boolean
-): KeyboardReorderCompletionFocus => ( {
-	deferUntilRowsUpdate: didCommit,
-	id: sourceId,
-} );
