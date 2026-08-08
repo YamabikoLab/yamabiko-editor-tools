@@ -21,6 +21,16 @@ type TableOptions = {
 };
 
 const basicRows = [ 'Row 1', 'Row 2', 'Row 3', 'Row 4' ];
+const mergedRows = [
+	'Normal A',
+	'Normal B',
+	'Colspan',
+	'Normal C',
+	'Rowspan start',
+	'Rowspan continuation',
+	'Normal D',
+	'Normal E',
+];
 const longRows = Array.from(
 	{ length: 30 },
 	( _, index ) => `Row ${ String( index + 1 ).padStart( 2, '0' ) }`
@@ -39,6 +49,10 @@ function tableBlock( rows: readonly string[], { align }: TableOptions = {} ): st
 const basicTable = ( options?: TableOptions ) => tableBlock( basicRows, options );
 
 const longTable = () => tableBlock( longRows );
+
+const mergedCellsTable = () => `<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td>Normal A</td><td>Normal A value</td></tr><tr><td>Normal B</td><td>Normal B value</td></tr><tr><td colspan="2">Colspan</td></tr><tr><td>Normal C</td><td>Normal C value</td></tr><tr><td rowspan="2">Rowspan start</td><td>Rowspan start value</td></tr><tr><td>Rowspan continuation</td></tr><tr><td>Normal D</td><td>Normal D value</td></tr><tr><td>Normal E</td><td>Normal E value</td></tr></tbody></table></figure>
+<!-- /wp:table -->`;
 
 function rowHandle( canvas: Canvas, row: number ): Locator {
 	return canvas.getByRole( 'button', {
@@ -92,6 +106,63 @@ async function moveRowWithKeyboard( handle: Locator, direction: 'ArrowDown' | 'A
 	await handle.press( 'Enter' );
 	await handle.press( direction );
 	await handle.press( 'Enter' );
+}
+
+async function nextAnimationFrame( locator: Locator ) {
+	await locator.evaluate(
+		( element ) =>
+			new Promise< void >( ( resolve ) => {
+				element.ownerDocument.defaultView?.requestAnimationFrame( () => resolve() );
+			} )
+	);
+}
+
+async function moveRowWithPointer( {
+	canvas,
+	page,
+	table,
+	from,
+	to,
+}: {
+	canvas: Canvas;
+	from: number;
+	page: Page;
+	table: Locator;
+	to: number;
+} ) {
+	const handle = rowHandle( canvas, from + 1 );
+	const target = table.locator( 'tbody > tr' ).nth( to );
+	const sourceBox = await handle.boundingBox();
+	const targetBox = await target.boundingBox();
+
+	if ( ! sourceBox || ! targetBox ) {
+		throw new Error( 'Expected the source handle and target row to have bounding boxes.' );
+	}
+	await page.mouse.move( sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2 );
+	await page.mouse.down();
+	await page.mouse.move(
+		sourceBox.x + sourceBox.width / 2,
+		sourceBox.y + sourceBox.height / 2 + 1
+	);
+	await nextAnimationFrame( handle );
+	const targetY = targetBox.y + targetBox.height * ( from < to ? 0.75 : 0.25 );
+	const steps = from < to ? 9 : 10;
+	for ( let step = 1; step <= steps; step += 1 ) {
+		await page.mouse.move(
+			sourceBox.x + sourceBox.width / 2,
+			sourceBox.y +
+				sourceBox.height / 2 +
+				( ( targetY - ( sourceBox.y + sourceBox.height / 2 ) ) * step ) / 10
+		);
+		await nextAnimationFrame( handle );
+	}
+	await page.mouse.move( sourceBox.x + sourceBox.width / 2, targetY - 1 );
+	await nextAnimationFrame( handle );
+	await nextAnimationFrame( handle );
+	await expect(
+		canvas.locator( '.yamabiko-editor-tools-table-reorder-content__insertion-indicator' )
+	).toBeVisible();
+	await page.mouse.up();
 }
 
 async function undo( pageUtils: { pressKeys: ( key: string ) => Promise< void > } ) {
@@ -233,6 +304,84 @@ test( 'undoes and redoes a keyboard reorder in the iframe editor', async ( {
 	await expectRows( table, basicRows );
 	await redo( fixtures.pageUtils );
 	await expectRows( table, movedRows );
+} );
+
+test( 'reorders a row with the pointer and supports undo and redo in the iframe editor', async ( {
+	admin,
+	editor,
+	page,
+	pageUtils,
+} ) => {
+	const fixtures: TestFixtures = { admin, editor, page, pageUtils };
+	const { canvas, table } = await prepareTable( fixtures, basicTable() );
+	await enableReorderMode( {
+		canvas,
+		editor: fixtures.editor,
+		page: fixtures.page,
+		table,
+		row: 4,
+	} );
+
+	await moveRowWithPointer( { canvas, from: 3, page, table, to: 1 } );
+	const movedRows = [ 'Row 1', 'Row 2', 'Row 4', 'Row 3' ];
+	await expect( tableRows( table ) ).toHaveText( movedRows );
+	await undo( fixtures.pageUtils );
+	await expectRows( table, basicRows );
+	await redo( fixtures.pageUtils );
+	await expectRows( table, movedRows );
+} );
+
+test( 'allows a safe keyboard reorder across a colspan row in the iframe editor', async ( {
+	admin,
+	editor,
+	page,
+	pageUtils,
+} ) => {
+	const fixtures: TestFixtures = { admin, editor, page, pageUtils };
+	const { canvas, table } = await prepareTable( fixtures, mergedCellsTable() );
+	const handle = await enableReorderMode( {
+		canvas,
+		cellText: 'Normal C',
+		editor: fixtures.editor,
+		page: fixtures.page,
+		table,
+		row: 4,
+	} );
+
+	await moveRowWithKeyboard( handle, 'ArrowUp' );
+	await expect( tableRows( table ) ).toHaveText( [
+		'Normal A',
+		'Normal B',
+		'Normal C',
+		'Colspan',
+		'Rowspan start',
+		'Rowspan continuation',
+		'Normal D',
+		'Normal E',
+	] );
+} );
+
+test( 'rejects a keyboard reorder that would split a rowspan in the iframe editor', async ( {
+	admin,
+	editor,
+	page,
+	pageUtils,
+} ) => {
+	const fixtures: TestFixtures = { admin, editor, page, pageUtils };
+	const { canvas, table } = await prepareTable( fixtures, mergedCellsTable() );
+	const handle = await enableReorderMode( {
+		canvas,
+		cellText: 'Normal D',
+		editor: fixtures.editor,
+		page: fixtures.page,
+		table,
+		row: 7,
+	} );
+
+	await handle.press( 'Enter' );
+	await handle.press( 'ArrowUp' );
+	await handle.press( 'Enter' );
+	await expect( tableRows( table ) ).toHaveText( mergedRows );
 } );
 
 test( 'records consecutive keyboard reorders as separate undo steps in the iframe editor', async ( {
