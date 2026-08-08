@@ -1,9 +1,7 @@
 import type { BlockEditProps } from '@wordpress/blocks';
 import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 
-const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
-const SORTABLE_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 
 type TableAttributes = Record< string, unknown > & {
@@ -48,6 +46,12 @@ type SortableWindow = Window & {
 	Sortable?: SortableRuntime;
 };
 
+type PocConfigWindow = Window & {
+	yamabikoEditorToolsSortableJsPoc?: {
+		runtimeUrl?: string;
+	};
+};
+
 const restoreOriginalRowOrder = (
 	tbody: HTMLTableSectionElement,
 	rows: readonly HTMLTableRowElement[]
@@ -79,10 +83,7 @@ const reorderRows = (
 	return reordered;
 };
 
-const addMinimalHandles = (
-	document: Document,
-	tbody: HTMLTableSectionElement
-): HTMLElement[] => {
+const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement ): HTMLElement[] => {
 	const handles: HTMLElement[] = [];
 
 	for ( const row of Array.from( tbody.rows ) ) {
@@ -141,7 +142,8 @@ const findBlockElement = (
 
 const ensureIframeSortable = (
 	document: Document,
-	view: SortableWindow
+	view: SortableWindow,
+	runtimeUrl: string
 ): Promise< SortableRuntime | null > => {
 	if ( view.Sortable ) {
 		return Promise.resolve( view.Sortable );
@@ -166,14 +168,10 @@ const ensureIframeSortable = (
 	return new Promise( ( resolve ) => {
 		const script = document.createElement( 'script' );
 		script.id = SORTABLE_SCRIPT_ID;
-		script.src = SORTABLE_SCRIPT_URL;
+		script.src = runtimeUrl;
 		script.addEventListener(
 			'load',
 			() => {
-				console.info( LOG_PREFIX, 'iframe CDN runtime loaded', {
-					available: Boolean( view.Sortable ),
-					inIframe: view !== window,
-				} );
 				resolve( view.Sortable ?? null );
 			},
 			{ once: true }
@@ -181,7 +179,6 @@ const ensureIframeSortable = (
 		script.addEventListener(
 			'error',
 			() => {
-				console.warn( LOG_PREFIX, 'failed to load SortableJS inside iframe' );
 				resolve( null );
 			},
 			{ once: true }
@@ -193,10 +190,16 @@ const ensureIframeSortable = (
 export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithSortableJsTableReorderPoc( props: TableBlockEditProps ) {
 		const anchorRef = useRef< HTMLSpanElement >( null );
+		const {
+			attributes: { body },
+			clientId,
+			isSelected,
+			setAttributes,
+		} = props;
 		const isTableBlock = props.name === 'core/table';
 
 		useEffect( () => {
-			if ( ! isTableBlock || ! props.isSelected ) {
+			if ( ! isTableBlock || ! isSelected ) {
 				return;
 			}
 
@@ -205,27 +208,22 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const target = findBlockElement( anchor.ownerDocument, props.clientId );
+			const runtimeUrl = ( window as PocConfigWindow ).yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
+			if ( ! runtimeUrl ) {
+				return;
+			}
+
+			const target = findBlockElement( anchor.ownerDocument, clientId );
 			const blockElement = target?.block ?? null;
 			const document = target?.document ?? null;
 			const view = document?.defaultView as SortableWindow | null;
 			const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
 			const tbody = table?.tBodies.item( 0 ) ?? null;
 			if ( ! blockElement || ! document || ! view || ! tbody ) {
-				console.warn( LOG_PREFIX, 'selected Table tbody not found', props.clientId );
 				return;
 			}
 
-			console.info( LOG_PREFIX, 'testing iframe CDN Sortable', {
-				clientId: props.clientId,
-				inIframe: view !== window,
-				rows: tbody.rows.length,
-			} );
-
 			const handles = addMinimalHandles( document, tbody );
-			console.info( LOG_PREFIX, 'minimal handles added', {
-				handles: handles.length,
-			} );
 
 			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 			for ( const eventName of blockSelectionEvents ) {
@@ -237,7 +235,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			let dragRows: HTMLTableRowElement[] | null = null;
 			let lastMoveRelatedIndex: number | null = null;
 
-			void ensureIframeSortable( document, view ).then( ( Sortable ) => {
+			void ensureIframeSortable( document, view, runtimeUrl ).then( ( Sortable ) => {
 				if ( cancelled || ! Sortable ) {
 					return;
 				}
@@ -249,29 +247,16 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					handle: `.${ HANDLE_CLASS }`,
 					onChoose: () => {
 						dragRows = Array.from( tbody.rows );
-						console.info( LOG_PREFIX, 'onChoose', {
-							rows: dragRows.length,
-						} );
 					},
 					onStart: () => {
 						lastMoveRelatedIndex = null;
-						console.info( LOG_PREFIX, 'onStart', {
-							rows: tbody.rows.length,
-						} );
 					},
-					onMove: ( event, originalEvent ) => {
+					onMove: ( event ) => {
 						const relatedRow = event.related.closest( 'tr' );
-						const relatedIndex = relatedRow
-							? Array.from( tbody.rows ).indexOf( relatedRow )
-							: -1;
+						const relatedIndex = relatedRow ? Array.from( tbody.rows ).indexOf( relatedRow ) : -1;
 
 						if ( relatedIndex !== lastMoveRelatedIndex ) {
 							lastMoveRelatedIndex = relatedIndex;
-							console.info( LOG_PREFIX, 'onMove', {
-								originalEvent: originalEvent.type,
-								relatedIndex,
-								willInsertAfter: event.willInsertAfter,
-							} );
 						}
 					},
 					onEnd: ( event ) => {
@@ -281,46 +266,23 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 						lastMoveRelatedIndex = null;
 
-						console.info( LOG_PREFIX, 'onEnd', {
-							newIndex: event.newIndex,
-							oldIndex: event.oldIndex,
-							rows: tbody.rows.length,
-						} );
-
 						const { oldIndex, newIndex } = event;
-						if (
-							oldIndex === undefined ||
-							newIndex === undefined ||
-							oldIndex === newIndex
-						) {
+						if ( oldIndex === undefined || newIndex === undefined || oldIndex === newIndex ) {
 							return;
 						}
 
-						const body = props.attributes.body;
 						if ( ! Array.isArray( body ) ) {
-							console.warn( LOG_PREFIX, 'Table body attribute is unavailable' );
 							return;
 						}
 
 						const reorderedBody = reorderRows( body, oldIndex, newIndex );
 						if ( ! reorderedBody ) {
-							console.warn( LOG_PREFIX, 'invalid reorder indices', {
-								bodyRows: body.length,
-								newIndex,
-								oldIndex,
-							} );
 							return;
 						}
 
-						props.setAttributes( { body: reorderedBody } );
-						console.info( LOG_PREFIX, 'Table body attribute reordered', {
-							newIndex,
-							oldIndex,
-						} );
+						setAttributes( { body: reorderedBody } );
 					},
 				} );
-
-				console.info( LOG_PREFIX, 'Sortable.create via iframe window' );
 			} );
 
 			return () => {
@@ -337,7 +299,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					handle.remove();
 				}
 			};
-		}, [ isTableBlock, props.attributes.body, props.clientId, props.isSelected ] );
+		}, [ body, clientId, isSelected, isTableBlock, setAttributes ] );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
@@ -346,7 +308,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		return (
 			<>
 				<BlockEdit { ...props } />
-				{ props.isSelected && <span aria-hidden="true" hidden ref={ anchorRef } /> }
+				{ isSelected && <span aria-hidden="true" hidden ref={ anchorRef } /> }
 			</>
 		);
 	};
