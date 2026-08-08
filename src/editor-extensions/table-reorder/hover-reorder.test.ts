@@ -49,6 +49,7 @@ describe( 'enableTableHoverReorder', () => {
 		} );
 		const blockElement = document.querySelector< HTMLElement >( '[data-block="table-1"]' )!;
 		const table = blockElement.querySelector< HTMLTableElement >( 'table' )!;
+		const cell = table.querySelector< HTMLTableCellElement >( 'td' )!;
 		const handle = document.querySelector< HTMLButtonElement >(
 			'.yamabiko-editor-tools-table-reorder-content__handle'
 		)!;
@@ -56,7 +57,7 @@ describe( 'enableTableHoverReorder', () => {
 		const onActiveChange = jest.fn();
 		const disable = enableTableHoverReorder( blockElement, table, onActiveChange );
 
-		return { disable, handle, onActiveChange, outside, table };
+		return { cell, disable, handle, onActiveChange, outside, table };
 	};
 
 	it( 'activates for mouse hover on a hover-capable device', () => {
@@ -102,6 +103,45 @@ describe( 'enableTableHoverReorder', () => {
 		jest.advanceTimersByTime( 1 );
 
 		expect( onActiveChange ).toHaveBeenLastCalledWith( false );
+		disable();
+	} );
+
+	it( 'hides handles when a table cell is clicked for editing', () => {
+		const { cell, disable, handle, onActiveChange, table } = setup();
+		dispatchPointerEvent( table, 'pointerenter' );
+		handle.classList.add( 'is-hover-reorder-handle', 'is-hover-reorder-visible' );
+
+		dispatchPointerEvent( cell, 'pointerdown' );
+
+		expect( handle.classList.contains( 'is-hover-reorder-visible' ) ).toBe( false );
+		jest.advanceTimersByTime( 300 );
+		expect( onActiveChange ).toHaveBeenLastCalledWith( false );
+		disable();
+	} );
+
+	it( 'does not reactivate while the pointer remains over the table after editing starts', () => {
+		const { cell, disable, onActiveChange, table } = setup();
+		dispatchPointerEvent( table, 'pointerenter' );
+		dispatchPointerEvent( cell, 'pointerdown' );
+		jest.advanceTimersByTime( 300 );
+
+		dispatchPointerEvent( cell, 'pointermove' );
+
+		expect( onActiveChange ).toHaveBeenCalledTimes( 2 );
+		expect( onActiveChange ).toHaveBeenLastCalledWith( false );
+		disable();
+	} );
+
+	it( 'reactivates only after leaving the table and hovering it again', () => {
+		const { cell, disable, onActiveChange, outside, table } = setup();
+		dispatchPointerEvent( table, 'pointerenter' );
+		dispatchPointerEvent( cell, 'pointerdown' );
+		jest.advanceTimersByTime( 300 );
+
+		dispatchPointerEvent( outside, 'pointermove' );
+		dispatchPointerEvent( table, 'pointerenter' );
+
+		expect( onActiveChange ).toHaveBeenLastCalledWith( true );
 		disable();
 	} );
 
