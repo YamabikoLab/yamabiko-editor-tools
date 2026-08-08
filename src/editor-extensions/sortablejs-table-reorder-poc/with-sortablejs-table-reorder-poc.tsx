@@ -1,7 +1,6 @@
 import type { BlockEditProps } from '@wordpress/blocks';
 import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 
-const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 
@@ -173,10 +172,6 @@ const ensureIframeSortable = (
 		script.addEventListener(
 			'load',
 			() => {
-				console.info( LOG_PREFIX, 'iframe local runtime loaded', {
-					available: Boolean( view.Sortable ),
-					inIframe: view !== window,
-				} );
 				resolve( view.Sortable ?? null );
 			},
 			{ once: true }
@@ -184,7 +179,6 @@ const ensureIframeSortable = (
 		script.addEventListener(
 			'error',
 			() => {
-				console.warn( LOG_PREFIX, 'failed to load local SortableJS inside iframe' );
 				resolve( null );
 			},
 			{ once: true }
@@ -210,7 +204,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 			const runtimeUrl = ( window as PocConfigWindow ).yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
 			if ( ! runtimeUrl ) {
-				console.warn( LOG_PREFIX, 'local SortableJS runtime URL is unavailable' );
 				return;
 			}
 
@@ -221,20 +214,10 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
 			const tbody = table?.tBodies.item( 0 ) ?? null;
 			if ( ! blockElement || ! document || ! view || ! tbody ) {
-				console.warn( LOG_PREFIX, 'selected Table tbody not found', props.clientId );
 				return;
 			}
 
-			console.info( LOG_PREFIX, 'testing iframe local Sortable', {
-				clientId: props.clientId,
-				inIframe: view !== window,
-				rows: tbody.rows.length,
-			} );
-
 			const handles = addMinimalHandles( document, tbody );
-			console.info( LOG_PREFIX, 'minimal handles added', {
-				handles: handles.length,
-			} );
 
 			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 			for ( const eventName of blockSelectionEvents ) {
@@ -258,27 +241,16 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					handle: `.${ HANDLE_CLASS }`,
 					onChoose: () => {
 						dragRows = Array.from( tbody.rows );
-						console.info( LOG_PREFIX, 'onChoose', {
-							rows: dragRows.length,
-						} );
 					},
 					onStart: () => {
 						lastMoveRelatedIndex = null;
-						console.info( LOG_PREFIX, 'onStart', {
-							rows: tbody.rows.length,
-						} );
 					},
-					onMove: ( event, originalEvent ) => {
+					onMove: ( event ) => {
 						const relatedRow = event.related.closest( 'tr' );
 						const relatedIndex = relatedRow ? Array.from( tbody.rows ).indexOf( relatedRow ) : -1;
 
 						if ( relatedIndex !== lastMoveRelatedIndex ) {
 							lastMoveRelatedIndex = relatedIndex;
-							console.info( LOG_PREFIX, 'onMove', {
-								originalEvent: originalEvent.type,
-								relatedIndex,
-								willInsertAfter: event.willInsertAfter,
-							} );
 						}
 					},
 					onEnd: ( event ) => {
@@ -288,12 +260,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 						lastMoveRelatedIndex = null;
 
-						console.info( LOG_PREFIX, 'onEnd', {
-							newIndex: event.newIndex,
-							oldIndex: event.oldIndex,
-							rows: tbody.rows.length,
-						} );
-
 						const { oldIndex, newIndex } = event;
 						if ( oldIndex === undefined || newIndex === undefined || oldIndex === newIndex ) {
 							return;
@@ -301,29 +267,17 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 						const body = props.attributes.body;
 						if ( ! Array.isArray( body ) ) {
-							console.warn( LOG_PREFIX, 'Table body attribute is unavailable' );
 							return;
 						}
 
 						const reorderedBody = reorderRows( body, oldIndex, newIndex );
 						if ( ! reorderedBody ) {
-							console.warn( LOG_PREFIX, 'invalid reorder indices', {
-								bodyRows: body.length,
-								newIndex,
-								oldIndex,
-							} );
 							return;
 						}
 
 						props.setAttributes( { body: reorderedBody } );
-						console.info( LOG_PREFIX, 'Table body attribute reordered', {
-							newIndex,
-							oldIndex,
-						} );
 					},
 				} );
-
-				console.info( LOG_PREFIX, 'Sortable.create via iframe window' );
 			} );
 
 			return () => {
