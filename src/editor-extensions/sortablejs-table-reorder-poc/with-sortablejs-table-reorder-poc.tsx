@@ -1,9 +1,5 @@
-import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
-import { ToolbarButton } from '@wordpress/components';
-import { useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
-import { dragHandle } from '@wordpress/icons';
+import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 import Sortable, { type MoveEvent, type SortableEvent } from 'sortablejs';
 
 import { reorderRows } from '../table-reorder/reorder';
@@ -155,19 +151,12 @@ export const withSortableJsTableReorderPoc = (
 	BlockEdit: ComponentType< TableBlockEditProps >
 ) =>
 	function WithSortableJsTableReorderPoc( props: TableBlockEditProps ) {
-		const [ isEnabled, setIsEnabled ] = useState( false );
 		const anchorRef = useRef< HTMLSpanElement >( null );
 		const dragSnapshotRef = useRef< DragSnapshot | null >( null );
 		const isTableBlock = props.name === 'core/table';
 
 		useEffect( () => {
-			if ( ! props.isSelected ) {
-				setIsEnabled( false );
-			}
-		}, [ props.isSelected ] );
-
-		useEffect( () => {
-			if ( ! isEnabled || ! props.isSelected ) {
+			if ( ! isTableBlock || ! props.isSelected ) {
 				return;
 			}
 
@@ -330,7 +319,7 @@ export const withSortableJsTableReorderPoc = (
 				uninstallStyles();
 			};
 		}, [
-			isEnabled,
+			isTableBlock,
 			props.attributes.body,
 			props.clientId,
 			props.isSelected,
@@ -344,17 +333,7 @@ export const withSortableJsTableReorderPoc = (
 		return (
 			<>
 				<BlockEdit { ...props } />
-				<span aria-hidden="true" hidden ref={ anchorRef } />
-				{ props.isSelected && (
-					<BlockControls>
-						<ToolbarButton
-							icon={ dragHandle }
-							isPressed={ isEnabled }
-							label={ __( 'SortableJS row reorder PoC', 'yamabiko-editor-tools' ) }
-							onClick={ () => setIsEnabled( ( current: boolean ) => ! current ) }
-						/>
-					</BlockControls>
-				) }
+				{ props.isSelected && <span aria-hidden="true" hidden ref={ anchorRef } /> }
 			</>
 		);
 	};
