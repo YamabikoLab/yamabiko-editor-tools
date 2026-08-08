@@ -248,12 +248,16 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					forceFallback: true,
 					handle: `.${ HANDLE_CLASS }`,
 					onChoose: () => {
-						console.info( LOG_PREFIX, 'onChoose' );
+						dragRows = Array.from( tbody.rows );
+						console.info( LOG_PREFIX, 'onChoose', {
+							rows: dragRows.length,
+						} );
 					},
 					onStart: () => {
-						dragRows = Array.from( tbody.rows );
 						lastMoveRelatedIndex = null;
-						console.info( LOG_PREFIX, 'onStart' );
+						console.info( LOG_PREFIX, 'onStart', {
+							rows: tbody.rows.length,
+						} );
 					},
 					onMove: ( event, originalEvent ) => {
 						const relatedRow = event.related.closest( 'tr' );
@@ -280,6 +284,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						console.info( LOG_PREFIX, 'onEnd', {
 							newIndex: event.newIndex,
 							oldIndex: event.oldIndex,
+							rows: tbody.rows.length,
 						} );
 
 						const { oldIndex, newIndex } = event;
