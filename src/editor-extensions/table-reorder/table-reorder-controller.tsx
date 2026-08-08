@@ -9,7 +9,14 @@ import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { useDispatch } from '@wordpress/data';
 import type { KeyboardEvent } from 'react';
-import { createPortal, useCallback, useEffect, useMemo, useRef, useState } from '@wordpress/element';
+import {
+	createPortal,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
@@ -112,18 +119,21 @@ export function TableReorderController( {
 		lastAnnouncement.current = message;
 		setLiveMessage( message );
 	}, [] );
-	const focusHandle = useCallback( ( id: string ) => {
-		const view = anchorRef.current?.ownerDocument.defaultView;
-		if ( ! view ) {
-			return;
-		}
+	const focusHandle = useCallback(
+		( id: string ) => {
+			const view = anchorRef.current?.ownerDocument.defaultView;
+			if ( ! view ) {
+				return;
+			}
 
-		view.requestAnimationFrame( () => {
 			view.requestAnimationFrame( () => {
-				handleElements.current.get( id )?.focus( { preventScroll: true } );
+				view.requestAnimationFrame( () => {
+					handleElements.current.get( id )?.focus( { preventScroll: true } );
+				} );
 			} );
-		} );
-	}, [ anchorRef ] );
+		},
+		[ anchorRef ]
+	);
 	const scrollRowIntoView = useCallback( ( row: TableRow ) => {
 		const view = row.element.ownerDocument.defaultView;
 		if ( ! view ) {

@@ -24,12 +24,7 @@ type UseTableReorderDomOptions = {
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 
-export function useTableReorderDom( {
-	align,
-	body,
-	clientId,
-	onExit,
-}: UseTableReorderDomOptions ) {
+export function useTableReorderDom( { align, body, clientId, onExit }: UseTableReorderDomOptions ) {
 	const anchorRef = useRef< HTMLSpanElement >( null );
 	const [ container, setContainer ] = useState< HTMLDivElement | null >( null );
 	const [ rows, setRows ] = useState< TableRow[] >( [] );
