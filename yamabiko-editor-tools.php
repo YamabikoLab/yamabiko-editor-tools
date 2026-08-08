@@ -61,7 +61,7 @@ final class Plugin {
 	}
 
 	/**
-	 * Enqueues Table Reorder styles in the editor content document.
+	 * Enqueues Table Reorder styles and the SortableJS PoC runtime in editor content.
 	 */
 	public static function enqueue_table_reorder_content_assets(): void {
 		if ( ! is_admin() ) {
@@ -69,6 +69,39 @@ final class Plugin {
 		}
 
 		self::enqueue_table_reorder_asset( 'content', 'style' );
+		self::enqueue_sortablejs_poc_runtime();
+	}
+
+	/**
+	 * Enqueues the npm-bundled SortableJS PoC runtime in editor content.
+	 */
+	private static function enqueue_sortablejs_poc_runtime(): void {
+		$asset_path = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/content.asset.php';
+		$file_path  = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/content.js';
+
+		if ( ! is_readable( $asset_path ) || ! is_readable( $file_path ) ) {
+			return;
+		}
+
+		$asset = require $asset_path;
+		if ( ! is_array( $asset ) ) {
+			return;
+		}
+
+		$dependencies = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
+			? $asset['dependencies']
+			: array();
+		$version      = isset( $asset['version'] ) && is_string( $asset['version'] )
+			? $asset['version']
+			: false;
+
+		wp_enqueue_script(
+			'yamabiko-editor-tools-sortablejs-table-reorder-poc-content',
+			plugins_url( 'build/editor-extensions/sortablejs-table-reorder-poc/content.js', __FILE__ ),
+			$dependencies,
+			$version,
+			true
+		);
 	}
 
 	/**
