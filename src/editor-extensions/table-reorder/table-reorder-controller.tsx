@@ -8,7 +8,6 @@ import {
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { useDispatch } from '@wordpress/data';
-import type { KeyboardEvent } from 'react';
 import {
 	createPortal,
 	useCallback,
@@ -17,7 +16,6 @@ import {
 	useRef,
 	useState,
 } from '@wordpress/element';
-import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import {
@@ -29,14 +27,12 @@ import {
 } from './drag-session';
 import { TableReorderDragVisuals, type InsertionIndicator } from './drag-visuals';
 import { DragRowOverlay } from './drag-row-overlay';
-import {
-	getInsertionIndexForKeyboardDestination,
-	getKeyboardDestination,
-	getKeyboardMoveDirection,
-	isKeyboardReorderToggleKey,
-} from './keyboard-reorder';
 import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { SortableRow } from './sortable-row';
+import {
+	ROWSPAN_REORDER_ERROR_MESSAGE,
+	useKeyboardReorder,
+} from './use-keyboard-reorder';
 import { type TableRow, useTableReorderDom } from './use-table-reorder-dom';
 
 type TableReorderControllerProps = {
@@ -47,17 +43,6 @@ type TableReorderControllerProps = {
 	onExit: () => void;
 	setAttributes: ( attributes: { body: unknown[] } ) => void;
 };
-
-type KeyboardReorderState = {
-	destinationIndex: number;
-	sourceId: string;
-	sourceIndex: number;
-};
-
-const ROWSPAN_REORDER_ERROR_MESSAGE = __(
-	'Rows cannot be moved to a position that splits merged cells. Unmerge the cells before reordering.',
-	'yamabiko-editor-tools'
-);
 
 export function TableReorderController( {
 	align,
@@ -78,16 +63,11 @@ export function TableReorderController( {
 		suspendRowsReconciliation,
 	} = useTableReorderDom( { align, body, clientId, onExit } );
 	const [ activeRow, setActiveRow ] = useState< TableRow | null >( null );
-	const [ keyboardReorder, setKeyboardReorder ] = useState< KeyboardReorderState | null >( null );
-	const [ liveMessage, setLiveMessage ] = useState( '' );
 	const [ insertionIndicator, setInsertionIndicator ] = useState< InsertionIndicator | null >(
 		null
 	);
 	const handleElements = useRef< Map< string, HTMLButtonElement > >( new Map() );
-	const keyboardReorderRef = useRef< KeyboardReorderState | null >( null );
-	const lastAnnouncement = useRef< string | null >( null );
 	const hasShownForbiddenNotice = useRef( false );
-	const pendingFocusId = useRef< string | null >( null );
 	const overlayElement = useRef< HTMLDivElement | null >( null );
 	const dragRows = useRef< Map< string, TableRow > >( new Map() );
 	const dragSession = useRef< TableReorderDragSession | null >( null );
@@ -108,17 +88,15 @@ export function TableReorderController( {
 		[]
 	);
 
-	const clearDragVisuals = useCallback( () => {
+	const clearCandidate = useCallback( () => {
 		dragVisuals.current?.clear();
 	}, [] );
-	const announce = useCallback( ( message: string ) => {
-		if ( lastAnnouncement.current === message ) {
-			return;
-		}
-
-		lastAnnouncement.current = message;
-		setLiveMessage( message );
-	}, [] );
+	const showCandidate = useCallback(
+		( ...args: Parameters< TableReorderDragVisuals[ 'showCandidate' ] > ) => {
+			dragVisuals.current?.showCandidate( ...args );
+		},
+		[]
+	);
 	const focusHandle = useCallback(
 		( id: string ) => {
 			const view = anchorRef.current?.ownerDocument.defaultView;
@@ -134,29 +112,6 @@ export function TableReorderController( {
 		},
 		[ anchorRef ]
 	);
-	const scrollRowIntoView = useCallback( ( row: TableRow ) => {
-		const view = row.element.ownerDocument.defaultView;
-		if ( ! view ) {
-			return;
-		}
-
-		view.requestAnimationFrame( () => {
-			row.element.scrollIntoView( {
-				behavior: 'auto',
-				block: 'nearest',
-				inline: 'nearest',
-			} );
-		} );
-	}, [] );
-	useEffect( () => {
-		const id = pendingFocusId.current;
-		if ( ! id || ! rows.some( ( row ) => row.id === id ) ) {
-			return;
-		}
-
-		pendingFocusId.current = null;
-		focusHandle( id );
-	}, [ focusHandle, rows ] );
 
 	useEffect( () => {
 		const visuals = new TableReorderDragVisuals( setInsertionIndicator );
@@ -178,6 +133,17 @@ export function TableReorderController( {
 		createErrorNotice( ROWSPAN_REORDER_ERROR_MESSAGE, { type: 'snackbar' } );
 	}, [ createErrorNotice ] );
 
+	const { keyboardReorder, liveMessage, onHandleKeyDown } = useKeyboardReorder( {
+		body,
+		clearCandidate,
+		focusHandle,
+		getRows,
+		nonMovableRows,
+		rows,
+		setAttributes,
+		showCandidate,
+	} );
+
 	const onHandleChange = useCallback( ( id: string, element: HTMLButtonElement | null ) => {
 		if ( element ) {
 			handleElements.current.set( id, element );
@@ -192,19 +158,18 @@ export function TableReorderController( {
 
 	useEffect(
 		() => () => {
-			clearDragVisuals();
+			clearCandidate();
 			dragSession.current = null;
 			dragRows.current = new Map();
-			keyboardReorderRef.current = null;
 			stopWaitingForDragCleanup.current();
 			resumeRowsReconciliation();
 		},
-		[ clearDragVisuals, resumeRowsReconciliation ]
+		[ clearCandidate, resumeRowsReconciliation ]
 	);
 
 	const onDragStart = useCallback(
 		( { operation: { source } }: DragStartEvent ) => {
-			if ( keyboardReorderRef.current ) {
+			if ( keyboardReorder ) {
 				return;
 			}
 
@@ -226,15 +191,15 @@ export function TableReorderController( {
 			dragRows.current = new Map( rows.map( ( candidate ) => [ candidate.id, candidate ] ) );
 			dragSession.current = session;
 			stopWaitingForDragCleanup.current();
-			clearDragVisuals();
+			clearCandidate();
 			setActiveRow( row );
 		},
-		[ body, clearDragVisuals, rows, suspendRowsReconciliation ]
+		[ body, clearCandidate, keyboardReorder, rows, suspendRowsReconciliation ]
 	);
 
 	const updateDragTarget = useCallback(
 		( event: DragMoveEvent | DragOverEvent ) => {
-			if ( keyboardReorderRef.current ) {
+			if ( keyboardReorder ) {
 				event.preventDefault();
 				return;
 			}
@@ -246,14 +211,14 @@ export function TableReorderController( {
 					dragSession.current = clearTableReorderDragTarget( session );
 				}
 				event.preventDefault();
-				clearDragVisuals();
+				clearCandidate();
 				return;
 			}
 
 			if ( ! isSortable( target ) || source.sortable.group !== target.sortable.group ) {
 				dragSession.current = clearTableReorderDragTarget( session );
 				event.preventDefault();
-				clearDragVisuals();
+				clearCandidate();
 				return;
 			}
 
@@ -261,7 +226,7 @@ export function TableReorderController( {
 			if ( ! targetRow ) {
 				dragSession.current = clearTableReorderDragTarget( session );
 				event.preventDefault();
-				clearDragVisuals();
+				clearCandidate();
 				return;
 			}
 
@@ -276,16 +241,16 @@ export function TableReorderController( {
 			if ( update.isForbidden ) {
 				event.preventDefault();
 				showForbiddenNotice();
-				clearDragVisuals();
+				clearCandidate();
 				return;
 			}
 
 			if ( ! update.session.target ) {
-				clearDragVisuals();
+				clearCandidate();
 				return;
 			}
 
-			dragVisuals.current?.showCandidate(
+			showCandidate(
 				Array.from( dragRows.current.values(), ( row ) => ( {
 					...row,
 					height: row.element.getBoundingClientRect().height,
@@ -295,191 +260,12 @@ export function TableReorderController( {
 				update.session.target.insertionIndex
 			);
 		},
-		[ clearDragVisuals, showForbiddenNotice ]
-	);
-
-	const onHandleKeyDown = useCallback(
-		( event: KeyboardEvent< HTMLButtonElement >, id: string ) => {
-			const keyboardState = keyboardReorderRef.current;
-			const direction = getKeyboardMoveDirection( event.key );
-			const isToggleKey = isKeyboardReorderToggleKey( event.key );
-			const isCancelKey = event.key === 'Escape';
-			if ( ! direction && ! isToggleKey && ! isCancelKey ) {
-				return;
-			}
-
-			event.preventDefault();
-			if ( keyboardState && keyboardState.sourceId !== id ) {
-				return;
-			}
-
-			if ( ! keyboardState ) {
-				const currentRows = getRows();
-				const row = currentRows.find( ( candidate ) => candidate.id === id );
-				if ( ! isToggleKey || ! row ) {
-					return;
-				}
-
-				if ( nonMovableRows.has( row.index ) ) {
-					announce( ROWSPAN_REORDER_ERROR_MESSAGE );
-					return;
-				}
-
-				const session = beginTableReorderDrag( body, row.id, row.index );
-				if ( ! session ) {
-					return;
-				}
-
-				const nextState = {
-					destinationIndex: row.index,
-					sourceId: row.id,
-					sourceIndex: row.index,
-				};
-				keyboardReorderRef.current = nextState;
-				setKeyboardReorder( nextState );
-				dragRows.current = new Map(
-					currentRows.map( ( candidate ) => [ candidate.id, candidate ] )
-				);
-				dragSession.current = session;
-				hasShownForbiddenNotice.current = false;
-				lastAnnouncement.current = null;
-				announce(
-					sprintf(
-						/* translators: 1: table body row number, 2: total table body rows. */
-						__( 'Started reordering row %1$d of %2$d.', 'yamabiko-editor-tools' ),
-						row.index + 1,
-						currentRows.length
-					)
-				);
-				return;
-			}
-
-			if ( isCancelKey ) {
-				clearDragVisuals();
-				dragSession.current = null;
-				dragRows.current = new Map();
-				keyboardReorderRef.current = null;
-				setKeyboardReorder( null );
-				announce(
-					sprintf(
-						/* translators: %d: table body row number. */
-						__( 'Reordering canceled. Row remains at position %d.', 'yamabiko-editor-tools' ),
-						keyboardState.sourceIndex + 1
-					)
-				);
-				focusHandle( keyboardState.sourceId );
-				return;
-			}
-
-			if ( isToggleKey ) {
-				const session = dragSession.current;
-				const didCommit = commitTableReorderDrag(
-					session,
-					{
-						canceled: false,
-						sourceId: keyboardState.sourceId,
-						targetId: session?.target?.targetId ?? null,
-					},
-					( nextBody ) => setAttributes( { body: nextBody } )
-				);
-				clearDragVisuals();
-				dragSession.current = null;
-				dragRows.current = new Map();
-				keyboardReorderRef.current = null;
-				setKeyboardReorder( null );
-				if ( didCommit ) {
-					pendingFocusId.current = keyboardState.sourceId;
-					announce(
-						sprintf(
-							/* translators: 1: original table body row number, 2: destination table body row number. */
-							__( 'Moved row %1$d to position %2$d.', 'yamabiko-editor-tools' ),
-							keyboardState.sourceIndex + 1,
-							keyboardState.destinationIndex + 1
-						)
-					);
-				} else {
-					focusHandle( keyboardState.sourceId );
-				}
-				return;
-			}
-
-			const currentRows = getRows();
-			const destination = getKeyboardDestination(
-				keyboardState.destinationIndex,
-				currentRows.length,
-				direction!
-			);
-			if ( destination.reason === 'first-row' ) {
-				announce( __( 'Cannot move the row any further up.', 'yamabiko-editor-tools' ) );
-				return;
-			}
-			if ( destination.reason === 'last-row' ) {
-				announce( __( 'Cannot move the row any further down.', 'yamabiko-editor-tools' ) );
-				return;
-			}
-
-			const targetRow = currentRows.find(
-				( candidate ) => candidate.index === destination.destinationIndex
-			);
-			const session = dragSession.current;
-			if ( ! targetRow || ! session ) {
-				return;
-			}
-
-			const insertionIndex = getInsertionIndexForKeyboardDestination(
-				keyboardState.sourceIndex,
-				destination.destinationIndex
-			);
-			const update = updateTableReorderDragTarget( session, targetRow.id, insertionIndex );
-			if ( update.isForbidden ) {
-				showForbiddenNotice();
-				announce( ROWSPAN_REORDER_ERROR_MESSAGE );
-				return;
-			}
-
-			dragSession.current = update.session;
-			const nextState = { ...keyboardState, destinationIndex: destination.destinationIndex };
-			keyboardReorderRef.current = nextState;
-			setKeyboardReorder( nextState );
-			if ( update.session.target ) {
-				dragVisuals.current?.showCandidate(
-					Array.from( dragRows.current.values(), ( candidate ) => ( {
-						...candidate,
-						height: candidate.element.getBoundingClientRect().height,
-					} ) ),
-					update.session.sourceId,
-					update.session.target.targetId,
-					update.session.target.insertionIndex
-				);
-			} else {
-				clearDragVisuals();
-			}
-			scrollRowIntoView( targetRow );
-			announce(
-				sprintf(
-					/* translators: 1: destination table body row number, 2: total table body rows. */
-					__( 'Moving to position %1$d of %2$d.', 'yamabiko-editor-tools' ),
-					destination.destinationIndex + 1,
-					currentRows.length
-				)
-			);
-		},
-		[
-			announce,
-			body,
-			clearDragVisuals,
-			focusHandle,
-			getRows,
-			nonMovableRows,
-			scrollRowIntoView,
-			setAttributes,
-			showForbiddenNotice,
-		]
+		[ clearCandidate, keyboardReorder, showCandidate, showForbiddenNotice ]
 	);
 
 	const onDragEnd = useCallback(
 		( { canceled, operation: { source, target } }: DragEndEvent ) => {
-			if ( keyboardReorderRef.current ) {
+			if ( keyboardReorder ) {
 				return;
 			}
 
@@ -490,7 +276,7 @@ export function TableReorderController( {
 				isSortable( source ) &&
 				isSortable( target ) &&
 				source.sortable.group === target.sortable.group;
-			clearDragVisuals();
+			clearCandidate();
 			commitTableReorderDrag(
 				session,
 				{
@@ -543,7 +329,8 @@ export function TableReorderController( {
 		},
 		[
 			activeRow,
-			clearDragVisuals,
+			clearCandidate,
+			keyboardReorder,
 			requestRowsReconciliation,
 			resumeRowsReconciliation,
 			setAttributes,
