@@ -115,6 +115,7 @@
 - `Escape` によるキャンセル。
 - 既存 `keyboard-reorder.ts` を使った移動方向と移動先の算出。
 - 既存 `drag-session.ts` を使った開始、候補更新、確定。
+- controller から渡された `showCandidate(...)` / `clearCandidate()` 相当のcallbackを使い、矢印キー移動中の既存候補表示を維持する。
 - キーボード操作中の状態管理。
 - ポインターDnDを一時的に無効化するための状態を controller へ返す。
 - キーボード操作に直接付随するフォーカス復元とスクロール。
@@ -127,6 +128,7 @@
 - 行DOMのID採番。
 - PointerSensorイベント。
 - JSX描画。
+- `dragVisuals` の生のrefやライフサイクル管理。
 
 フォーカス管理とlive regionは今回さらに `focus-manager.ts` や `announcer.ts` へ分割しない。キーボード操作の制御フローから切り離すことで引数と共有stateが増える場合は、`use-keyboard-reorder.ts` 内に留める。
 
@@ -142,7 +144,7 @@
 - drag session のライフサイクル。
 - ドラッグ開始時点の行スナップショット。
 - ポインター位置から挿入位置を算出する処理。
-- `drag-visuals.ts` を使った候補表示。
+- controller から渡された `showCandidate(...)` / `clearCandidate()` 相当のcallbackを使った候補表示。
 - 禁止位置での既存Snackbar通知。
 - commit後のdnd-kit overlay cleanup待ち。
 - cleanup完了後のDOM再同期要求。
@@ -153,8 +155,9 @@
 - キーボードイベント。
 - JSX描画。
 - `body` の並べ替えアルゴリズムそのもの。
+- `dragVisuals` の生のrefや共有ライフサイクル管理。
 
-`drag-session.ts` と `drag-visuals.ts` は既存の責務を維持し、このhookはそれらとReact/dnd-kitイベントを接続するアダプターとする。
+`drag-session.ts` は既存の責務を維持し、このhookはそれとReact/dnd-kitイベントを接続するアダプターとする。`drag-visuals.ts` は keyboard / pointer の両方から利用されるため、controller 側の薄い候補表示adapterを介して利用する。
 
 ### 4. DragOverlay描画
 
@@ -179,6 +182,7 @@
 - propsを受け取る。
 - `rowspan` ranges / non-movable rows の既存判定を接続する。
 - 各hookを呼び出す。
+- `drag-visuals.ts` のライフサイクルを薄いadapterとして所有し、`showCandidate(...)` / `clearCandidate()` 相当のnarrow callbackを keyboard / pointer の両hookへ渡す。
 - dnd-kit sensors と各handlerを `DragDropProvider` へ渡す。
 - `SortableRow` を描画する。
 - insertion indicator を描画する。
@@ -272,7 +276,7 @@ React描画へ直接反映される値はstateを基本とする。
 | `isDragging` | `usePointerReorder` | Pointer DnD固有状態として閉じ込める。`useTableReorderDom` はこのrefを読まない。 |
 | `dragSession` | keyboard / pointer 各hook | `useKeyboardReorder` と `usePointerReorder` がそれぞれ独立したsessionを所有する。 |
 | `dragRows` | keyboard / pointer 各hook | 操作開始時の行スナップショットは各hookが独立して所有する。 |
-| `dragVisuals` | `usePointerReorder` | ポインター候補表示のライフサイクルとcleanupをPointer DnD側へ閉じ込める。 |
+| `dragVisuals` | `TableReorderController` | `drag-visuals.ts` の生のrefはcontroller内に閉じ、`showCandidate(...)` / `clearCandidate()` 相当のnarrow callbackを `useKeyboardReorder` と `usePointerReorder` の両方へ渡す。keyboard / pointer のどちらか一方へ専有させない。 |
 | `hasShownForbiddenNotice` | 各操作hook | 通知の重複抑止が必要な責務ごとに所有し、keyboardとpointerで共有refにしない。 |
 | `pendingFocusId` | `useKeyboardReorder` | DOM同期後のフォーカス復元もkeyboard orchestrationの一部として所有する。必要なハンドル操作は `focusHandle(id)` callbackを使う。 |
 | `overlayElement` | `usePointerReorder` | `DragRowOverlay` へ `onElementChange` callbackを渡し、cleanup待ちに必要な要素参照はPointer DnD側で所有する。 |
@@ -280,6 +284,16 @@ React描画へ直接反映される値はstateを基本とする。
 | `stopWaitingForDragCleanup` | `usePointerReorder` | dnd-kit cleanup待ちの開始・停止をPointer DnD内に閉じ込める。 |
 
 `rowsRef`、行ID用WeakMap、observer、portal containerなどGutenberg DOM同期に必要なmutable値は `useTableReorderDom` 内部へ移す。`keyboardReorderRef`、announcement重複抑止などキーボード操作に閉じる値は `useKeyboardReorder` が所有する。
+
+### 候補表示の契約
+
+`dragVisuals` 相当の候補表示は Pointer DnD 固有ではなく、既存のキーボード並べ替えでも利用しているため、次の契約とする。
+
+1. `TableReorderController` が `drag-visuals.ts` の生成・破棄と生のrefを所有する。
+2. controller は `showCandidate(...)` / `clearCandidate()` 相当の用途を限定したcallbackを作る。
+3. `useKeyboardReorder` と `usePointerReorder` は同じcallback契約を利用し、互いのhookを直接呼ばない。
+4. keyboard の矢印キー移動中と pointer drag 中の既存候補表示をどちらも維持する。
+5. cleanupの実行契機は各操作hookが判断して `clearCandidate()` を呼ぶが、`dragVisuals` 自体のrefをhookへ公開しない。
 
 ### DOM再同期とPointer DnDの契約
 
@@ -340,8 +354,9 @@ Gutenberg固有タイミング依存を最初に controller の外へ出す。
 - cancel。
 - focus / scroll。
 - announcement。
+- controller から渡された候補表示callbackによる既存candidate表示。
 
-既存 `keyboard-reorder.ts` と `drag-session.ts` のロジックは変更しない。
+既存 `keyboard-reorder.ts` と `drag-session.ts` のロジックは変更しない。`drag-visuals.ts` の生のrefは移動せず、controller adapter経由で利用する。
 
 抽出後にJestとキーボード系E2Eを実行する。
 
@@ -350,10 +365,10 @@ Gutenberg固有タイミング依存を最初に controller の外へ出す。
 - drag start。
 - drag target update。
 - drag end。
-- visual cleanup。
+- controller から渡された候補表示callbackによるvisual表示 / cleanup。
 - dnd-kit cleanup待ち。
 
-既存 `drag-session.ts` と `drag-visuals.ts` は変更しないことを基本とする。
+既存 `drag-session.ts` と `drag-visuals.ts` は変更しないことを基本とする。`drag-visuals.ts` の生のrefはPointer hookへ移さない。
 
 抽出後にJestとポインター系E2Eを実行する。
 
@@ -374,6 +389,7 @@ Gutenberg固有タイミング依存を最初に controller の外へ出す。
 
 - props / derived values。
 - hooks接続。
+- shared candidate visual adapter。
 - dnd-kit provider。
 - portal / JSX描画。
 
@@ -406,8 +422,10 @@ npm run test:e2e
 - Tab / Shift+Tab の代表的フォーカス移動。
 - Enter / Space での開始と確定。
 - ArrowUp / ArrowDownによる移動。
+- キーボード並べ替え中の候補表示。
 - Escapeキャンセル。
 - ポインターDnD。
+- ポインターDnD中の候補表示。
 - Undo / Redo。
 - 連続移動時のUndo履歴単位。
 - `rowspan`分断拒否。
@@ -443,6 +461,7 @@ Codexへ実装を依頼する際は次を明示する。
 | Gutenberg DOM同期・位置計測 | `use-table-reorder-dom.ts` |
 | キーボード並べ替え orchestration | `use-keyboard-reorder.ts` |
 | ポインターDnD orchestration | `use-pointer-reorder.ts` |
+| keyboard / pointer 共通の候補表示adapter | `table-reorder-controller.tsx` + 既存 `drag-visuals.ts` |
 | DragOverlay表示 | `drag-row-overlay.tsx` |
 | 並べ替え純粋ロジック | 既存 `keyboard-reorder.ts` / `drag-session.ts` / `reorder.ts` / `rowspan.ts` |
 | 統合とReact描画 | `table-reorder-controller.tsx` |
@@ -456,6 +475,7 @@ Codexへ実装を依頼する際は次を明示する。
 - [ ] 行DOM取得、再同期、位置計測、observer管理が局所化されている。
 - [ ] キーボード並べ替えの orchestration がcontrollerから分離されている。
 - [ ] ポインターDnDの orchestration がcontrollerから分離されている。
+- [ ] keyboard / pointer の両方で既存の候補表示が維持され、`dragVisuals` の生のrefをhook間で共有していない。
 - [ ] controller が統合と描画を中心とする構造になっている。
 - [ ] 既存の純粋ロジックが不要に再実装されていない。
 - [ ] state / ref の所有者が整理されている。
