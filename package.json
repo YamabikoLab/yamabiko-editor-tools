@@ -4,6 +4,7 @@
 	"private": true,
 	"files": [
 		"build/",
+		"languages/",
 		"yamabiko-editor-tools.php"
 	],
 	"scripts": {
@@ -21,7 +22,11 @@
 		"test:unit": "wp-scripts test-unit-js",
 		"test:e2e": "playwright test",
 		"test:e2e:auth": "playwright test --project=setup",
-		"test:e2e:ui": "npm run test:e2e:auth && playwright test --project=chromium --ui --ui-host=0.0.0.0 --ui-port=9323"
+		"test:e2e:ui": "npm run test:e2e:auth && playwright test --project=chromium --ui --ui-host=0.0.0.0 --ui-port=9323",
+		"i18n:pot": "wp i18n make-pot . languages/yamabiko-editor-tools.pot --domain=yamabiko-editor-tools --include=src/editor-extensions/table-reorder",
+		"i18n:po": "wp i18n update-po languages/yamabiko-editor-tools.pot languages/yamabiko-editor-tools-ja.po",
+		"i18n:json": "wp i18n make-json languages/yamabiko-editor-tools-ja.po languages --domain=yamabiko-editor-tools --extensions=js,jsx,ts,tsx --use-map=languages/table-reorder-map.json --no-purge --pretty-print",
+		"i18n": "npm run i18n:pot && npm run i18n:po && npm run i18n:json"
 	},
 	"devDependencies": {
 		"@playwright/test": "1.62.1",
