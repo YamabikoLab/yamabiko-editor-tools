@@ -193,6 +193,9 @@ export async function moveRowWithPointer( {
 	await expect(
 		canvas.locator( '.yamabiko-editor-tools-table-reorder-content__insertion-indicator' )
 	).toBeVisible();
+	await expect(
+		canvas.locator( '.yamabiko-editor-tools-table-reorder-content__overlay-handle' )
+	).toBeVisible();
 	await page.mouse.up();
 }
 
