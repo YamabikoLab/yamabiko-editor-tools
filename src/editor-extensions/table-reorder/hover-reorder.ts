@@ -157,6 +157,20 @@ export const enableTableHoverReorder = (
 			activate();
 		}
 	};
+	const onPointerLeave = ( event: PointerEvent ) => {
+		if ( ! isMousePointer( event ) ) {
+			return;
+		}
+
+		isCellEditing = false;
+		if ( isExplicitReorderMode() ) {
+			releaseToExplicitMode();
+			return;
+		}
+		if ( isActive && event.buttons === 0 ) {
+			deactivate();
+		}
+	};
 	const onPointerDown = ( event: PointerEvent ) => {
 		if ( isMousePointer( event ) && isTableCellTarget( event.target ) ) {
 			isCellEditing = true;
@@ -209,6 +223,7 @@ export const enableTableHoverReorder = (
 	};
 
 	table.addEventListener( 'pointerenter', onPointerEnter );
+	table.addEventListener( 'pointerleave', onPointerLeave );
 	document.addEventListener( 'pointerdown', onPointerDown, true );
 	document.addEventListener( 'pointermove', onPointerMove, true );
 	document.addEventListener( 'pointerup', onPointerUp, true );
@@ -223,6 +238,7 @@ export const enableTableHoverReorder = (
 		stopObservingHandles();
 		releaseHoverHandles();
 		table.removeEventListener( 'pointerenter', onPointerEnter );
+		table.removeEventListener( 'pointerleave', onPointerLeave );
 		document.removeEventListener( 'pointerdown', onPointerDown, true );
 		document.removeEventListener( 'pointermove', onPointerMove, true );
 		document.removeEventListener( 'pointerup', onPointerUp, true );
