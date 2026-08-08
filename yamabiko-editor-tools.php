@@ -73,33 +73,20 @@ final class Plugin {
 	}
 
 	/**
-	 * Enqueues the npm-bundled SortableJS PoC runtime in editor content.
+	 * Enqueues the npm-provided SortableJS UMD runtime for the PoC.
 	 */
 	private static function enqueue_sortablejs_poc_runtime(): void {
-		$asset_path = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/content.asset.php';
-		$file_path  = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/content.js';
+		$file_path = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/sortable.min.js';
 
-		if ( ! is_readable( $asset_path ) || ! is_readable( $file_path ) ) {
+		if ( ! is_readable( $file_path ) ) {
 			return;
 		}
-
-		$asset = require $asset_path;
-		if ( ! is_array( $asset ) ) {
-			return;
-		}
-
-		$dependencies = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
-			? $asset['dependencies']
-			: array();
-		$version      = isset( $asset['version'] ) && is_string( $asset['version'] )
-			? $asset['version']
-			: false;
 
 		wp_enqueue_script(
-			'yamabiko-editor-tools-sortablejs-table-reorder-poc-content',
-			plugins_url( 'build/editor-extensions/sortablejs-table-reorder-poc/content.js', __FILE__ ),
-			$dependencies,
-			$version,
+			'yamabiko-editor-tools-sortablejs-table-reorder-poc-runtime',
+			plugins_url( 'build/editor-extensions/sortablejs-table-reorder-poc/sortable.min.js', __FILE__ ),
+			array(),
+			(string) filemtime( $file_path ),
 			true
 		);
 	}
