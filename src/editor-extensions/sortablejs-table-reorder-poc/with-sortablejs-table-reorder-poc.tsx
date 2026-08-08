@@ -1,10 +1,9 @@
 import type { BlockEditProps } from '@wordpress/blocks';
 import { useEffect, useRef, type ComponentType } from '@wordpress/element';
-import type Sortable from 'sortablejs';
 
 const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
-const CONTENT_SCRIPT_ID = 'yamabiko-editor-tools-sortablejs-table-reorder-poc-content-js';
-const RUNTIME_SCRIPT_ID = `${ CONTENT_SCRIPT_ID }-runtime`;
+const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
+const SORTABLE_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js';
 
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
@@ -14,8 +13,30 @@ type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
 
+type SortableEventLike = {
+	newIndex?: number;
+	oldIndex?: number;
+};
+
+type SortableInstance = {
+	destroy: () => void;
+};
+
+type SortableRuntime = {
+	create: (
+		element: HTMLElement,
+		options: {
+			animation: number;
+			draggable: string;
+			onChoose: () => void;
+			onEnd: ( event: SortableEventLike ) => void;
+			onStart: () => void;
+		}
+	) => SortableInstance;
+};
+
 type SortableWindow = Window & {
-	Sortable?: typeof Sortable;
+	Sortable?: SortableRuntime;
 };
 
 const restoreOriginalRowOrder = (
@@ -46,40 +67,35 @@ const findBlockElement = (
 const ensureIframeSortable = (
 	document: Document,
 	view: SortableWindow
-): Promise< typeof Sortable | null > => {
+): Promise< SortableRuntime | null > => {
 	if ( view.Sortable ) {
 		return Promise.resolve( view.Sortable );
 	}
 
-	const sourceScript = document.getElementById( CONTENT_SCRIPT_ID ) as HTMLScriptElement | null;
-	if ( ! sourceScript?.src ) {
-		console.warn( LOG_PREFIX, 'Sortable runtime source not found in iframe' );
-		return Promise.resolve( null );
-	}
-
-	const existingRuntime = document.getElementById( RUNTIME_SCRIPT_ID ) as HTMLScriptElement | null;
-	if ( existingRuntime ) {
+	const existingScript = document.getElementById( SORTABLE_SCRIPT_ID ) as HTMLScriptElement | null;
+	if ( existingScript ) {
 		return new Promise( ( resolve ) => {
-			const waitUntilReady = () => {
+			const onLoad = () => resolve( view.Sortable ?? null );
+			const onError = () => resolve( null );
+			existingScript.addEventListener( 'load', onLoad, { once: true } );
+			existingScript.addEventListener( 'error', onError, { once: true } );
+
+			view.setTimeout( () => {
 				if ( view.Sortable ) {
 					resolve( view.Sortable );
-					return;
 				}
-				view.requestAnimationFrame( waitUntilReady );
-			};
-			waitUntilReady();
+			}, 0 );
 		} );
 	}
 
 	return new Promise( ( resolve ) => {
-		const runtimeScript = document.createElement( 'script' );
-		runtimeScript.id = RUNTIME_SCRIPT_ID;
-		runtimeScript.src = sourceScript.src;
-		runtimeScript.async = false;
-		runtimeScript.addEventListener(
+		const script = document.createElement( 'script' );
+		script.id = SORTABLE_SCRIPT_ID;
+		script.src = SORTABLE_SCRIPT_URL;
+		script.addEventListener(
 			'load',
 			() => {
-				console.info( LOG_PREFIX, 'iframe Sortable runtime loaded', {
+				console.info( LOG_PREFIX, 'iframe CDN runtime loaded', {
 					available: Boolean( view.Sortable ),
 					inIframe: view !== window,
 				} );
@@ -87,15 +103,15 @@ const ensureIframeSortable = (
 			},
 			{ once: true }
 		);
-		runtimeScript.addEventListener(
+		script.addEventListener(
 			'error',
 			() => {
-				console.warn( LOG_PREFIX, 'failed to load iframe Sortable runtime' );
+				console.warn( LOG_PREFIX, 'failed to load SortableJS inside iframe' );
 				resolve( null );
 			},
 			{ once: true }
 		);
-		document.body.append( runtimeScript );
+		document.head.append( script );
 	} );
 };
 
@@ -125,22 +141,22 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			console.info( LOG_PREFIX, 'testing iframe-local Sortable', {
+			console.info( LOG_PREFIX, 'testing iframe CDN Sortable', {
 				clientId: props.clientId,
 				inIframe: view !== window,
 				rows: tbody.rows.length,
 			} );
 
 			let cancelled = false;
-			let sortable: Sortable | null = null;
+			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
 
-			void ensureIframeSortable( document, view ).then( ( SortableRuntime ) => {
-				if ( cancelled || ! SortableRuntime ) {
+			void ensureIframeSortable( document, view ).then( ( Sortable ) => {
+				if ( cancelled || ! Sortable ) {
 					return;
 				}
 
-				sortable = SortableRuntime.create( tbody, {
+				sortable = Sortable.create( tbody, {
 					animation: 150,
 					draggable: 'tr',
 					onChoose: () => {
