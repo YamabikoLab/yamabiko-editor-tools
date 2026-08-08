@@ -1,9 +1,7 @@
 import { enableTableHoverReorder } from './hover-reorder';
 
-type MediaQueryListener = ( event: MediaQueryListEvent ) => void;
-
-const createMatchMedia = ( matches: boolean ) => {
-	const mediaQueryList = {
+const createMatchMedia = ( matches: boolean ) =>
+	( {
 		matches,
 		media: '(hover: hover) and (pointer: fine)',
 		onchange: null,
@@ -12,10 +10,7 @@ const createMatchMedia = ( matches: boolean ) => {
 		addListener: jest.fn(),
 		removeListener: jest.fn(),
 		dispatchEvent: jest.fn( () => true ),
-	} as unknown as MediaQueryList;
-
-	return mediaQueryList;
-};
+	} ) as unknown as MediaQueryList;
 
 const dispatchPointerEvent = (
 	target: EventTarget,
@@ -32,12 +27,18 @@ const dispatchPointerEvent = (
 
 describe( 'enableTableHoverReorder', () => {
 	beforeEach( () => {
+		jest.useFakeTimers();
 		document.body.innerHTML = [
 			'<div data-block="table-1"><table><tbody><tr><td>Cell</td></tr></tbody></table></div>',
 			'<button class="yamabiko-editor-tools-table-reorder-content__handle"',
 			' aria-describedby="yamabiko-editor-tools-table-reorder-table-1-instructions"></button>',
 			'<div id="outside"></div>',
 		].join( '' );
+	} );
+
+	afterEach( () => {
+		jest.runOnlyPendingTimers();
+		jest.useRealTimers();
 	} );
 
 	const setup = ( matches = true ) => {
@@ -76,23 +77,43 @@ describe( 'enableTableHoverReorder', () => {
 		disable();
 	} );
 
-	it( 'stays active while the pointer moves from the table to its handle', () => {
-		const { disable, handle, onActiveChange, table } = setup();
+	it( 'keeps the hover session alive while crossing the gap to its handle', () => {
+		const { disable, handle, onActiveChange, outside, table } = setup();
 		dispatchPointerEvent( table, 'pointerenter' );
 
+		dispatchPointerEvent( outside, 'pointermove' );
+		jest.advanceTimersByTime( 150 );
 		dispatchPointerEvent( handle, 'pointermove' );
+		jest.advanceTimersByTime( 300 );
 
 		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
+		expect( onActiveChange ).toHaveBeenLastCalledWith( true );
 		disable();
 	} );
 
-	it( 'deactivates after moving outside the table and its handles', () => {
+	it( 'deactivates after the fade interval outside the table and its handles', () => {
 		const { disable, onActiveChange, outside, table } = setup();
 		dispatchPointerEvent( table, 'pointerenter' );
 
 		dispatchPointerEvent( outside, 'pointermove' );
+		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
+		jest.advanceTimersByTime( 299 );
+		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
+		jest.advanceTimersByTime( 1 );
 
 		expect( onActiveChange ).toHaveBeenLastCalledWith( false );
+		disable();
+	} );
+
+	it( 'removes the visible class while fading out', () => {
+		const { disable, handle, outside, table } = setup();
+		dispatchPointerEvent( table, 'pointerenter' );
+		handle.classList.add( 'is-hover-reorder-visible' );
+
+		dispatchPointerEvent( outside, 'pointermove' );
+
+		expect( handle.classList.contains( 'is-hover-reorder-handle' ) ).toBe( true );
+		expect( handle.classList.contains( 'is-hover-reorder-visible' ) ).toBe( false );
 		disable();
 	} );
 
@@ -101,6 +122,7 @@ describe( 'enableTableHoverReorder', () => {
 		dispatchPointerEvent( table, 'pointerenter' );
 
 		dispatchPointerEvent( outside, 'pointermove', { buttons: 1 } );
+		jest.advanceTimersByTime( 300 );
 
 		expect( onActiveChange ).toHaveBeenCalledTimes( 1 );
 		disable();
