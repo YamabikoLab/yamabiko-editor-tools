@@ -7,7 +7,9 @@ import {
 	type PageUtils,
 } from '@wordpress/e2e-test-utils-playwright';
 
-type Canvas = FrameLocator;
+type Canvas = FrameLocator | Page;
+
+type CanvasMode = 'iframe' | 'non-iframe';
 
 type TestFixtures = {
 	admin: Admin;
@@ -54,6 +56,10 @@ const mergedCellsTable = () => `<!-- wp:table -->
 <figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td>Normal A</td><td>Normal A value</td></tr><tr><td>Normal B</td><td>Normal B value</td></tr><tr><td colspan="2">Colspan</td></tr><tr><td>Normal C</td><td>Normal C value</td></tr><tr><td rowspan="2">Rowspan start</td><td>Rowspan start value</td></tr><tr><td>Rowspan continuation</td></tr><tr><td>Normal D</td><td>Normal D value</td></tr><tr><td>Normal E</td><td>Normal E value</td></tr></tbody></table></figure>
 <!-- /wp:table -->`;
 
+const legacyCanvasBlock = `<!-- wp:test/legacy-canvas -->
+<p>Legacy canvas test block</p>
+<!-- /wp:test/legacy-canvas -->`;
+
 function rowHandle( canvas: Canvas, row: number ): Locator {
 	return canvas.getByRole( 'button', {
 		name: new RegExp( `(?:row\\s+${ row }(?!\\d)|(?<!\\d)${ row }\\s*行目)`, 'i' ),
@@ -68,11 +74,37 @@ async function expectRows( table: Locator, rows: readonly string[] ) {
 	await expect( tableRows( table ) ).toHaveText( rows );
 }
 
-async function prepareTable( { admin, editor }: TestFixtures, content: string ) {
+async function prepareTable(
+	{ admin, editor, page }: TestFixtures,
+	content: string,
+	canvasMode: CanvasMode = 'iframe'
+) {
 	await admin.createNewPost( { fullscreenMode: false, showWelcomeGuide: false } );
-	await editor.setContent( content );
 
-	const canvas = editor.canvas;
+	if ( canvasMode === 'non-iframe' ) {
+		await page.waitForFunction( () => window?.wp?.blocks && window?.wp?.element );
+		await page.evaluate( () => {
+			const { createElement } = window.wp.element;
+
+			window.wp.blocks.registerBlockType( 'test/legacy-canvas', {
+				apiVersion: 2,
+				category: 'text',
+				title: 'Legacy canvas test block',
+				edit: () => createElement( 'p', {}, 'Legacy canvas test block' ),
+				save: () => createElement( 'p', {}, 'Legacy canvas test block' ),
+			} );
+		} );
+	}
+
+	await editor.setContent(
+		canvasMode === 'non-iframe' ? `${ content }\n${ legacyCanvasBlock }` : content
+	);
+
+	if ( canvasMode === 'non-iframe' ) {
+		await expect( page.locator( '[name="editor-canvas"]' ) ).toHaveCount( 0 );
+	}
+
+	const canvas: Canvas = canvasMode === 'iframe' ? editor.canvas : page;
 	const table = canvas.locator( 'table' );
 	await expect( table ).toBeVisible();
 
@@ -173,7 +205,9 @@ async function redo( pageUtils: { pressKeys: ( key: string ) => Promise< void > 
 	await pageUtils.pressKeys( 'primary+shift+z' );
 }
 
-for ( const canvasName of [ 'iframe' ] ) {
+for ( const canvasMode of [ 'iframe', 'non-iframe' ] as const ) {
+	const canvasName = canvasMode;
+
 	test( `reorders a row with the keyboard and preserves focus in the ${ canvasName } editor`, async ( {
 		admin,
 		editor,
@@ -181,7 +215,7 @@ for ( const canvasName of [ 'iframe' ] ) {
 		pageUtils,
 	} ) => {
 		const fixtures: TestFixtures = { admin, editor, page, pageUtils };
-		const { canvas, table } = await prepareTable( fixtures, basicTable() );
+		const { canvas, table } = await prepareTable( fixtures, basicTable(), canvasMode );
 		const handle = await enableReorderMode( {
 			canvas,
 			editor: fixtures.editor,
@@ -210,7 +244,7 @@ for ( const canvasName of [ 'iframe' ] ) {
 		pageUtils,
 	} ) => {
 		const fixtures: TestFixtures = { admin, editor, page, pageUtils };
-		const { canvas, table } = await prepareTable( fixtures, basicTable() );
+		const { canvas, table } = await prepareTable( fixtures, basicTable(), canvasMode );
 		const handle = await enableReorderMode( {
 			canvas,
 			editor: fixtures.editor,
@@ -235,7 +269,7 @@ for ( const canvasName of [ 'iframe' ] ) {
 			pageUtils,
 		} ) => {
 			const fixtures: TestFixtures = { admin, editor, page, pageUtils };
-			const { canvas, table } = await prepareTable( fixtures, basicTable( { align } ) );
+			const { canvas, table } = await prepareTable( fixtures, basicTable( { align } ), canvasMode );
 			const handle = rowHandle( canvas, 2 );
 
 			await table.hover();
@@ -253,6 +287,32 @@ for ( const canvasName of [ 'iframe' ] ) {
 		} );
 	}
 }
+
+test( 'reorders a row with the pointer in the non-iframe editor', async ( {
+	admin,
+	editor,
+	page,
+	pageUtils,
+} ) => {
+	const fixtures: TestFixtures = { admin, editor, page, pageUtils };
+	const { canvas, table } = await prepareTable( fixtures, basicTable(), 'non-iframe' );
+	await enableReorderMode( {
+		canvas,
+		editor: fixtures.editor,
+		page: fixtures.page,
+		table,
+		row: 3,
+	} );
+
+	await moveRowWithPointer( {
+		canvas,
+		from: 2,
+		page,
+		table,
+		to: 0,
+	} );
+	await expect( tableRows( table ) ).toHaveText( [ 'Row 3', 'Row 1', 'Row 2', 'Row 4' ] );
+} );
 
 test( 'keeps a keyboard reorder focused while scrolling a long table in the iframe editor', async ( {
 	admin,
