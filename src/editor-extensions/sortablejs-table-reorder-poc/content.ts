@@ -154,11 +154,7 @@ const installStyles = () => {
 	document.head.append( style );
 };
 
-const createBinding = (
-	clientId: string,
-	block: HTMLElement,
-	tbody: HTMLTableSectionElement
-) => {
+const createBinding = ( clientId: string, block: HTMLElement, tbody: HTMLTableSectionElement ) => {
 	let dragSnapshot: DragSnapshot | null = null;
 
 	const sortable = Sortable.create( tbody, {
@@ -239,13 +235,8 @@ const syncBindings = () => {
 	const selectedClientId = selectors.getSelectedBlockClientId();
 	const activeTbodies = new Set< HTMLTableSectionElement >();
 
-	if (
-		selectedClientId &&
-		selectors.getBlockName( selectedClientId ) === 'core/table'
-	) {
-		const block = document.querySelector< HTMLElement >(
-			`[data-block="${ selectedClientId }"]`
-		);
+	if ( selectedClientId && selectors.getBlockName( selectedClientId ) === 'core/table' ) {
+		const block = document.querySelector< HTMLElement >( `[data-block="${ selectedClientId }"]` );
 		const table = block?.querySelector< HTMLTableElement >( 'table' ) ?? null;
 		const tbody = table?.tBodies.item( 0 ) ?? null;
 

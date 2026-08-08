@@ -31,9 +31,7 @@ const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? bo
 const targetIndexToInsertionIndex = ( sourceIndex: number, targetIndex: number ): number =>
 	targetIndex > sourceIndex ? targetIndex + 1 : targetIndex;
 
-export const withSortableJsTableReorderPoc = (
-	BlockEdit: ComponentType< TableBlockEditProps >
-) =>
+export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithSortableJsTableReorderPoc( props: TableBlockEditProps ) {
 		const anchorRef = useRef< HTMLSpanElement >( null );
 		const isTableBlock = props.name === 'core/table';
