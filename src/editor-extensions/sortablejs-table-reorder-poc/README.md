@@ -72,10 +72,12 @@ After the experiment, restore the original `table-reorder/index.tsx`.
 ## How to use
 
 1. Select a Core Table block with body rows.
-2. Click **SortableJS row reorder PoC** in the block toolbar.
+2. The PoC activates automatically while that Table block is selected.
 3. The first body cell of each movable row gets a 32px drag gutter at its inline-start edge.
 4. Drag from that gutter.
 5. Dragging from the editable text area should continue to behave as normal cell editing.
+
+The automatic activation is intentional for this PoC. It removes toolbar/state wiring from the experiment so it is immediately obvious whether the SortableJS DOM integration is running.
 
 The gutter uses `padding-inline-start` / `inset-inline-start`, so the same PoC can also be observed in RTL layout.
 
