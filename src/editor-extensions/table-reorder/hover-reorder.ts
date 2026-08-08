@@ -20,6 +20,7 @@ export const enableTableHoverReorder = (
 	const hoverMedia = view.matchMedia( HOVER_REORDER_MEDIA_QUERY );
 	const instructionsId = `yamabiko-editor-tools-table-reorder-${ blockElement.dataset.block }-instructions`;
 	let isActive = false;
+	let isCellEditing = false;
 	let fadeTimeout = 0;
 	let showAnimationFrame = 0;
 	let handleObserver: MutationObserver | null = null;
@@ -41,6 +42,14 @@ export const enableTableHoverReorder = (
 		const handle = target.closest< HTMLButtonElement >( HANDLE_SELECTOR );
 		return handle?.getAttribute( 'aria-describedby' ) === instructionsId;
 	};
+	const isTableCellTarget = ( target: EventTarget | null ) => {
+		if ( ! ( target instanceof view.Element ) ) {
+			return false;
+		}
+
+		const cell = target.closest( 'td, th' );
+		return Boolean( cell && table.contains( cell ) );
+	};
 	const cancelFadeTimeout = () => {
 		if ( fadeTimeout ) {
 			view.clearTimeout( fadeTimeout );
@@ -52,7 +61,7 @@ export const enableTableHoverReorder = (
 		handleObserver = null;
 	};
 	const showHoverHandles = () => {
-		if ( ! isActive || isExplicitReorderMode() ) {
+		if ( ! isActive || isCellEditing || isExplicitReorderMode() ) {
 			return;
 		}
 
@@ -69,7 +78,7 @@ export const enableTableHoverReorder = (
 		}
 		showAnimationFrame = view.requestAnimationFrame( () => {
 			showAnimationFrame = 0;
-			if ( ! isActive || isExplicitReorderMode() ) {
+			if ( ! isActive || isCellEditing || isExplicitReorderMode() ) {
 				return;
 			}
 			for ( const handle of getHandles() ) {
@@ -105,6 +114,9 @@ export const enableTableHoverReorder = (
 		}
 	};
 	const activate = () => {
+		if ( isCellEditing ) {
+			return;
+		}
 		if ( isExplicitReorderMode() ) {
 			releaseToExplicitMode();
 			return;
@@ -141,8 +153,14 @@ export const enableTableHoverReorder = (
 		}, HOVER_HANDLE_FADE_MS );
 	};
 	const onPointerEnter = ( event: PointerEvent ) => {
-		if ( canUseHover() && isMousePointer( event ) ) {
+		if ( canUseHover() && isMousePointer( event ) && ! isCellEditing ) {
 			activate();
+		}
+	};
+	const onPointerDown = ( event: PointerEvent ) => {
+		if ( isMousePointer( event ) && isTableCellTarget( event.target ) ) {
+			isCellEditing = true;
+			deactivate();
 		}
 	};
 	const onPointerMove = ( event: PointerEvent ) => {
@@ -151,6 +169,12 @@ export const enableTableHoverReorder = (
 		}
 		if ( isExplicitReorderMode() ) {
 			releaseToExplicitMode();
+			return;
+		}
+		if ( isCellEditing ) {
+			if ( ! isWithinHoverRegion( event.target ) ) {
+				isCellEditing = false;
+			}
 			return;
 		}
 		if ( canUseHover() && isWithinHoverRegion( event.target ) ) {
@@ -185,6 +209,7 @@ export const enableTableHoverReorder = (
 	};
 
 	table.addEventListener( 'pointerenter', onPointerEnter );
+	document.addEventListener( 'pointerdown', onPointerDown, true );
 	document.addEventListener( 'pointermove', onPointerMove, true );
 	document.addEventListener( 'pointerup', onPointerUp, true );
 	document.addEventListener( 'pointercancel', onPointerCancel, true );
@@ -198,6 +223,7 @@ export const enableTableHoverReorder = (
 		stopObservingHandles();
 		releaseHoverHandles();
 		table.removeEventListener( 'pointerenter', onPointerEnter );
+		document.removeEventListener( 'pointerdown', onPointerDown, true );
 		document.removeEventListener( 'pointermove', onPointerMove, true );
 		document.removeEventListener( 'pointerup', onPointerUp, true );
 		document.removeEventListener( 'pointercancel', onPointerCancel, true );
