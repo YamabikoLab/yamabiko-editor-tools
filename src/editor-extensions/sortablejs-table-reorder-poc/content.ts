@@ -52,6 +52,7 @@ type SortableBinding = {
 
 const bindings = new Map< HTMLTableSectionElement, SortableBinding >();
 let didWarnAboutParentStore = false;
+let lastBindingProbe = '';
 
 const getParentData = (): WordPressData | null => {
 	try {
@@ -239,30 +240,44 @@ const syncBindings = () => {
 
 	const selectedClientId =
 		selectors.getSelectedBlockClientId() ?? selectors.getSelectionStart()?.clientId ?? null;
+	const blockName = selectedClientId ? selectors.getBlockName( selectedClientId ) : null;
+	const block = selectedClientId
+		? document.querySelector< HTMLElement >( `[data-block="${ selectedClientId }"]` )
+		: null;
+	const table = block?.querySelector< HTMLTableElement >( 'table' ) ?? null;
+	const tbody = table?.tBodies.item( 0 ) ?? null;
 	const activeTbodies = new Set< HTMLTableSectionElement >();
+	const bindingProbe = {
+		blockFound: Boolean( block ),
+		blockName,
+		dataBlockCount: document.querySelectorAll( '[data-block]' ).length,
+		inIframe: window !== window.parent,
+		selectedClientId,
+		tableFound: Boolean( table ),
+		tbodyFound: Boolean( tbody ),
+	};
+	const bindingProbeKey = JSON.stringify( bindingProbe );
+	if ( bindingProbeKey !== lastBindingProbe ) {
+		lastBindingProbe = bindingProbeKey;
+		console.info( LOG_PREFIX, 'binding probe', bindingProbe );
+	}
 
-	if ( selectedClientId && selectors.getBlockName( selectedClientId ) === 'core/table' ) {
-		const block = document.querySelector< HTMLElement >( `[data-block="${ selectedClientId }"]` );
-		const table = block?.querySelector< HTMLTableElement >( 'table' ) ?? null;
-		const tbody = table?.tBodies.item( 0 ) ?? null;
-
-		if ( block && tbody ) {
-			activeTbodies.add( tbody );
-			block.classList.add( ACTIVE_CLASS );
-			if ( ! bindings.has( tbody ) ) {
-				createBinding( selectedClientId, block, tbody );
-			}
+	if ( selectedClientId && blockName === 'core/table' && block && tbody ) {
+		activeTbodies.add( tbody );
+		block.classList.add( ACTIVE_CLASS );
+		if ( ! bindings.has( tbody ) ) {
+			createBinding( selectedClientId, block, tbody );
 		}
 	}
 
-	for ( const [ tbody, binding ] of bindings ) {
-		if ( activeTbodies.has( tbody ) && tbody.isConnected ) {
+	for ( const [ currentTbody, binding ] of bindings ) {
+		if ( activeTbodies.has( currentTbody ) && currentTbody.isConnected ) {
 			continue;
 		}
 
 		binding.sortable.destroy();
 		binding.block.classList.remove( ACTIVE_CLASS );
-		bindings.delete( tbody );
+		bindings.delete( currentTbody );
 	}
 };
 
