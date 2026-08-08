@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from '@wordpress/element';
+import { dragHandle } from '@wordpress/icons';
 
 export function DragRowOverlay( {
 	element,
@@ -12,6 +13,7 @@ export function DragRowOverlay( {
 	width: number;
 } ) {
 	const overlayRef = useRef< HTMLDivElement | null >( null );
+	const overlayContentRef = useRef< HTMLDivElement | null >( null );
 	const setOverlayElement = useCallback(
 		( overlay: HTMLDivElement | null ) => {
 			overlayRef.current = overlay;
@@ -22,9 +24,10 @@ export function DragRowOverlay( {
 
 	useEffect( () => {
 		const overlay = overlayRef.current;
+		const overlayContent = overlayContentRef.current;
 		const table = element.closest( 'table' );
 		const tbody = element.closest( 'tbody' );
-		if ( ! overlay || ! table || ! tbody ) {
+		if ( ! overlay || ! overlayContent || ! table || ! tbody ) {
 			return;
 		}
 
@@ -75,9 +78,9 @@ export function DragRowOverlay( {
 		tbodyClone.append( rowClone );
 		tableClone.append( tbodyClone );
 		tableContext.append( tableClone );
-		overlay.replaceChildren( tableContext );
+		overlayContent.replaceChildren( tableContext );
 
-		return () => overlay.replaceChildren();
+		return () => overlayContent.replaceChildren();
 	}, [ element, height, width ] );
 
 	return (
@@ -85,6 +88,14 @@ export function DragRowOverlay( {
 			aria-hidden="true"
 			className="yamabiko-editor-tools-table-reorder-content__overlay"
 			ref={ setOverlayElement }
-		/>
+		>
+			<span className="yamabiko-editor-tools-table-reorder-content__overlay-handle">
+				{ dragHandle }
+			</span>
+			<div
+				className="yamabiko-editor-tools-table-reorder-content__overlay-content"
+				ref={ overlayContentRef }
+			/>
+		</div>
 	);
 }
