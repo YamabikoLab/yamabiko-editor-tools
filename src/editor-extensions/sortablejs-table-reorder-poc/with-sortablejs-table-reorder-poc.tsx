@@ -2,8 +2,8 @@ import type { BlockEditProps } from '@wordpress/blocks';
 import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 
 const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
-const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
-const SORTABLE_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js';
+const CONTENT_SCRIPT_ID = 'yamabiko-editor-tools-sortablejs-table-reorder-poc-content-js';
+const RUNTIME_SCRIPT_ID = `${ CONTENT_SCRIPT_ID }-runtime`;
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 
 type TableAttributes = Record< string, unknown > & {
@@ -147,13 +147,19 @@ const ensureIframeSortable = (
 		return Promise.resolve( view.Sortable );
 	}
 
-	const existingScript = document.getElementById( SORTABLE_SCRIPT_ID ) as HTMLScriptElement | null;
-	if ( existingScript ) {
+	const sourceScript = document.getElementById( CONTENT_SCRIPT_ID ) as HTMLScriptElement | null;
+	if ( ! sourceScript?.src ) {
+		console.warn( LOG_PREFIX, 'npm SortableJS runtime source not found in iframe' );
+		return Promise.resolve( null );
+	}
+
+	const existingRuntime = document.getElementById( RUNTIME_SCRIPT_ID ) as HTMLScriptElement | null;
+	if ( existingRuntime ) {
 		return new Promise( ( resolve ) => {
 			const onLoad = () => resolve( view.Sortable ?? null );
 			const onError = () => resolve( null );
-			existingScript.addEventListener( 'load', onLoad, { once: true } );
-			existingScript.addEventListener( 'error', onError, { once: true } );
+			existingRuntime.addEventListener( 'load', onLoad, { once: true } );
+			existingRuntime.addEventListener( 'error', onError, { once: true } );
 
 			view.setTimeout( () => {
 				if ( view.Sortable ) {
@@ -164,13 +170,14 @@ const ensureIframeSortable = (
 	}
 
 	return new Promise( ( resolve ) => {
-		const script = document.createElement( 'script' );
-		script.id = SORTABLE_SCRIPT_ID;
-		script.src = SORTABLE_SCRIPT_URL;
-		script.addEventListener(
+		const runtimeScript = document.createElement( 'script' );
+		runtimeScript.id = RUNTIME_SCRIPT_ID;
+		runtimeScript.src = sourceScript.src;
+		runtimeScript.async = false;
+		runtimeScript.addEventListener(
 			'load',
 			() => {
-				console.info( LOG_PREFIX, 'iframe CDN runtime loaded', {
+				console.info( LOG_PREFIX, 'iframe npm runtime loaded', {
 					available: Boolean( view.Sortable ),
 					inIframe: view !== window,
 				} );
@@ -178,15 +185,15 @@ const ensureIframeSortable = (
 			},
 			{ once: true }
 		);
-		script.addEventListener(
+		runtimeScript.addEventListener(
 			'error',
 			() => {
-				console.warn( LOG_PREFIX, 'failed to load SortableJS inside iframe' );
+				console.warn( LOG_PREFIX, 'failed to load npm SortableJS bundle inside iframe' );
 				resolve( null );
 			},
 			{ once: true }
 		);
-		document.head.append( script );
+		document.body.append( runtimeScript );
 	} );
 };
 
@@ -216,7 +223,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			console.info( LOG_PREFIX, 'testing iframe CDN Sortable', {
+			console.info( LOG_PREFIX, 'testing iframe npm Sortable', {
 				clientId: props.clientId,
 				inIframe: view !== window,
 				rows: tbody.rows.length,
