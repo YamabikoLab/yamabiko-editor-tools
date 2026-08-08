@@ -68,7 +68,7 @@ type KeyboardReorderState = {
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 const ROWSPAN_REORDER_ERROR_MESSAGE = __(
-	'結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。',
+	'Rows cannot be moved to a position that splits merged cells. Unmerge the cells before reordering.',
 	'yamabiko-editor-tools'
 );
 
@@ -622,7 +622,7 @@ export function TableReorderController( {
 				announce(
 					sprintf(
 						/* translators: 1: table body row number, 2: total table body rows. */
-						__( '%1$d 行目の並べ替えを開始しました。全%2$d行です。', 'yamabiko-editor-tools' ),
+						__( 'Started reordering row %1$d of %2$d.', 'yamabiko-editor-tools' ),
 						row.index + 1,
 						rowsRef.current.length
 					)
@@ -639,7 +639,7 @@ export function TableReorderController( {
 				announce(
 					sprintf(
 						/* translators: %d: table body row number. */
-						__( '並べ替えをキャンセルしました。%d 行目のままです。', 'yamabiko-editor-tools' ),
+						__( 'Reordering canceled. Row remains at position %d.', 'yamabiko-editor-tools' ),
 						keyboardState.sourceIndex + 1
 					)
 				);
@@ -668,7 +668,7 @@ export function TableReorderController( {
 					announce(
 						sprintf(
 							/* translators: 1: original table body row number, 2: destination table body row number. */
-							__( '%1$d 行目を%2$d 行目へ移動しました。', 'yamabiko-editor-tools' ),
+							__( 'Moved row %1$d to position %2$d.', 'yamabiko-editor-tools' ),
 							keyboardState.sourceIndex + 1,
 							keyboardState.destinationIndex + 1
 						)
@@ -685,11 +685,11 @@ export function TableReorderController( {
 				direction!
 			);
 			if ( destination.reason === 'first-row' ) {
-				announce( __( 'これ以上上へ移動できません。', 'yamabiko-editor-tools' ) );
+				announce( __( 'Cannot move the row any further up.', 'yamabiko-editor-tools' ) );
 				return;
 			}
 			if ( destination.reason === 'last-row' ) {
-				announce( __( 'これ以上下へ移動できません。', 'yamabiko-editor-tools' ) );
+				announce( __( 'Cannot move the row any further down.', 'yamabiko-editor-tools' ) );
 				return;
 			}
 
@@ -733,7 +733,7 @@ export function TableReorderController( {
 			announce(
 				sprintf(
 					/* translators: 1: destination table body row number, 2: total table body rows. */
-					__( '%1$d 行目へ移動します。全%2$d行です。', 'yamabiko-editor-tools' ),
+					__( 'Moving to position %1$d of %2$d.', 'yamabiko-editor-tools' ),
 					destination.destinationIndex + 1,
 					rowsRef.current.length
 				)

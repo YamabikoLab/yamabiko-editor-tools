@@ -1,0 +1,45 @@
+{
+	"translation-revision-date": "2026-08-08 00:00+0000",
+	"generator": "WP-CLI",
+	"source": "build/editor-extensions/table-reorder/index.js",
+	"domain": "messages",
+	"locale_data": {
+		"messages": {
+			"": {
+				"domain": "messages",
+				"lang": "ja",
+				"plural-forms": "nplurals=1; plural=0;"
+			},
+			"Finish reordering": [ "並べ替えを終了" ],
+			"Reorder rows": [ "行を並べ替え" ],
+			"Rows can be reordered by dragging or with the keyboard. For keyboard operation, use Tab or Shift+Tab to select a row, Enter or Space to start reordering, the Up and Down arrow keys to move it, and Enter or Space to confirm. Press Escape to cancel.": [
+				"行はドラッグまたはキーボードで並べ替えできます。キーボード操作では Tab または Shift+Tab で行を選択し、Enter または Space で並べ替えを開始し、上下矢印キーで移動し、Enter または Space で確定します。Esc でキャンセルできます。"
+			],
+			"Close instructions": [ "操作ガイドを閉じる" ],
+			"Rows can be reordered by dragging or with the keyboard": [
+				"行はドラッグまたはキーボードで並べ替えできます"
+			],
+			"Drag:": [ "ドラッグ操作：" ],
+			"Drag the handle on the left to move the row": [ "左のハンドルをドラッグして移動" ],
+			"Keyboard:": [ "キーボード操作：" ],
+			"Tab / Shift+Tab to select a row → Enter / Space to start → ↑↓ to move → Enter / Space to confirm (Esc to cancel)": [
+				"Tab / Shift+Tabで行を選択 → Enter / Spaceで開始 → ↑↓で移動 → Enter / Spaceで確定（Escでキャンセル）"
+			],
+			"Reordering row %d": [ "%d 行目を並べ替え中" ],
+			"Reorder row %d": [ "%d 行目を並べ替える" ],
+			"Rows cannot be moved to a position that splits merged cells. Unmerge the cells before reordering.": [
+				"結合セルを分断する位置には行を移動できません。結合を解除してから並べ替えてください。"
+			],
+			"Started reordering row %1$d of %2$d.": [
+				"%1$d 行目の並べ替えを開始しました。全%2$d行です。"
+			],
+			"Reordering canceled. Row remains at position %d.": [
+				"並べ替えをキャンセルしました。%d 行目のままです。"
+			],
+			"Moved row %1$d to position %2$d.": [ "%1$d 行目を%2$d 行目へ移動しました。" ],
+			"Cannot move the row any further up.": [ "これ以上上へ移動できません。" ],
+			"Cannot move the row any further down.": [ "これ以上下へ移動できません。" ],
+			"Moving to position %1$d of %2$d.": [ "%1$d 行目へ移動します。全%2$d行です。" ]
+		}
+	}
+}

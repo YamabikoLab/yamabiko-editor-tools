@@ -64,12 +64,12 @@ export function SortableRow( {
 				isKeyboardReorderSource
 					? sprintf(
 							/* translators: %d: table body row number. */
-							__( '%d 行目を並べ替え中', 'yamabiko-editor-tools' ),
+							__( 'Reordering row %d', 'yamabiko-editor-tools' ),
 							index + 1
 					  )
 					: sprintf(
 							/* translators: %d: table body row number. */
-							__( '%d 行目を並べ替える', 'yamabiko-editor-tools' ),
+							__( 'Reorder row %d', 'yamabiko-editor-tools' ),
 							index + 1
 					  )
 			}

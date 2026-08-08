@@ -109,6 +109,11 @@ final class Plugin {
 				$version,
 				true
 			);
+			wp_set_script_translations(
+				$handle,
+				'yamabiko-editor-tools',
+				__DIR__ . '/languages'
+			);
 			return;
 		}
 

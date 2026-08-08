@@ -269,8 +269,8 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 		}
 
 		const label = isReorderMode
-			? __( '並べ替えを終了', 'yamabiko-editor-tools' )
-			: __( '行を並べ替え', 'yamabiko-editor-tools' );
+			? __( 'Finish reordering', 'yamabiko-editor-tools' )
+			: __( 'Reorder rows', 'yamabiko-editor-tools' );
 
 		return (
 			<>
@@ -282,14 +282,14 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 							ref={ instructionsRef }
 						>
 							{ __(
-								'行はドラッグまたはキーボードで並べ替えできます。キーボード操作では Tab または Shift+Tab で行を選択し、Enter または Space で並べ替えを開始し、上下矢印キーで移動し、Enter または Space で確定します。Esc でキャンセルできます。',
+								'Rows can be reordered by dragging or with the keyboard. For keyboard operation, use Tab or Shift+Tab to select a row, Enter or Space to start reordering, the Up and Down arrow keys to move it, and Enter or Space to confirm. Press Escape to cancel.',
 								'yamabiko-editor-tools'
 							) }
 						</div>
 						{ isInstructionsVisible && (
 							<div className="yamabiko-editor-tools-table-reorder__instructions">
 								<button
-									aria-label={ __( '操作ガイドを閉じる', 'yamabiko-editor-tools' ) }
+									aria-label={ __( 'Close instructions', 'yamabiko-editor-tools' ) }
 									className="yamabiko-editor-tools-table-reorder__instructions-close"
 									onClick={ () => setIsInstructionsVisible( false ) }
 									type="button"
@@ -298,18 +298,18 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 								</button>
 								<div className="yamabiko-editor-tools-table-reorder__instructions-title">
 									{ __(
-										'行はドラッグまたはキーボードで並べ替えできます',
+										'Rows can be reordered by dragging or with the keyboard',
 										'yamabiko-editor-tools'
 									) }
 								</div>
 								<div className="yamabiko-editor-tools-table-reorder__instructions-method">
-									<strong>{ __( 'ドラッグ操作：', 'yamabiko-editor-tools' ) }</strong>
-									{ __( '左のハンドルをドラッグして移動', 'yamabiko-editor-tools' ) }
+									<strong>{ __( 'Drag:', 'yamabiko-editor-tools' ) }</strong>
+									{ __( 'Drag the handle on the left to move the row', 'yamabiko-editor-tools' ) }
 								</div>
 								<div className="yamabiko-editor-tools-table-reorder__instructions-method">
-									<strong>{ __( 'キーボード操作：', 'yamabiko-editor-tools' ) }</strong>
+									<strong>{ __( 'Keyboard:', 'yamabiko-editor-tools' ) }</strong>
 									{ __(
-										'Tab / Shift+Tabで行を選択 → Enter / Spaceで開始 → ↑↓で移動 → Enter / Spaceで確定（Escでキャンセル）',
+										'Tab / Shift+Tab to select a row → Enter / Space to start → ↑↓ to move → Enter / Space to confirm (Esc to cancel)',
 										'yamabiko-editor-tools'
 									) }
 								</div>
