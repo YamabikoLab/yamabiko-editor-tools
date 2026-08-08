@@ -7,7 +7,5 @@ module.exports = {
 		...getWebpackEntryPoints( 'script' )(),
 		'editor-extensions/table-reorder/index': './src/editor-extensions/table-reorder/index.tsx',
 		'editor-extensions/table-reorder/content': './src/editor-extensions/table-reorder/content.scss',
-		'editor-extensions/sortablejs-table-reorder-poc/content':
-			'./src/editor-extensions/sortablejs-table-reorder-poc/content.ts',
 	} ),
 };
