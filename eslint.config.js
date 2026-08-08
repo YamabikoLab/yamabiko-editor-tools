@@ -15,6 +15,8 @@ module.exports = [
 			'playwright-report/**',
 			'test-results/**',
 		],
+	},
+	{
 		linterOptions: {
 			reportUnusedDisableDirectives: 'error',
 		},
