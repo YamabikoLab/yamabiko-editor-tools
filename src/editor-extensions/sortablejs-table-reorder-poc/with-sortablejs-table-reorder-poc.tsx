@@ -118,11 +118,6 @@ const installStyles = ( document: Document ) => {
 	outline-offset: -2px;
 }
 
-.yamabiko-sortablejs-poc__fallback {
-	box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-	opacity: 0.92;
-}
-
 @media (prefers-reduced-motion: reduce) {
 	.${ ACTIVE_CLASS } tbody > tr {
 		transition: none !important;
@@ -202,9 +197,6 @@ export const withSortableJsTableReorderPoc = (
 				dragClass: 'yamabiko-sortablejs-poc__drag',
 				draggable: 'tr',
 				easing: 'ease',
-				fallbackClass: 'yamabiko-sortablejs-poc__fallback',
-				fallbackOnBody: true,
-				fallbackTolerance: 3,
 				filter: ( event, target ) => {
 					let targetElement: Element | null = null;
 					if ( target instanceof view.Element ) {
@@ -225,7 +217,6 @@ export const withSortableJsTableReorderPoc = (
 
 					return ! isPointerInsideGutter( event, firstCell );
 				},
-				forceFallback: true,
 				ghostClass: 'yamabiko-sortablejs-poc__ghost',
 				handle: 'td:first-child, th:first-child',
 				preventOnFilter: false,
