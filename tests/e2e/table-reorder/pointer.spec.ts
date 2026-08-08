@@ -8,7 +8,6 @@ import {
 	moveRowWithPointer,
 	prepareTable,
 	redo,
-	tableRows,
 	type TestFixtures,
 	undo,
 } from './support';
