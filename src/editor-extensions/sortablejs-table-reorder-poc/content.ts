@@ -1,5 +1,3 @@
-import { store as blockEditorStore } from '@wordpress/block-editor';
-import { dispatch, select, subscribe } from '@wordpress/data';
 import Sortable, { type SortableEvent } from 'sortablejs';
 
 import { reorderRows } from '../table-reorder/reorder';
@@ -7,6 +5,8 @@ import { reorderRows } from '../table-reorder/reorder';
 const GUTTER_WIDTH = 32;
 const ACTIVE_CLASS = 'yamabiko-sortablejs-poc--active';
 const STYLE_ATTRIBUTE = 'data-yamabiko-sortablejs-poc-style';
+const BLOCK_EDITOR_STORE = 'core/block-editor';
+const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
 
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
@@ -28,15 +28,43 @@ type BlockEditorActions = {
 	updateBlockAttributes: ( clientId: string, attributes: TableAttributes ) => void;
 };
 
+type WordPressData = {
+	dispatch: ( storeName: string ) => BlockEditorActions;
+	select: ( storeName: string ) => BlockEditorSelectors;
+	subscribe: ( callback: () => void ) => () => void;
+};
+
+type ParentWindow = Window & {
+	wp?: {
+		data?: WordPressData;
+	};
+};
+
 type SortableBinding = {
 	block: HTMLElement;
 	sortable: Sortable;
 };
 
 const bindings = new Map< HTMLTableSectionElement, SortableBinding >();
+let didWarnAboutParentStore = false;
 
-const getSelectors = () => select( blockEditorStore ) as unknown as BlockEditorSelectors;
-const getActions = () => dispatch( blockEditorStore ) as unknown as BlockEditorActions;
+const getParentData = (): WordPressData | null => {
+	try {
+		return ( window.parent as ParentWindow ).wp?.data ?? null;
+	} catch {
+		return null;
+	}
+};
+
+const getSelectors = (): BlockEditorSelectors | null => {
+	const data = getParentData();
+	return data ? data.select( BLOCK_EDITOR_STORE ) : null;
+};
+
+const getActions = (): BlockEditorActions | null => {
+	const data = getParentData();
+	return data ? data.dispatch( BLOCK_EDITOR_STORE ) : null;
+};
 
 const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 
@@ -155,7 +183,7 @@ const createBinding = (
 		onStart: ( event: SortableEvent ) => {
 			const rows = Array.from( tbody.rows );
 			const sourceIndex = rows.indexOf( event.item as HTMLTableRowElement );
-			const attributes = getSelectors().getBlockAttributes( clientId );
+			const attributes = getSelectors()?.getBlockAttributes( clientId );
 			const body = getBodyRows( attributes?.body );
 
 			dragSnapshot =
@@ -173,8 +201,8 @@ const createBinding = (
 			const targetIndex = event.newDraggableIndex ?? event.newIndex;
 
 			// SortableJS owns the DOM only during the gesture. Restore Gutenberg's
-			// original order first, then let the block-editor store render the new
-			// canonical row order from attributes.
+			// original order first, then let the parent block-editor store render the
+			// new canonical row order from attributes.
 			restoreOriginalRowOrder( tbody, snapshot.rows );
 
 			if (
@@ -186,19 +214,28 @@ const createBinding = (
 				return;
 			}
 
-			getActions().updateBlockAttributes( clientId, {
+			getActions()?.updateBlockAttributes( clientId, {
 				body: reorderRows( snapshot.body, snapshot.sourceIndex, targetIndex ),
 			} );
 		},
 	} );
 
 	bindings.set( tbody, { block, sortable } );
+	console.info( LOG_PREFIX, 'bound to selected Table', clientId );
 };
 
 const syncBindings = () => {
 	installStyles();
 
 	const selectors = getSelectors();
+	if ( ! selectors ) {
+		if ( ! didWarnAboutParentStore ) {
+			didWarnAboutParentStore = true;
+			console.warn( LOG_PREFIX, 'parent wp.data is not available' );
+		}
+		return;
+	}
+
 	const selectedClientId = selectors.getSelectedBlockClientId();
 	const activeTbodies = new Set< HTMLTableSectionElement >();
 
@@ -232,13 +269,16 @@ const syncBindings = () => {
 	}
 };
 
+console.info( LOG_PREFIX, 'iframe content script loaded' );
+
 const observer = new MutationObserver( syncBindings );
 observer.observe( document.documentElement, {
 	childList: true,
 	subtree: true,
 } );
 
-const unsubscribe = subscribe( syncBindings );
+const parentData = getParentData();
+const unsubscribe = parentData?.subscribe( syncBindings ) ?? ( () => {} );
 
 window.addEventListener(
 	'unload',
