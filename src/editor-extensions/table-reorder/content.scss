@@ -100,6 +100,15 @@
 		position: absolute;
 		width: 24px;
 
+		&.is-hover-reorder-handle {
+			opacity: 0;
+			transition: opacity 300ms ease;
+		}
+
+		&.is-hover-reorder-handle.is-hover-reorder-visible {
+			opacity: 1;
+		}
+
 		&.is-dragging {
 			opacity: 0.5;
 		}
@@ -151,4 +160,11 @@
 	margin-left: 32px;
 	margin-right: 32px;
 	width: calc(100% - 64px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.yamabiko-editor-tools-table-reorder-content__handle.is-hover-reorder-handle {
+		transition: none;
+	}
 }
