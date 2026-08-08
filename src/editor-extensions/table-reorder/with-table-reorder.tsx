@@ -297,7 +297,10 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 									×
 								</button>
 								<div className="yamabiko-editor-tools-table-reorder__instructions-title">
-									{ __( 'Rows can be reordered by dragging or with the keyboard', 'yamabiko-editor-tools' ) }
+									{ __(
+										'Rows can be reordered by dragging or with the keyboard',
+										'yamabiko-editor-tools'
+									) }
 								</div>
 								<div className="yamabiko-editor-tools-table-reorder__instructions-method">
 									<strong>{ __( 'Drag:', 'yamabiko-editor-tools' ) }</strong>
