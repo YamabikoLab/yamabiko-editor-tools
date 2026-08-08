@@ -33,11 +33,17 @@ Build output is written to `build/`. The generated block manifest is loaded by `
 
 ## Check the code
 
+Run the standard Node.js quality checks with:
+
 ```bash
-npm run format:check
-npm run lint:js
-npm run lint:css
-npm run typecheck
+npm test
+```
+
+This runs formatting checks, JavaScript/TypeScript linting, CSS/SCSS linting, TypeScript type checking, and unit tests. It does not create a production build or run Playwright E2E tests.
+
+Run the PHP checks separately:
+
+```bash
 composer lint:php
 composer analyse:php
 ```

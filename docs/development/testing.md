@@ -10,41 +10,31 @@ Install dependencies:
 npm ci
 ```
 
-Validate formatting without changing files:
+Run the standard Node.js quality gate:
+
+```bash
+npm test
+```
+
+`npm test` runs these checks in order:
 
 ```bash
 npm run format:check
-```
-
-Lint JavaScript and TypeScript:
-
-```bash
 npm run lint:js
-```
-
-Lint CSS and SCSS:
-
-```bash
 npm run lint:css
-```
-
-Check TypeScript types:
-
-```bash
 npm run typecheck
-```
-
-Run focused JavaScript and TypeScript unit tests:
-
-```bash
 npm run test:unit
 ```
 
-Create the production build:
+Use the individual commands when iterating on a focused problem. Before handoff for JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes, use `npm test` so the same quality gate is shared by local development and PR Validation.
+
+Create the production build separately:
 
 ```bash
 npm run build
 ```
+
+The build remains separate from `npm test` because it verifies production asset generation rather than source quality. PR Validation runs both `npm test` and `npm run build`.
 
 Use `npm run format` or `npm run format:css` only when intentionally formatting files. They modify source files and are not validation commands.
 
@@ -132,12 +122,12 @@ Check changed lines for whitespace errors:
 git diff --check origin/main...HEAD
 ```
 
-The manually triggered `.github/workflows/pr-validation.yml` workflow runs the current Node.js and PHP checks on GitHub Actions. Run the repository check above separately before handoff.
+The manually triggered `.github/workflows/pr-validation.yml` workflow runs `npm test`, the production build, and the PHP checks on GitHub Actions. Run the repository check above separately before handoff.
 
 ## Which checks to run
 
 - Documentation-only changes: `git diff --check origin/main...HEAD`.
-- JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes: formatting check, JavaScript lint, style lint, typecheck, unit tests, and build.
+- JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes: `npm test`, `npm run build`, and the repository check.
 - Playwright configuration or E2E test changes: run the Node.js checks above and `npm run test:e2e` when a compatible `wp-dev` WordPress environment is available.
 - PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
 - Mixed changes: combine the applicable groups.

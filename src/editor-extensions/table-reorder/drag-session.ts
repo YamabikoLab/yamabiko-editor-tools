@@ -41,7 +41,7 @@ export const beginTableReorderDrag = (
 	sourceIndex: number
 ): TableReorderDragSession | null => {
 	const snapshot = [ ...getBodyRows( body ) ];
-	if ( sourceIndex < 0 || sourceIndex >= snapshot.length ) {
+	if ( ! Number.isInteger( sourceIndex ) || sourceIndex < 0 || sourceIndex >= snapshot.length ) {
 		return null;
 	}
 
