@@ -1,11 +1,6 @@
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
-import {
-	basicTable,
-	prepareTable,
-	rowHandle,
-	type TestFixtures,
-} from './support';
+import { basicTable, prepareTable, rowHandle, type TestFixtures } from './support';
 
 for ( const canvasMode of [ 'iframe', 'non-iframe' ] as const ) {
 	const canvasName = canvasMode;
@@ -20,11 +15,7 @@ for ( const canvasMode of [ 'iframe', 'non-iframe' ] as const ) {
 			pageUtils,
 		} ) => {
 			const fixtures: TestFixtures = { admin, editor, page, pageUtils };
-			const { canvas, table } = await prepareTable(
-				fixtures,
-				basicTable( { align } ),
-				canvasMode
-			);
+			const { canvas, table } = await prepareTable( fixtures, basicTable( { align } ), canvasMode );
 			const handle = rowHandle( canvas, 2 );
 
 			await table.hover();

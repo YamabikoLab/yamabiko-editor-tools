@@ -133,10 +133,7 @@ export async function enableReorderMode( {
 	return handle;
 }
 
-export async function moveRowWithKeyboard(
-	handle: Locator,
-	direction: 'ArrowDown' | 'ArrowUp'
-) {
+export async function moveRowWithKeyboard( handle: Locator, direction: 'ArrowDown' | 'ArrowUp' ) {
 	await handle.press( 'Enter' );
 	await handle.press( direction );
 	await handle.press( 'Enter' );
