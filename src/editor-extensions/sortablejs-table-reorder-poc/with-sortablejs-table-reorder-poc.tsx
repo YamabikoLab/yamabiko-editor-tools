@@ -4,6 +4,7 @@ import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const SORTABLE_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js';
+const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
@@ -28,6 +29,7 @@ type SortableRuntime = {
 		options: {
 			animation: number;
 			draggable: string;
+			handle: string;
 			onChoose: () => void;
 			onEnd: ( event: SortableEventLike ) => void;
 			onStart: () => void;
@@ -46,6 +48,39 @@ const restoreOriginalRowOrder = (
 	for ( const row of rows ) {
 		tbody.append( row );
 	}
+};
+
+const addMinimalHandles = (
+	document: Document,
+	tbody: HTMLTableSectionElement
+): HTMLElement[] => {
+	const handles: HTMLElement[] = [];
+
+	for ( const row of Array.from( tbody.rows ) ) {
+		const firstCell = row.cells.item( 0 );
+		if ( ! firstCell ) {
+			continue;
+		}
+
+		const handle = document.createElement( 'span' );
+		handle.className = HANDLE_CLASS;
+		handle.setAttribute( 'contenteditable', 'false' );
+		handle.setAttribute( 'aria-hidden', 'true' );
+		handle.textContent = '⋮⋮';
+		handle.style.display = 'inline-block';
+		handle.style.marginInlineEnd = '8px';
+		handle.style.padding = '2px 4px';
+		handle.style.border = '1px solid currentColor';
+		handle.style.borderRadius = '2px';
+		handle.style.cursor = 'grab';
+		handle.style.lineHeight = '1';
+		handle.style.userSelect = 'none';
+
+		firstCell.prepend( handle );
+		handles.push( handle );
+	}
+
+	return handles;
 };
 
 const findBlockElement = (
@@ -147,6 +182,11 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				rows: tbody.rows.length,
 			} );
 
+			const handles = addMinimalHandles( document, tbody );
+			console.info( LOG_PREFIX, 'minimal handles added', {
+				handles: handles.length,
+			} );
+
 			let cancelled = false;
 			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
@@ -159,6 +199,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				sortable = Sortable.create( tbody, {
 					animation: 150,
 					draggable: 'tr',
+					handle: `.${ HANDLE_CLASS }`,
 					onChoose: () => {
 						console.info( LOG_PREFIX, 'onChoose' );
 					},
@@ -187,6 +228,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				if ( dragRows ) {
 					restoreOriginalRowOrder( tbody, dragRows );
 					dragRows = null;
+				}
+				for ( const handle of handles ) {
+					handle.remove();
 				}
 			};
 		}, [ isTableBlock, props.clientId, props.isSelected ] );
