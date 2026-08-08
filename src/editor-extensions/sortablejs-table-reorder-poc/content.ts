@@ -1,78 +1,26 @@
 import Sortable, { type SortableEvent } from 'sortablejs';
 
-import { reorderRows } from '../table-reorder/reorder';
-
 const GUTTER_WIDTH = 32;
 const ACTIVE_CLASS = 'yamabiko-sortablejs-poc--active';
 const STYLE_ATTRIBUTE = 'data-yamabiko-sortablejs-poc-style';
-const BLOCK_EDITOR_STORE = 'core/block-editor';
 const LOG_PREFIX = '[Yamabiko SortableJS PoC]';
 
-type TableAttributes = Record< string, unknown > & {
-	body?: unknown[];
+type BindOptions = {
+	onReorder: ( sourceIndex: number, targetIndex: number ) => void;
 };
 
 type DragSnapshot = {
-	body: unknown[];
 	rows: HTMLTableRowElement[];
 	sourceIndex: number;
 };
 
-type SelectionStart = {
-	clientId?: string;
+type SortableJsPocApi = {
+	bind: ( block: HTMLElement, options: BindOptions ) => () => void;
 };
 
-type BlockEditorSelectors = {
-	getBlockAttributes: ( clientId: string ) => TableAttributes | null;
-	getBlockName: ( clientId: string ) => string | null;
-	getSelectedBlockClientId: () => string | null;
-	getSelectionStart: () => SelectionStart | null;
+type PocWindow = Window & {
+	YamabikoSortableJsPoc?: SortableJsPocApi;
 };
-
-type BlockEditorActions = {
-	updateBlockAttributes: ( clientId: string, attributes: TableAttributes ) => void;
-};
-
-type WordPressData = {
-	dispatch: ( storeName: string ) => BlockEditorActions;
-	select: ( storeName: string ) => BlockEditorSelectors;
-	subscribe: ( callback: () => void ) => () => void;
-};
-
-type ParentWindow = Window & {
-	wp?: {
-		data?: WordPressData;
-	};
-};
-
-type SortableBinding = {
-	block: HTMLElement;
-	sortable: Sortable;
-};
-
-const bindings = new Map< HTMLTableSectionElement, SortableBinding >();
-let didWarnAboutParentStore = false;
-let lastBindingProbe = '';
-
-const getParentData = (): WordPressData | null => {
-	try {
-		return ( window.parent as ParentWindow ).wp?.data ?? null;
-	} catch {
-		return null;
-	}
-};
-
-const getSelectors = (): BlockEditorSelectors | null => {
-	const data = getParentData();
-	return data ? data.select( BLOCK_EDITOR_STORE ) : null;
-};
-
-const getActions = (): BlockEditorActions | null => {
-	const data = getParentData();
-	return data ? data.dispatch( BLOCK_EDITOR_STORE ) : null;
-};
-
-const getBodyRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 
 const getEventClientX = ( event: Event ): number | null => {
 	const mouseLike = event as Event & { clientX?: unknown };
@@ -111,7 +59,7 @@ const restoreOriginalRowOrder = (
 	}
 };
 
-const installStyles = () => {
+const installStyles = ( document: Document ) => {
 	if ( document.head.querySelector( `[${ STYLE_ATTRIBUTE }]` ) ) {
 		return;
 	}
@@ -160,7 +108,16 @@ const installStyles = () => {
 	document.head.append( style );
 };
 
-const createBinding = ( clientId: string, block: HTMLElement, tbody: HTMLTableSectionElement ) => {
+const bind: SortableJsPocApi[ 'bind' ] = ( block, { onReorder } ) => {
+	const document = block.ownerDocument;
+	const table = block.querySelector< HTMLTableElement >( 'table' );
+	const tbody = table?.tBodies.item( 0 ) ?? null;
+	if ( ! tbody ) {
+		return () => {};
+	}
+
+	installStyles( document );
+	block.classList.add( ACTIVE_CLASS );
 	let dragSnapshot: DragSnapshot | null = null;
 
 	const sortable = Sortable.create( tbody, {
@@ -185,13 +142,7 @@ const createBinding = ( clientId: string, block: HTMLElement, tbody: HTMLTableSe
 		onStart: ( event: SortableEvent ) => {
 			const rows = Array.from( tbody.rows );
 			const sourceIndex = rows.indexOf( event.item as HTMLTableRowElement );
-			const attributes = getSelectors()?.getBlockAttributes( clientId );
-			const body = getBodyRows( attributes?.body );
-
-			dragSnapshot =
-				sourceIndex < 0 || body.length !== rows.length
-					? null
-					: { body: [ ...body ], rows, sourceIndex };
+			dragSnapshot = sourceIndex < 0 ? null : { rows, sourceIndex };
 		},
 		onEnd: ( event: SortableEvent ) => {
 			const snapshot = dragSnapshot;
@@ -201,108 +152,32 @@ const createBinding = ( clientId: string, block: HTMLElement, tbody: HTMLTableSe
 			}
 
 			const targetIndex = event.newDraggableIndex ?? event.newIndex;
-
-			// SortableJS owns the DOM only during the gesture. Restore Gutenberg's
-			// original order first, then let the parent block-editor store render the
-			// new canonical row order from attributes.
 			restoreOriginalRowOrder( tbody, snapshot.rows );
 
 			if (
 				targetIndex === undefined ||
 				targetIndex < 0 ||
-				targetIndex >= snapshot.body.length ||
+				targetIndex >= snapshot.rows.length ||
 				targetIndex === snapshot.sourceIndex
 			) {
 				return;
 			}
 
-			getActions()?.updateBlockAttributes( clientId, {
-				body: reorderRows( snapshot.body, snapshot.sourceIndex, targetIndex ),
-			} );
+			onReorder( snapshot.sourceIndex, targetIndex );
 		},
 	} );
 
-	bindings.set( tbody, { block, sortable } );
-	console.info( LOG_PREFIX, 'bound to selected Table', clientId );
-};
+	console.info( LOG_PREFIX, 'bound inside iframe' );
 
-const syncBindings = () => {
-	installStyles();
-
-	const selectors = getSelectors();
-	if ( ! selectors ) {
-		if ( ! didWarnAboutParentStore ) {
-			didWarnAboutParentStore = true;
-			console.warn( LOG_PREFIX, 'parent wp.data is not available' );
+	return () => {
+		sortable.destroy();
+		if ( dragSnapshot ) {
+			restoreOriginalRowOrder( tbody, dragSnapshot.rows );
+			dragSnapshot = null;
 		}
-		return;
-	}
-
-	const selectedClientId =
-		selectors.getSelectedBlockClientId() ?? selectors.getSelectionStart()?.clientId ?? null;
-	const blockName = selectedClientId ? selectors.getBlockName( selectedClientId ) : null;
-	const block = selectedClientId
-		? document.querySelector< HTMLElement >( `[data-block="${ selectedClientId }"]` )
-		: null;
-	const table = block?.querySelector< HTMLTableElement >( 'table' ) ?? null;
-	const tbody = table?.tBodies.item( 0 ) ?? null;
-	const activeTbodies = new Set< HTMLTableSectionElement >();
-	const bindingProbe = {
-		blockFound: Boolean( block ),
-		blockName,
-		dataBlockCount: document.querySelectorAll( '[data-block]' ).length,
-		inIframe: window !== window.parent,
-		selectedClientId,
-		tableFound: Boolean( table ),
-		tbodyFound: Boolean( tbody ),
+		block.classList.remove( ACTIVE_CLASS );
 	};
-	const bindingProbeKey = JSON.stringify( bindingProbe );
-	if ( bindingProbeKey !== lastBindingProbe ) {
-		lastBindingProbe = bindingProbeKey;
-		console.info( LOG_PREFIX, 'binding probe', bindingProbe );
-	}
-
-	if ( selectedClientId && blockName === 'core/table' && block && tbody ) {
-		activeTbodies.add( tbody );
-		block.classList.add( ACTIVE_CLASS );
-		if ( ! bindings.has( tbody ) ) {
-			createBinding( selectedClientId, block, tbody );
-		}
-	}
-
-	for ( const [ currentTbody, binding ] of bindings ) {
-		if ( activeTbodies.has( currentTbody ) && currentTbody.isConnected ) {
-			continue;
-		}
-
-		binding.sortable.destroy();
-		binding.block.classList.remove( ACTIVE_CLASS );
-		bindings.delete( currentTbody );
-	}
 };
 
-console.info( LOG_PREFIX, 'iframe content script loaded' );
-
-const observer = new MutationObserver( syncBindings );
-observer.observe( document.documentElement, {
-	childList: true,
-	subtree: true,
-} );
-
-const parentData = getParentData();
-const unsubscribe = parentData?.subscribe( syncBindings ) ?? ( () => {} );
-
-window.addEventListener(
-	'unload',
-	() => {
-		observer.disconnect();
-		unsubscribe();
-		for ( const { sortable } of bindings.values() ) {
-			sortable.destroy();
-		}
-		bindings.clear();
-	},
-	{ once: true }
-);
-
-syncBindings();
+( window as PocWindow ).YamabikoSortableJsPoc = { bind };
+console.info( LOG_PREFIX, 'iframe API ready', window !== window.parent );
