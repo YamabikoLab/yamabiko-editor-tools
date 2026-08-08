@@ -14,5 +14,6 @@
 		"/var/www/html/wp-admin",
 		"/var/www/html/wp-includes",
 		"/var/www/html/wp-content/themes/twentytwentyfive"
-	]
+	],
+	"js/ts.tsdk.path": "node_modules/typescript/lib"
 }
