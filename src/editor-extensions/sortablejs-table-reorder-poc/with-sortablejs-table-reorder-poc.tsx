@@ -12,9 +12,11 @@ const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 const HANDLE_ZONE_CLASS = 'yamabiko-sortablejs-poc-handle-zone';
 const NON_MOVABLE_ROW_CLASS = 'yamabiko-sortablejs-poc-non-movable-row';
+const INSERTION_LINE_CLASS = 'yamabiko-sortablejs-poc-insertion-line';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
 const HANDLE_FADE_MS = 300;
 const HANDLE_GUTTER_PX = 32;
+const INSERTION_LINE_HEIGHT_PX = 2;
 const TOUCH_DRAG_DELAY_MS = 300;
 const TOUCH_START_THRESHOLD_PX = 5;
 
@@ -50,6 +52,7 @@ type SortableOptions = {
 	onEnd: ( event: SortableEventLike ) => void;
 	onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
 	onStart: () => void;
+	onUnchoose: () => void;
 	touchStartThreshold?: number;
 };
 
@@ -134,6 +137,37 @@ const getMoveInsertionIndex = (
 
 const getEndInsertionIndex = ( oldIndex: number, newIndex: number ): number =>
 	newIndex > oldIndex ? newIndex + 1 : newIndex;
+
+const createInsertionLine = ( document: Document ): HTMLDivElement => {
+	const line = document.createElement( 'div' );
+	line.className = INSERTION_LINE_CLASS;
+	line.setAttribute( 'aria-hidden', 'true' );
+	line.style.position = 'fixed';
+	line.style.height = `${ INSERTION_LINE_HEIGHT_PX }px`;
+	line.style.background = 'var(--wp-admin-theme-color, #3858e9)';
+	line.style.pointerEvents = 'none';
+	line.style.zIndex = '100000';
+	line.style.display = 'none';
+	line.style.transform = 'translateY(-50%)';
+	document.body.append( line );
+	return line;
+};
+
+const hideInsertionLine = ( line: HTMLElement ) => {
+	line.style.display = 'none';
+};
+
+const showInsertionLine = (
+	line: HTMLElement,
+	row: HTMLTableRowElement,
+	willInsertAfter: boolean
+) => {
+	const rect = row.getBoundingClientRect();
+	line.style.left = `${ rect.left }px`;
+	line.style.top = `${ willInsertAfter ? rect.bottom : rect.top }px`;
+	line.style.width = `${ rect.width }px`;
+	line.style.display = 'block';
+};
 
 const addMinimalHandles = (
 	document: Document,
@@ -367,6 +401,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			}
 
 			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
+			const insertionLine = createInsertionLine( document );
 
 			let entries: MinimalHandle[] = [];
 			let restoreCellStyles: () => void = () => undefined;
@@ -601,9 +636,11 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					draggable: useTouchMode ? `tr:not(.${ NON_MOVABLE_ROW_CLASS })` : 'tr',
 					forceFallback: true,
 					onChoose: () => {
+						hideInsertionLine( insertionLine );
 						dragRows = Array.from( tbody.rows );
 					},
 					onStart: () => {
+						hideInsertionLine( insertionLine );
 						isDragging = true;
 						suppressBlockDrag();
 						if ( activeEntry ) {
@@ -612,15 +649,31 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					},
 					onMove: ( event ) => {
 						if ( ! dragRows ) {
+							hideInsertionLine( insertionLine );
 							return;
 						}
 
 						const insertionIndex = getMoveInsertionIndex( event, dragRows );
-						if ( insertionIndex !== null && forbiddenInsertionIndices.includes( insertionIndex ) ) {
+						if ( insertionIndex === null ) {
+							hideInsertionLine( insertionLine );
+							return;
+						}
+
+						if ( forbiddenInsertionIndices.includes( insertionIndex ) ) {
+							hideInsertionLine( insertionLine );
 							return false;
 						}
+
+						const relatedRow = event.related.closest< HTMLTableRowElement >( 'tr' );
+						if ( ! relatedRow || relatedRow.parentElement !== tbody ) {
+							hideInsertionLine( insertionLine );
+							return;
+						}
+
+						showInsertionLine( insertionLine, relatedRow, event.willInsertAfter );
 					},
 					onEnd: ( event ) => {
+						hideInsertionLine( insertionLine );
 						isDragging = false;
 
 						if ( dragRows ) {
@@ -663,6 +716,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 						setAttributes( { body: reorderedBody } );
 					},
+					onUnchoose: () => {
+						hideInsertionLine( insertionLine );
+					},
 				};
 
 				if ( useHoverMode ) {
@@ -678,6 +734,8 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
+				hideInsertionLine( insertionLine );
+				insertionLine.remove();
 				resetTouchPress();
 				if ( useHoverMode ) {
 					for ( const { zone } of entries ) {
