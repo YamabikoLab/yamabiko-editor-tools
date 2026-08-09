@@ -14,6 +14,8 @@ const HANDLE_ZONE_CLASS = 'yamabiko-sortablejs-poc-handle-zone';
 const NON_MOVABLE_ROW_CLASS = 'yamabiko-sortablejs-poc-non-movable-row';
 const INSERTION_LINE_CLASS = 'yamabiko-sortablejs-poc-insertion-line';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
+const AUTO_SCROLL_SENSITIVITY_PX = 80;
+const AUTO_SCROLL_SPEED_PX = 8;
 const HANDLE_FADE_MS = 300;
 const HANDLE_GUTTER_PX = 32;
 const INSERTION_LINE_HEIGHT_PX = 2;
@@ -44,6 +46,7 @@ type SortableInstance = {
 
 type SortableOptions = {
 	animation: number;
+	bubbleScroll: boolean;
 	delay?: number;
 	draggable: string;
 	forceFallback: boolean;
@@ -53,6 +56,9 @@ type SortableOptions = {
 	onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
 	onStart: () => void;
 	onUnchoose: () => void;
+	scroll: boolean;
+	scrollSensitivity: number;
+	scrollSpeed: number;
 	touchStartThreshold?: number;
 };
 
@@ -633,6 +639,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 				const options: SortableOptions = {
 					animation: 150,
+					bubbleScroll: true,
 					draggable: useTouchMode ? `tr:not(.${ NON_MOVABLE_ROW_CLASS })` : 'tr',
 					forceFallback: true,
 					onChoose: () => {
@@ -719,6 +726,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					onUnchoose: () => {
 						hideInsertionLine( insertionLine );
 					},
+					scroll: true,
+					scrollSensitivity: AUTO_SCROLL_SENSITIVITY_PX,
+					scrollSpeed: AUTO_SCROLL_SPEED_PX,
 				};
 
 				if ( useHoverMode ) {
