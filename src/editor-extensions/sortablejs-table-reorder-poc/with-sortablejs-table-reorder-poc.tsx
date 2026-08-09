@@ -97,7 +97,10 @@ const reorderRows = (
 	return reordered;
 };
 
-const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement ): MinimalHandles => {
+const addMinimalHandles = (
+	document: Document,
+	tbody: HTMLTableSectionElement
+): MinimalHandles => {
 	const entries: MinimalHandle[] = [];
 	const changedCells: Array< {
 		cell: HTMLTableCellElement;
@@ -337,7 +340,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				setHandleVisible( entry, false );
 				if ( activeEntry === entry ) {
 					activeEntry = null;
-				restoreBlockDrag();
+					restoreBlockDrag();
 				}
 			};
 			const releaseEntry = () => {
