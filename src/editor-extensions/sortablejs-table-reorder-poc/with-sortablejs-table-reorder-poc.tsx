@@ -359,13 +359,14 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			const rowspanRanges = getRowspanRanges( body );
 			const nonMovableRowIndices = getNonMovableRowIndices( rowspanRanges );
 			const nonMovableRows = new Set( nonMovableRowIndices );
-			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
 			const hoverMedia = view.matchMedia( HOVER_REORDER_MEDIA_QUERY );
 			const useHoverMode = isHoverCapable && hoverMedia.matches;
 			const useTouchMode = ! useHoverMode && isSelected && isTouchReorderMode;
 			if ( ! useHoverMode && ! useTouchMode ) {
 				return;
 			}
+
+			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
 
 			let entries: MinimalHandle[] = [];
 			let restoreCellStyles: () => void = () => undefined;
