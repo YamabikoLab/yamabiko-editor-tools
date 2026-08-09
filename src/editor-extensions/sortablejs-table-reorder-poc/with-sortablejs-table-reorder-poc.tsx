@@ -203,8 +203,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const configWindow = anchor.ownerDocument.defaultView as PocConfigWindow | null;
-			const runtimeUrl = configWindow?.yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
+			const runtimeUrl = ( window as PocConfigWindow ).yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
 			if ( ! runtimeUrl ) {
 				return;
 			}
