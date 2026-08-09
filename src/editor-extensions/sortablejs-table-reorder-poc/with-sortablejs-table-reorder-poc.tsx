@@ -1,5 +1,8 @@
+import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
-import { useEffect, useRef, type ComponentType } from '@wordpress/element';
+import { ToolbarButton } from '@wordpress/components';
+import { useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
@@ -177,6 +180,12 @@ const setHandleVisible = ( entry: MinimalHandle, isVisible: boolean ) => {
 	entry.handle.style.opacity = isVisible ? '1' : '0';
 };
 
+const setAllHandlesVisible = ( entries: readonly MinimalHandle[], isVisible: boolean ) => {
+	for ( const entry of entries ) {
+		setHandleVisible( entry, isVisible );
+	}
+};
+
 const isHandleInteraction = ( event: Event ): boolean => {
 	const target = event.target as Element | null;
 	return Boolean( target?.closest?.( `.${ HANDLE_ZONE_CLASS }` ) );
@@ -252,9 +261,40 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		const {
 			attributes: { body },
 			clientId,
+			isSelected,
 			setAttributes,
 		} = props;
 		const isTableBlock = props.name === 'core/table';
+		const [ isHoverCapable, setIsHoverCapable ] = useState( () =>
+			window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
+		);
+		const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
+
+		useEffect( () => {
+			if ( ! isTableBlock ) {
+				return;
+			}
+
+			const hoverMedia = window.matchMedia( HOVER_REORDER_MEDIA_QUERY );
+			const syncHoverCapability = () => {
+				setIsHoverCapable( hoverMedia.matches );
+				if ( hoverMedia.matches ) {
+					setIsTouchReorderMode( false );
+				}
+			};
+
+			syncHoverCapability();
+			hoverMedia.addEventListener( 'change', syncHoverCapability );
+			return () => {
+				hoverMedia.removeEventListener( 'change', syncHoverCapability );
+			};
+		}, [ isTableBlock ] );
+
+		useEffect( () => {
+			if ( ! isSelected ) {
+				setIsTouchReorderMode( false );
+			}
+		}, [ isSelected ] );
 
 		useEffect( () => {
 			if ( ! isTableBlock ) {
@@ -281,8 +321,17 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			}
 
 			const hoverMedia = view.matchMedia( HOVER_REORDER_MEDIA_QUERY );
+			const useHoverMode = isHoverCapable && hoverMedia.matches;
+			const useTouchMode = ! useHoverMode && isSelected && isTouchReorderMode;
+			if ( ! useHoverMode && ! useTouchMode ) {
+				return;
+			}
+
 			const { entries, restoreCellStyles } = addMinimalHandles( document, tbody );
 			const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
+			if ( useTouchMode ) {
+				setAllHandlesVisible( entries, true );
+			}
 
 			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 			for ( const eventName of blockSelectionEvents ) {
@@ -321,7 +370,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				blockDragSuppressed = false;
 			};
 			const activateEntry = ( entry: MinimalHandle ) => {
-				if ( ! hoverMedia.matches ) {
+				if ( ! useHoverMode ) {
 					return;
 				}
 
@@ -384,22 +433,18 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					activateEntry( entry );
 				}
 			};
-			const onHoverCapabilityChange = () => {
-				if ( ! hoverMedia.matches ) {
-					releaseEntry();
+
+			if ( useHoverMode ) {
+				for ( const { zone } of entries ) {
+					zone.addEventListener( 'pointerenter', onZonePointerEnter );
+					zone.addEventListener( 'pointerleave', onZonePointerLeave );
+					zone.addEventListener( 'pointerdown', onZonePointerDown );
 				}
-			};
 
-			for ( const { zone } of entries ) {
-				zone.addEventListener( 'pointerenter', onZonePointerEnter );
-				zone.addEventListener( 'pointerleave', onZonePointerLeave );
-				zone.addEventListener( 'pointerdown', onZonePointerDown );
-			}
-			hoverMedia.addEventListener( 'change', onHoverCapabilityChange );
-
-			const hoveredEntry = entries.find( ( entry ) => entry.zone.matches( ':hover' ) );
-			if ( hoveredEntry ) {
-				activateEntry( hoveredEntry );
+				const hoveredEntry = entries.find( ( entry ) => entry.zone.matches( ':hover' ) );
+				if ( hoveredEntry ) {
+					activateEntry( hoveredEntry );
+				}
 			}
 
 			void ensureSortableRuntime( document, view, runtimeUrl ).then( ( Sortable ) => {
@@ -418,6 +463,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					onStart: () => {
 						isDragging = true;
 						lastMoveRelatedIndex = null;
+						if ( useTouchMode ) {
+							suppressBlockDrag();
+						}
 						if ( activeEntry ) {
 							setHandleVisible( activeEntry, true );
 						}
@@ -439,11 +487,15 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 						lastMoveRelatedIndex = null;
 
-						const hoveredAfterDrag = entries.find( ( entry ) => entry.zone.matches( ':hover' ) );
-						if ( hoveredAfterDrag ) {
-							activateEntry( hoveredAfterDrag );
+						if ( useHoverMode ) {
+							const hoveredAfterDrag = entries.find( ( entry ) => entry.zone.matches( ':hover' ) );
+							if ( hoveredAfterDrag ) {
+								activateEntry( hoveredAfterDrag );
+							} else {
+								releaseEntry();
+							}
 						} else {
-							releaseEntry();
+							restoreBlockDrag();
 						}
 
 						const { oldIndex, newIndex } = event;
@@ -468,12 +520,13 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
-				for ( const { zone } of entries ) {
-					zone.removeEventListener( 'pointerenter', onZonePointerEnter );
-					zone.removeEventListener( 'pointerleave', onZonePointerLeave );
-					zone.removeEventListener( 'pointerdown', onZonePointerDown );
+				if ( useHoverMode ) {
+					for ( const { zone } of entries ) {
+						zone.removeEventListener( 'pointerenter', onZonePointerEnter );
+						zone.removeEventListener( 'pointerleave', onZonePointerLeave );
+						zone.removeEventListener( 'pointerdown', onZonePointerDown );
+					}
 				}
-				hoverMedia.removeEventListener( 'change', onHoverCapabilityChange );
 				for ( const eventName of blockSelectionEvents ) {
 					tbody.removeEventListener( eventName, stopHandleInteractionPropagation );
 				}
@@ -487,7 +540,15 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				}
 				restoreCellStyles();
 			};
-		}, [ body, clientId, isTableBlock, setAttributes ] );
+		}, [
+			body,
+			clientId,
+			isHoverCapable,
+			isSelected,
+			isTableBlock,
+			isTouchReorderMode,
+			setAttributes,
+		] );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
@@ -496,6 +557,17 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		return (
 			<>
 				<BlockEdit { ...props } />
+				{ ! isHoverCapable && isSelected && (
+					<BlockControls>
+						<ToolbarButton
+							isPressed={ isTouchReorderMode }
+							label={ __( '行を並び替え', 'yamabiko-editor-tools' ) }
+							onClick={ () => setIsTouchReorderMode( ( isActive ) => ! isActive ) }
+						>
+							{ __( '並び替え', 'yamabiko-editor-tools' ) }
+						</ToolbarButton>
+					</BlockControls>
+				) }
 				<span aria-hidden="true" hidden ref={ anchorRef } />
 			</>
 		);
