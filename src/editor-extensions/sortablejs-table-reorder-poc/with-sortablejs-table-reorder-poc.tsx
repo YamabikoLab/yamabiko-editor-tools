@@ -716,10 +716,8 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					onChoose: ( event ) => {
 						hideInsertionLine( insertionLine );
 						dragRows = Array.from( tbody.rows );
-						if ( useTouchMode ) {
-							restoreFallbackCellWidths();
-							restoreFallbackCellWidths = fixRowCellWidthsForFallback( event.item );
-						}
+						restoreFallbackCellWidths();
+						restoreFallbackCellWidths = fixRowCellWidthsForFallback( event.item );
 					},
 					onStart: () => {
 						hideInsertionLine( insertionLine );
