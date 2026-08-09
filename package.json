@@ -24,9 +24,9 @@
 		"test:e2e": "playwright test",
 		"test:e2e:auth": "playwright test --project=setup",
 		"test:e2e:ui": "npm run test:e2e:auth && playwright test --project=chromium --ui --ui-host=0.0.0.0 --ui-port=9323",
-		"i18n:pot": "wp i18n make-pot . languages/yamabiko-editor-tools.pot --domain=yamabiko-editor-tools --include=src/editor-extensions/table-reorder",
+		"i18n:pot": "wp i18n make-pot . languages/yamabiko-editor-tools.pot --domain=yamabiko-editor-tools --include=src",
 		"i18n:po": "wp i18n update-po languages/yamabiko-editor-tools.pot languages/yamabiko-editor-tools-ja.po",
-		"i18n:json": "wp i18n make-json languages/yamabiko-editor-tools-ja.po languages --domain=yamabiko-editor-tools --extensions=js,jsx,ts,tsx --use-map=languages/table-reorder-map.json --no-purge --pretty-print",
+		"i18n:json": "wp i18n make-json languages/yamabiko-editor-tools-ja.po languages --domain=yamabiko-editor-tools --extensions=js,jsx,ts,tsx --no-purge --pretty-print",
 		"i18n": "npm run i18n:pot && npm run i18n:po && npm run i18n:json"
 	},
 	"devDependencies": {
@@ -42,9 +42,6 @@
 		"typescript": "^6.0.3"
 	},
 	"dependencies": {
-		"@dnd-kit/collision": "^0.5.0",
-		"@dnd-kit/dom": "^0.5.0",
-		"@dnd-kit/react": "^0.5.0",
 		"@wordpress/block-editor": "^16.1.0",
 		"@wordpress/blocks": "^15.25.0",
 		"@wordpress/components": "^38.0.0",
@@ -53,6 +50,7 @@
 		"@wordpress/hooks": "^4.52.0",
 		"@wordpress/i18n": "^6.25.0",
 		"@wordpress/icons": "^15.3.0",
-		"@wordpress/notices": "^5.52.0"
+		"@wordpress/notices": "^5.52.0",
+		"sortablejs": "^1.15.7"
 	}
 }
