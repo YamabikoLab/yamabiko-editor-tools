@@ -3,7 +3,6 @@ import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
-const DEBUG_PREFIX = '[YET Sortable PoC]';
 
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
@@ -51,11 +50,6 @@ type PocConfigWindow = Window & {
 	yamabikoEditorToolsSortableJsPoc?: {
 		runtimeUrl?: string;
 	};
-};
-
-const debugLog = ( message: string, details?: unknown ) => {
-	// eslint-disable-next-line no-console -- Temporary PoC diagnostics for Issue #147 manual validation.
-	console.log( `${ DEBUG_PREFIX } ${ message }`, details ?? '' );
 };
 
 const restoreOriginalRowOrder = (
@@ -126,11 +120,6 @@ const isHandleInteraction = ( event: Event ): boolean => {
 
 const stopHandleInteractionPropagation = ( event: Event ) => {
 	if ( isHandleInteraction( event ) ) {
-		debugLog( `handle ${ event.type }`, {
-			defaultPrevented: event.defaultPrevented,
-			eventPhase: event.eventPhase,
-			target: event.target,
-		} );
 		event.stopPropagation();
 	}
 };
@@ -236,16 +225,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				tbody.addEventListener( eventName, stopHandleInteractionPropagation );
 			}
 
-			const logDocumentDragStart = ( event: DragEvent ) => {
-				debugLog( 'document dragstart', {
-					composedPath: event.composedPath(),
-					defaultPrevented: event.defaultPrevented,
-					eventPhase: event.eventPhase,
-					target: event.target,
-				} );
-			};
-			document.addEventListener( 'dragstart', logDocumentDragStart, true );
-
 			let cancelled = false;
 			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
@@ -262,11 +241,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					forceFallback: true,
 					handle: `.${ HANDLE_CLASS }`,
 					onChoose: () => {
-						debugLog( 'sortable onChoose' );
 						dragRows = Array.from( tbody.rows );
 					},
 					onStart: () => {
-						debugLog( 'sortable onStart' );
 						lastMoveRelatedIndex = null;
 					},
 					onMove: ( event ) => {
@@ -278,10 +255,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 					},
 					onEnd: ( event ) => {
-						debugLog( 'sortable onEnd', {
-							newIndex: event.newIndex,
-							oldIndex: event.oldIndex,
-						} );
 						if ( dragRows ) {
 							restoreOriginalRowOrder( tbody, dragRows );
 							dragRows = null;
@@ -310,7 +283,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
-				document.removeEventListener( 'dragstart', logDocumentDragStart, true );
 				for ( const eventName of blockSelectionEvents ) {
 					tbody.removeEventListener( eventName, stopHandleInteractionPropagation );
 				}
