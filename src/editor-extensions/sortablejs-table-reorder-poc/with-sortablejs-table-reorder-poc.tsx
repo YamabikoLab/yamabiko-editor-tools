@@ -179,7 +179,7 @@ const showInsertionLine = (
 
 const createTouchChosenStyle = ( document: Document ): HTMLStyleElement => {
 	const style = document.createElement( 'style' );
-	style.textContent = `.${ TOUCH_CHOSEN_CLASS } > td, .${ TOUCH_CHOSEN_CLASS } > th { box-shadow: inset 0 0 0 2px var(--wp-admin-theme-color, #3858e9); }`;
+	style.textContent = `.${ TOUCH_CHOSEN_CLASS } { outline: 2px solid var(--wp-admin-theme-color, #3858e9); outline-offset: -2px; }`;
 	document.head.append( style );
 	return style;
 };
