@@ -36,6 +36,10 @@ type SortableEventLike = {
 	oldIndex?: number;
 };
 
+type SortableChooseEventLike = {
+	item: HTMLElement;
+};
+
 type SortableMoveEventLike = {
 	related: HTMLElement;
 	willInsertAfter: boolean;
@@ -53,7 +57,7 @@ type SortableOptions = {
 	draggable: string;
 	forceFallback: boolean;
 	handle?: string;
-	onChoose: () => void;
+	onChoose: ( event: SortableChooseEventLike ) => void;
 	onEnd: ( event: SortableEventLike ) => void;
 	onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
 	onStart: () => void;
@@ -200,6 +204,40 @@ const disableTouchCellEditing = ( tbody: HTMLTableSectionElement ): ( () => void
 	return () => {
 		for ( const { element, pointerEvents } of originalPointerEvents ) {
 			element.style.pointerEvents = pointerEvents;
+		}
+	};
+};
+
+const fixRowCellWidthsForFallback = ( row: HTMLElement ): ( () => void ) => {
+	if ( ! row.matches( 'tr' ) ) {
+		return () => undefined;
+	}
+
+	const cells = Array.from(
+		row.querySelectorAll< HTMLElement >( ':scope > td, :scope > th' )
+	);
+	const originalStyles = cells.map( ( cell ) => ( {
+		boxSizing: cell.style.boxSizing,
+		cell,
+		maxWidth: cell.style.maxWidth,
+		minWidth: cell.style.minWidth,
+		width: cell.style.width,
+	} ) );
+
+	for ( const cell of cells ) {
+		const width = `${ cell.getBoundingClientRect().width }px`;
+		cell.style.boxSizing = 'border-box';
+		cell.style.width = width;
+		cell.style.minWidth = width;
+		cell.style.maxWidth = width;
+	}
+
+	return () => {
+		for ( const { boxSizing, cell, maxWidth, minWidth, width } of originalStyles ) {
+			cell.style.boxSizing = boxSizing;
+			cell.style.width = width;
+			cell.style.minWidth = minWidth;
+			cell.style.maxWidth = maxWidth;
 		}
 	};
 };
@@ -441,6 +479,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			let entries: MinimalHandle[] = [];
 			let restoreCellStyles: () => void = () => undefined;
 			let restoreTouchCellEditing: () => void = () => undefined;
+			let restoreFallbackCellWidths: () => void = () => undefined;
 			let touchChosenStyle: HTMLStyleElement | null = null;
 			if ( useHoverMode ) {
 				const handles = addMinimalHandles( document, tbody, nonMovableRowIndices );
@@ -676,9 +715,13 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					bubbleScroll: true,
 					draggable: useTouchMode ? `tr:not(.${ NON_MOVABLE_ROW_CLASS })` : 'tr',
 					forceFallback: true,
-					onChoose: () => {
+					onChoose: ( event ) => {
 						hideInsertionLine( insertionLine );
 						dragRows = Array.from( tbody.rows );
+						if ( useTouchMode ) {
+							restoreFallbackCellWidths();
+							restoreFallbackCellWidths = fixRowCellWidthsForFallback( event.item );
+						}
 					},
 					onStart: () => {
 						hideInsertionLine( insertionLine );
@@ -716,6 +759,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					onEnd: ( event ) => {
 						hideInsertionLine( insertionLine );
 						isDragging = false;
+						restoreFallbackCellWidths();
 
 						if ( dragRows ) {
 							restoreOriginalRowOrder( tbody, dragRows );
@@ -759,6 +803,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					},
 					onUnchoose: () => {
 						hideInsertionLine( insertionLine );
+						restoreFallbackCellWidths();
 					},
 					scroll: true,
 					scrollSensitivity: AUTO_SCROLL_SENSITIVITY_PX,
@@ -782,6 +827,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				hideInsertionLine( insertionLine );
 				insertionLine.remove();
 				resetTouchPress();
+				restoreFallbackCellWidths();
 				if ( useHoverMode ) {
 					for ( const { zone } of entries ) {
 						zone.removeEventListener( 'pointerenter', onZonePointerEnter );
