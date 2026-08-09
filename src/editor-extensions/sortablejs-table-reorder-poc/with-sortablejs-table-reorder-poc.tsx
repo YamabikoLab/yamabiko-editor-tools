@@ -297,6 +297,44 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		}, [ isSelected ] );
 
 		useEffect( () => {
+			if (
+				! isTableBlock ||
+				isHoverCapable ||
+				! isSelected ||
+				! isTouchReorderMode
+			) {
+				return;
+			}
+
+			const anchor = anchorRef.current;
+			if ( ! anchor ) {
+				return;
+			}
+
+			const blockElement = findBlockElement( anchor.ownerDocument, clientId );
+			const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
+			if ( ! table ) {
+				return;
+			}
+
+			const onCellPointerDown = ( event: PointerEvent ) => {
+				if ( isHandleInteraction( event ) ) {
+					return;
+				}
+
+				const target = event.target as Element | null;
+				if ( target?.closest?.( 'td, th' ) ) {
+					setIsTouchReorderMode( false );
+				}
+			};
+
+			table.addEventListener( 'pointerdown', onCellPointerDown );
+			return () => {
+				table.removeEventListener( 'pointerdown', onCellPointerDown );
+			};
+		}, [ clientId, isHoverCapable, isSelected, isTableBlock, isTouchReorderMode ] );
+
+		useEffect( () => {
 			if ( ! isTableBlock ) {
 				return;
 			}
@@ -560,12 +598,12 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				{ ! isHoverCapable && isSelected && (
 					<BlockControls>
 						<ToolbarButton
+							icon="sort"
 							isPressed={ isTouchReorderMode }
 							label={ __( '行を並び替え', 'yamabiko-editor-tools' ) }
 							onClick={ () => setIsTouchReorderMode( ( isActive ) => ! isActive ) }
-						>
-							{ __( '並び替え', 'yamabiko-editor-tools' ) }
-						</ToolbarButton>
+							showTooltip
+						/>
 					</BlockControls>
 				) }
 				<span aria-hidden="true" hidden ref={ anchorRef } />
