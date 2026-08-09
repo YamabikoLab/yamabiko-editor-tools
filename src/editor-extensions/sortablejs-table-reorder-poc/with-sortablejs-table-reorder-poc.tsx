@@ -3,6 +3,8 @@ import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
+const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
+const HANDLE_FADE_MS = 300;
 
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
@@ -52,6 +54,11 @@ type PocConfigWindow = Window & {
 	};
 };
 
+type MinimalHandles = {
+	handles: HTMLElement[];
+	restoreCellStyles: () => void;
+};
+
 const restoreOriginalRowOrder = (
 	tbody: HTMLTableSectionElement,
 	rows: readonly HTMLTableRowElement[]
@@ -83,8 +90,10 @@ const reorderRows = (
 	return reordered;
 };
 
-const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement ): HTMLElement[] => {
+const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement ): MinimalHandles => {
 	const handles: HTMLElement[] = [];
+	const changedCells: Array< { cell: HTMLTableCellElement; position: string } > = [];
+	const view = document.defaultView;
 
 	for ( const row of Array.from( tbody.rows ) ) {
 		const firstCell = row.cells.item( 0 );
@@ -92,25 +101,50 @@ const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement )
 			continue;
 		}
 
+		if ( view?.getComputedStyle( firstCell ).position === 'static' ) {
+			changedCells.push( { cell: firstCell, position: firstCell.style.position } );
+			firstCell.style.position = 'relative';
+		}
+
 		const handle = document.createElement( 'span' );
 		handle.className = HANDLE_CLASS;
 		handle.setAttribute( 'contenteditable', 'false' );
 		handle.setAttribute( 'aria-hidden', 'true' );
 		handle.textContent = '⋮⋮';
-		handle.style.display = 'inline-block';
-		handle.style.marginInlineEnd = '8px';
+		handle.style.position = 'absolute';
+		handle.style.insetInlineStart = '4px';
+		handle.style.top = '50%';
+		handle.style.transform = 'translateY(-50%)';
 		handle.style.padding = '2px 4px';
 		handle.style.border = '1px solid currentColor';
 		handle.style.borderRadius = '2px';
 		handle.style.cursor = 'grab';
 		handle.style.lineHeight = '1';
 		handle.style.userSelect = 'none';
+		handle.style.zIndex = '1';
+		handle.style.opacity = '0';
+		handle.style.pointerEvents = 'none';
+		handle.style.transition = `opacity ${ HANDLE_FADE_MS }ms ease`;
 
 		firstCell.prepend( handle );
 		handles.push( handle );
 	}
 
-	return handles;
+	return {
+		handles,
+		restoreCellStyles: () => {
+			for ( const { cell, position } of changedCells ) {
+				cell.style.position = position;
+			}
+		},
+	};
+};
+
+const setHandlesVisible = ( handles: readonly HTMLElement[], isVisible: boolean ) => {
+	for ( const handle of handles ) {
+		handle.style.opacity = isVisible ? '1' : '0';
+		handle.style.pointerEvents = isVisible ? 'auto' : 'none';
+	}
 };
 
 const isHandleInteraction = ( event: Event ): boolean => {
@@ -188,13 +222,12 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		const {
 			attributes: { body },
 			clientId,
-			isSelected,
 			setAttributes,
 		} = props;
 		const isTableBlock = props.name === 'core/table';
 
 		useEffect( () => {
-			if ( ! isTableBlock || ! isSelected ) {
+			if ( ! isTableBlock ) {
 				return;
 			}
 
@@ -213,11 +246,12 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			const view = document?.defaultView as SortableWindow | null;
 			const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
 			const tbody = table?.tBodies.item( 0 ) ?? null;
-			if ( ! blockElement || ! document || ! view || ! tbody ) {
+			if ( ! blockElement || ! document || ! view || ! table || ! tbody ) {
 				return;
 			}
 
-			const handles = addMinimalHandles( document, tbody );
+			const hoverMedia = view.matchMedia( HOVER_REORDER_MEDIA_QUERY );
+			const { handles, restoreCellStyles } = addMinimalHandles( document, tbody );
 
 			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 			for ( const eventName of blockSelectionEvents ) {
@@ -228,6 +262,94 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
 			let lastMoveRelatedIndex: number | null = null;
+			let isHoverActive = false;
+			let isPointerWithinTable = false;
+			let isDragging = false;
+			let blockDragSuppressed = false;
+			let originalDraggable: string | null = null;
+
+			const suppressBlockDrag = () => {
+				if ( blockDragSuppressed ) {
+					return;
+				}
+
+				originalDraggable = blockElement.getAttribute( 'draggable' );
+				blockElement.draggable = false;
+				blockDragSuppressed = true;
+			};
+			const restoreBlockDrag = () => {
+				if ( ! blockDragSuppressed ) {
+					return;
+				}
+
+				if ( originalDraggable === null ) {
+					blockElement.removeAttribute( 'draggable' );
+				} else {
+					blockElement.setAttribute( 'draggable', originalDraggable );
+				}
+				originalDraggable = null;
+				blockDragSuppressed = false;
+			};
+			const activateHoverReorder = () => {
+				if ( ! hoverMedia.matches || isHoverActive ) {
+					return;
+				}
+
+				isHoverActive = true;
+				suppressBlockDrag();
+				setHandlesVisible( handles, true );
+			};
+			const deactivateHoverReorder = () => {
+				if ( isDragging ) {
+					return;
+				}
+
+				isHoverActive = false;
+				setHandlesVisible( handles, false );
+				restoreBlockDrag();
+			};
+			const releaseHoverReorder = () => {
+				isDragging = false;
+				isHoverActive = false;
+				setHandlesVisible( handles, false );
+				restoreBlockDrag();
+			};
+			const onPointerEnter = ( event: PointerEvent ) => {
+				if ( event.pointerType !== 'mouse' ) {
+					return;
+				}
+
+				isPointerWithinTable = true;
+				activateHoverReorder();
+			};
+			const onPointerLeave = ( event: PointerEvent ) => {
+				if ( event.pointerType !== 'mouse' ) {
+					return;
+				}
+
+				isPointerWithinTable = false;
+				deactivateHoverReorder();
+			};
+			const onTablePointerDown = ( event: PointerEvent ) => {
+				if ( event.pointerType !== 'mouse' || isHandleInteraction( event ) ) {
+					return;
+				}
+
+				const target = event.target;
+				if ( target instanceof view.Element && target.closest( 'td, th' ) ) {
+					deactivateHoverReorder();
+				}
+			};
+			const onHoverCapabilityChange = () => {
+				if ( ! hoverMedia.matches ) {
+					deactivateHoverReorder();
+				}
+			};
+
+			table.addEventListener( 'pointerenter', onPointerEnter );
+			table.addEventListener( 'pointerleave', onPointerLeave );
+			table.addEventListener( 'pointerdown', onTablePointerDown, true );
+			hoverMedia.addEventListener( 'change', onHoverCapabilityChange );
 
 			void ensureSortableRuntime( document, view, runtimeUrl ).then( ( Sortable ) => {
 				if ( cancelled || ! Sortable ) {
@@ -243,7 +365,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						dragRows = Array.from( tbody.rows );
 					},
 					onStart: () => {
+						isDragging = true;
 						lastMoveRelatedIndex = null;
+						setHandlesVisible( handles, true );
 					},
 					onMove: ( event ) => {
 						const relatedRow = event.related.closest( 'tr' );
@@ -254,6 +378,11 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 					},
 					onEnd: ( event ) => {
+						isDragging = false;
+						if ( ! isPointerWithinTable ) {
+							deactivateHoverReorder();
+						}
+
 						if ( dragRows ) {
 							restoreOriginalRowOrder( tbody, dragRows );
 							dragRows = null;
@@ -282,6 +411,10 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
+				table.removeEventListener( 'pointerenter', onPointerEnter );
+				table.removeEventListener( 'pointerleave', onPointerLeave );
+				table.removeEventListener( 'pointerdown', onTablePointerDown, true );
+				hoverMedia.removeEventListener( 'change', onHoverCapabilityChange );
 				for ( const eventName of blockSelectionEvents ) {
 					tbody.removeEventListener( eventName, stopHandleInteractionPropagation );
 				}
@@ -289,11 +422,13 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					restoreOriginalRowOrder( tbody, dragRows );
 					dragRows = null;
 				}
+				releaseHoverReorder();
 				for ( const handle of handles ) {
 					handle.remove();
 				}
+				restoreCellStyles();
 			};
-		}, [ body, clientId, isSelected, isTableBlock, setAttributes ] );
+		}, [ body, clientId, isTableBlock, setAttributes ] );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
@@ -302,7 +437,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		return (
 			<>
 				<BlockEdit { ...props } />
-				{ isSelected && <span aria-hidden="true" hidden ref={ anchorRef } /> }
+				<span aria-hidden="true" hidden ref={ anchorRef } />
 			</>
 		);
 	};
