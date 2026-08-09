@@ -4,6 +4,8 @@ import { ToolbarButton } from '@wordpress/components';
 import { useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
+import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
+
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 const HANDLE_ZONE_CLASS = 'yamabiko-sortablejs-poc-handle-zone';
@@ -43,7 +45,7 @@ type SortableRuntime = {
 			handle: string;
 			onChoose: () => void;
 			onEnd: ( event: SortableEventLike ) => void;
-			onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => void;
+			onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
 			onStart: () => void;
 		}
 	) => SortableInstance;
@@ -100,9 +102,26 @@ const reorderRows = (
 	return reordered;
 };
 
+const getMoveInsertionIndex = (
+	event: SortableMoveEventLike,
+	rows: readonly HTMLTableRowElement[]
+): number | null => {
+	const relatedRow = event.related.closest< HTMLTableRowElement >( 'tr' );
+	if ( ! relatedRow ) {
+		return null;
+	}
+
+	const relatedIndex = rows.indexOf( relatedRow );
+	return relatedIndex < 0 ? null : relatedIndex + ( event.willInsertAfter ? 1 : 0 );
+};
+
+const getEndInsertionIndex = ( oldIndex: number, newIndex: number ): number =>
+	newIndex > oldIndex ? newIndex + 1 : newIndex;
+
 const addMinimalHandles = (
 	document: Document,
-	tbody: HTMLTableSectionElement
+	tbody: HTMLTableSectionElement,
+	nonMovableRowIndices: readonly number[]
 ): MinimalHandles => {
 	const entries: MinimalHandle[] = [];
 	const changedCells: Array< {
@@ -111,8 +130,13 @@ const addMinimalHandles = (
 		position: string;
 	} > = [];
 	const view = document.defaultView;
+	const nonMovableRows = new Set( nonMovableRowIndices );
 
-	for ( const row of Array.from( tbody.rows ) ) {
+	for ( const [ rowIndex, row ] of Array.from( tbody.rows ).entries() ) {
+		if ( nonMovableRows.has( rowIndex ) ) {
+			continue;
+		}
+
 		const firstCell = row.cells.item( 0 );
 		if ( ! firstCell ) {
 			continue;
@@ -358,6 +382,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
+			const rowspanRanges = getRowspanRanges( body );
+			const nonMovableRowIndices = getNonMovableRowIndices( rowspanRanges );
+			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
 			const hoverMedia = view.matchMedia( HOVER_REORDER_MEDIA_QUERY );
 			const useHoverMode = isHoverCapable && hoverMedia.matches;
 			const useTouchMode = ! useHoverMode && isSelected && isTouchReorderMode;
@@ -365,7 +392,11 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const { entries, restoreCellStyles } = addMinimalHandles( document, tbody );
+			const { entries, restoreCellStyles } = addMinimalHandles(
+				document,
+				tbody,
+				nonMovableRowIndices
+			);
 			const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
 			if ( useTouchMode ) {
 				setAllHandlesVisible( entries, true );
@@ -379,7 +410,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			let cancelled = false;
 			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
-			let lastMoveRelatedIndex: number | null = null;
 			let activeEntry: MinimalHandle | null = null;
 			let isDragging = false;
 			let blockDragSuppressed = false;
@@ -500,7 +530,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					},
 					onStart: () => {
 						isDragging = true;
-						lastMoveRelatedIndex = null;
 						if ( useTouchMode ) {
 							suppressBlockDrag();
 						}
@@ -509,11 +538,16 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 					},
 					onMove: ( event ) => {
-						const relatedRow = event.related.closest( 'tr' );
-						const relatedIndex = relatedRow ? Array.from( tbody.rows ).indexOf( relatedRow ) : -1;
+						if ( ! dragRows ) {
+							return;
+						}
 
-						if ( relatedIndex !== lastMoveRelatedIndex ) {
-							lastMoveRelatedIndex = relatedIndex;
+						const insertionIndex = getMoveInsertionIndex( event, dragRows );
+						if (
+							insertionIndex !== null &&
+							forbiddenInsertionIndices.includes( insertionIndex )
+						) {
+							return false;
 						}
 					},
 					onEnd: ( event ) => {
@@ -523,7 +557,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 							restoreOriginalRowOrder( tbody, dragRows );
 							dragRows = null;
 						}
-						lastMoveRelatedIndex = null;
 
 						if ( useHoverMode ) {
 							const hoveredAfterDrag = entries.find( ( entry ) => entry.zone.matches( ':hover' ) );
@@ -542,6 +575,14 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 
 						if ( ! Array.isArray( body ) ) {
+							return;
+						}
+
+						const insertionIndex = getEndInsertionIndex( oldIndex, newIndex );
+						if (
+							nonMovableRowIndices.includes( oldIndex ) ||
+							forbiddenInsertionIndices.includes( insertionIndex )
+						) {
 							return;
 						}
 
