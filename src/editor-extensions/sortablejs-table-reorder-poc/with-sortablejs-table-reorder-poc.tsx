@@ -213,9 +213,7 @@ const fixRowCellWidthsForFallback = ( row: HTMLElement ): ( () => void ) => {
 		return () => undefined;
 	}
 
-	const cells = Array.from(
-		row.querySelectorAll< HTMLElement >( ':scope > td, :scope > th' )
-	);
+	const cells = Array.from( row.querySelectorAll< HTMLElement >( ':scope > td, :scope > th' ) );
 	const originalStyles = cells.map( ( cell ) => ( {
 		boxSizing: cell.style.boxSizing,
 		cell,
