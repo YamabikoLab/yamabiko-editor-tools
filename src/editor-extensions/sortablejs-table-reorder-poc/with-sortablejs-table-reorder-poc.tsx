@@ -796,7 +796,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					tbody.style.userSelect = originalUserSelect;
 					restoreTouchCellEditing();
 					touchChosenStyle?.remove();
-				for ( const rowIndex of nonMovableRowIndices ) {
+					for ( const rowIndex of nonMovableRowIndices ) {
 						tbody.rows.item( rowIndex )?.classList.remove( NON_MOVABLE_ROW_CLASS );
 					}
 				}
