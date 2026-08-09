@@ -1,11 +1,7 @@
 import type { BlockEditProps } from '@wordpress/blocks';
 import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 
-import {
-	getForbiddenInsertionIndices,
-	getNonMovableRowIndices,
-	getRowspanRanges,
-} from './rowspan';
+import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
@@ -461,10 +457,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 
 						const insertionIndex = getMoveInsertionIndex( event, dragRows );
-						if (
-							insertionIndex !== null &&
-							forbiddenInsertionIndices.includes( insertionIndex )
-						) {
+						if ( insertionIndex !== null && forbiddenInsertionIndices.includes( insertionIndex ) ) {
 							return false;
 						}
 					},
