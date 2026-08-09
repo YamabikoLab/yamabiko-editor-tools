@@ -2,14 +2,16 @@
 
 This is an intentionally small proof of concept for replacing the **pointer DnD + external Portal handle + row-position tracking** part of Table Reorder with SortableJS.
 
-It is not production code and does not attempt to reproduce the previous keyboard reorder UI, hover mode, announcements, merged-cell restrictions, or every accessibility behavior.
+It is not production code and does not attempt to reproduce the previous keyboard reorder UI, announcements, merged-cell restrictions, or every accessibility behavior.
 
 ## What this PoC is testing
 
 - The Gutenberg-owned `<tbody><tr>` elements can be temporarily sorted by SortableJS.
 - The same implementation locates the selected Table from its owning `document` in both iframe and non-iframe editors.
 - SortableJS is initialized in the `window` that owns the target Table, rather than assuming the top-level editor window.
-- A minimal inline handle can start pointer dragging without an external Portal handle.
+- PC / fine-pointer environments expose one inline handle only while its row-start gutter is hovered.
+- Touch / hover-unavailable environments keep row handles absent during normal editing and expose a toolbar reorder mode that shows all row handles.
+- PC and touch modes share the same SortableJS row-DnD implementation and `body` update path.
 - No row `top / left / width / height` tracking is used.
 - No `ResizeObserver` or scroll listener is used for handle positioning.
 - SortableJS supplies the pointer sorting animation.
@@ -49,13 +51,26 @@ Or use `npm start` if that is your normal local workflow.
 
 ## How to use
 
-1. Select a Core Table block with body rows.
-2. The PoC activates automatically while that Table block is selected.
-3. The first body cell of each row gets a minimal inline drag handle.
-4. Drag from that handle.
-5. Dragging from the editable text area should continue to behave as normal cell editing.
+### PC / mouse
 
-The automatic activation is intentional for this PoC. It removes toolbar/state wiring from the experiment so it is immediately obvious whether the SortableJS DOM integration is running.
+1. Open a Core Table block with body rows.
+2. Move the pointer into the 32px gutter at the inline start of a body row.
+3. Only that row's handle fades in.
+4. Drag from the gutter / handle area to reorder the row.
+5. Leaving the gutter hides the handle again.
+
+A separate reorder mode is intentionally not required for fine-pointer environments.
+
+### Touch / hover unavailable
+
+1. Select a Core Table block with body rows.
+2. Normal editing starts without row handles or the additional 32px gutter.
+3. Use the **並び替え** button in the block toolbar to turn reorder mode on.
+4. All body-row handles and gutters appear while reorder mode is on.
+5. Drag a row from its handle.
+6. Turn **並び替え** off to return to the normal editing / scrolling state.
+
+Reorder mode is also cleared when the Table block is deselected.
 
 ## iframe and non-iframe editor check
 
@@ -69,33 +84,36 @@ The selected block is resolved with this rule:
 
 This keeps the SortableJS setup identical after the target Table has been found. Non-iframe support therefore does not require row-coordinate monitoring, Portal handles, or a second DnD implementation.
 
-When manually validating a non-iframe editor, confirm these Issue #147 points:
+When manually validating iframe and non-iframe editors, confirm these Issue #159 points:
 
-- the selected Table's `tbody` receives the PoC handles;
-- dragging starts from the same handle selector;
-- the same 150ms SortableJS push-aside animation runs;
+- PC / mouse shows only the hovered row handle and can drag directly from the gutter;
+- touch / hover-unavailable normal mode has no handles and preserves normal editing / scrolling;
+- touch reorder mode shows all handles and can drag from them;
+- turning touch reorder mode off removes the handles and gutters;
+- the same 150ms SortableJS push-aside animation runs in both input modes;
 - `oldIndex` / `newIndex` result in the expected row order;
 - after drop, Gutenberg's `attributes.body` and rendered order match;
-- no iframe-only or non-iframe-only product behavior is introduced.
+- iframe and non-iframe do not use separate DnD implementations.
 
 ## What to inspect
 
 The important questions are not feature completeness. Inspect these instead:
 
-1. Does the row push-aside animation feel as good as the previous implementation?
-2. Does cell editing remain natural, especially in the first column?
-3. Does full-width Table work without special width shrinking?
-4. Does scrolling during drag remain stable without handle-position tracking?
-5. After drop, does Gutenberg render the committed row order without flicker or stale DOM?
-6. Do Undo / Redo work normally after `setAttributes()`?
-7. Does the approach behave in both iframe and non-iframe editor versions you support?
+1. Does PC hover make the drag affordance easy to discover without adding persistent UI?
+2. Does touch normal mode remain natural for cell editing and scrolling?
+3. Does touch reorder mode make the intended drag target obvious without accidental row DnD?
+4. Does the row push-aside animation feel stable in both input modes?
+5. Does full-width Table work without special width shrinking?
+6. Does scrolling during drag remain stable without handle-position tracking?
+7. After drop, does Gutenberg render the committed row order without flicker or stale DOM?
+8. Does the approach behave in both iframe and non-iframe editor versions you support?
 
 ## Deliberately out of scope
 
+- Final toolbar wording, icon, and visual polish.
 - Keyboard reorder interaction.
 - `aria-live` announcements.
 - Focus restoration.
-- Hover-to-show handles.
 - Merged-cell / `rowspan` move restrictions.
 - Snackbar messages for forbidden moves.
 - Exact visual parity with the previous dnd-kit `DragOverlay`.
