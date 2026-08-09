@@ -301,8 +301,8 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		} = props;
 		const isTableBlock = props.name === 'core/table';
 		const { createNotice } = useDispatch( noticesStore );
-		const [ isHoverCapable, setIsHoverCapable ] = useState( () =>
-			window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
+		const [ isHoverCapable, setIsHoverCapable ] = useState(
+			() => window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
 		);
 		const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
 
@@ -597,9 +597,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 				const options: SortableOptions = {
 					animation: 150,
-					draggable: useTouchMode
-						? `tr:not(.${ NON_MOVABLE_ROW_CLASS })`
-						: 'tr',
+					draggable: useTouchMode ? `tr:not(.${ NON_MOVABLE_ROW_CLASS })` : 'tr',
 					forceFallback: true,
 					onChoose: () => {
 						dragRows = Array.from( tbody.rows );
@@ -617,10 +615,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 
 						const insertionIndex = getMoveInsertionIndex( event, dragRows );
-						if (
-							insertionIndex !== null &&
-							forbiddenInsertionIndices.includes( insertionIndex )
-						) {
+						if ( insertionIndex !== null && forbiddenInsertionIndices.includes( insertionIndex ) ) {
 							return false;
 						}
 					},
