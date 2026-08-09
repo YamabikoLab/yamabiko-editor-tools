@@ -5,7 +5,7 @@ import {
 	getForbiddenInsertionIndices,
 	getNonMovableRowIndices,
 	getRowspanRanges,
-} from '../table-reorder/rowspan';
+} from './rowspan';
 
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
@@ -461,7 +461,10 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 
 						const insertionIndex = getMoveInsertionIndex( event, dragRows );
-						if ( insertionIndex !== null && forbiddenInsertionIndices.includes( insertionIndex ) ) {
+						if (
+							insertionIndex !== null &&
+							forbiddenInsertionIndices.includes( insertionIndex )
+						) {
 							return false;
 						}
 					},
