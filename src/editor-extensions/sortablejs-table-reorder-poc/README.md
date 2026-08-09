@@ -7,6 +7,8 @@ It is not production code and does not attempt to reproduce the previous keyboar
 ## What this PoC is testing
 
 - The Gutenberg-owned `<tbody><tr>` elements can be temporarily sorted by SortableJS.
+- The same implementation locates the selected Table from its owning `document` in both iframe and non-iframe editors.
+- SortableJS is initialized in the `window` that owns the target Table, rather than assuming the top-level editor window.
 - A minimal inline handle can start pointer dragging without an external Portal handle.
 - No row `top / left / width / height` tracking is used.
 - No `ResizeObserver` or scroll listener is used for handle positioning.
@@ -55,6 +57,27 @@ Or use `npm start` if that is your normal local workflow.
 
 The automatic activation is intentional for this PoC. It removes toolbar/state wiring from the experiment so it is immediately obvious whether the SortableJS DOM integration is running.
 
+## iframe and non-iframe editor check
+
+The PoC deliberately avoids separate drag-and-drop implementations.
+
+The selected block is resolved with this rule:
+
+1. Look for `[data-block="<clientId>"]` in the React anchor's owning `document`.
+2. If it is not there, look for the same block in `iframe[name="editor-canvas"]`.
+3. Once the block is found, use `blockElement.ownerDocument` and that document's `defaultView` for the Table, handles, and SortableJS runtime.
+
+This keeps the SortableJS setup identical after the target Table has been found. Non-iframe support therefore does not require row-coordinate monitoring, Portal handles, or a second DnD implementation.
+
+When manually validating a non-iframe editor, confirm these Issue #147 points:
+
+- the selected Table's `tbody` receives the PoC handles;
+- dragging starts from the same handle selector;
+- the same 150ms SortableJS push-aside animation runs;
+- `oldIndex` / `newIndex` result in the expected row order;
+- after drop, Gutenberg's `attributes.body` and rendered order match;
+- no iframe-only or non-iframe-only product behavior is introduced.
+
 ## What to inspect
 
 The important questions are not feature completeness. Inspect these instead:
@@ -65,7 +88,7 @@ The important questions are not feature completeness. Inspect these instead:
 4. Does scrolling during drag remain stable without handle-position tracking?
 5. After drop, does Gutenberg render the committed row order without flicker or stale DOM?
 6. Do Undo / Redo work normally after `setAttributes()`?
-7. Does the approach behave in the iframe editor versions you support?
+7. Does the approach behave in both iframe and non-iframe editor versions you support?
 
 ## Deliberately out of scope
 
