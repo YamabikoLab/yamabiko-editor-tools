@@ -1,17 +1,22 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { ToolbarButton } from '@wordpress/components';
+import { useDispatch } from '@wordpress/data';
 import { useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { store as noticesStore } from '@wordpress/notices';
 
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 
 const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 const HANDLE_ZONE_CLASS = 'yamabiko-sortablejs-poc-handle-zone';
+const NON_MOVABLE_ROW_CLASS = 'yamabiko-sortablejs-poc-non-movable-row';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
 const HANDLE_FADE_MS = 300;
 const HANDLE_GUTTER_PX = 32;
+const TOUCH_DRAG_DELAY_MS = 300;
+const TOUCH_START_THRESHOLD_PX = 5;
 
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
@@ -35,20 +40,21 @@ type SortableInstance = {
 	destroy: () => void;
 };
 
+type SortableOptions = {
+	animation: number;
+	delay?: number;
+	draggable: string;
+	forceFallback: boolean;
+	handle?: string;
+	onChoose: () => void;
+	onEnd: ( event: SortableEventLike ) => void;
+	onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
+	onStart: () => void;
+	touchStartThreshold?: number;
+};
+
 type SortableRuntime = {
-	create: (
-		element: HTMLElement,
-		options: {
-			animation: number;
-			draggable: string;
-			forceFallback: boolean;
-			handle: string;
-			onChoose: () => void;
-			onEnd: ( event: SortableEventLike ) => void;
-			onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
-			onStart: () => void;
-		}
-	) => SortableInstance;
+	create: ( element: HTMLElement, options: SortableOptions ) => SortableInstance;
 };
 
 type SortableWindow = Window & {
@@ -69,6 +75,17 @@ type MinimalHandle = {
 type MinimalHandles = {
 	entries: MinimalHandle[];
 	restoreCellStyles: () => void;
+};
+
+type TouchPress = {
+	longPressReached: boolean;
+	moved: boolean;
+	noticeTimer: number | null;
+	pointerId: number;
+	rowIndex: number;
+	startX: number;
+	startY: number;
+	startedAt: number;
 };
 
 const restoreOriginalRowOrder = (
@@ -204,12 +221,6 @@ const setHandleVisible = ( entry: MinimalHandle, isVisible: boolean ) => {
 	entry.handle.style.opacity = isVisible ? '1' : '0';
 };
 
-const setAllHandlesVisible = ( entries: readonly MinimalHandle[], isVisible: boolean ) => {
-	for ( const entry of entries ) {
-		setHandleVisible( entry, isVisible );
-	}
-};
-
 const isHandleInteraction = ( event: Event ): boolean => {
 	const target = event.target as Element | null;
 	return Boolean( target?.closest?.( `.${ HANDLE_ZONE_CLASS }` ) );
@@ -289,6 +300,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			setAttributes,
 		} = props;
 		const isTableBlock = props.name === 'core/table';
+		const { createNotice } = useDispatch( noticesStore );
 		const [ isHoverCapable, setIsHoverCapable ] = useState( () =>
 			window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
 		);
@@ -321,44 +333,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		}, [ isSelected ] );
 
 		useEffect( () => {
-			if (
-				! isTableBlock ||
-				isHoverCapable ||
-				! isSelected ||
-				! isTouchReorderMode
-			) {
-				return;
-			}
-
-			const anchor = anchorRef.current;
-			if ( ! anchor ) {
-				return;
-			}
-
-			const blockElement = findBlockElement( anchor.ownerDocument, clientId );
-			const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
-			if ( ! table ) {
-				return;
-			}
-
-			const onCellPointerDown = ( event: PointerEvent ) => {
-				if ( isHandleInteraction( event ) ) {
-					return;
-				}
-
-				const target = event.target as Element | null;
-				if ( target?.closest?.( 'td, th' ) ) {
-					setIsTouchReorderMode( false );
-				}
-			};
-
-			table.addEventListener( 'pointerdown', onCellPointerDown );
-			return () => {
-				table.removeEventListener( 'pointerdown', onCellPointerDown );
-			};
-		}, [ clientId, isHoverCapable, isSelected, isTableBlock, isTouchReorderMode ] );
-
-		useEffect( () => {
 			if ( ! isTableBlock ) {
 				return;
 			}
@@ -384,6 +358,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 			const rowspanRanges = getRowspanRanges( body );
 			const nonMovableRowIndices = getNonMovableRowIndices( rowspanRanges );
+			const nonMovableRows = new Set( nonMovableRowIndices );
 			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
 			const hoverMedia = view.matchMedia( HOVER_REORDER_MEDIA_QUERY );
 			const useHoverMode = isHoverCapable && hoverMedia.matches;
@@ -392,16 +367,15 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const { entries, restoreCellStyles } = addMinimalHandles(
-				document,
-				tbody,
-				nonMovableRowIndices
-			);
-			const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
-			if ( useTouchMode ) {
-				setAllHandlesVisible( entries, true );
+			let entries: MinimalHandle[] = [];
+			let restoreCellStyles: () => void = () => undefined;
+			if ( useHoverMode ) {
+				const handles = addMinimalHandles( document, tbody, nonMovableRowIndices );
+				entries = handles.entries;
+				restoreCellStyles = handles.restoreCellStyles;
 			}
 
+			const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
 			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 			for ( const eventName of blockSelectionEvents ) {
 				tbody.addEventListener( eventName, stopHandleInteractionPropagation );
@@ -414,6 +388,8 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			let isDragging = false;
 			let blockDragSuppressed = false;
 			let originalDraggable: string | null = null;
+			let touchPress: TouchPress | null = null;
+			const originalUserSelect = tbody.style.userSelect;
 
 			const suppressBlockDrag = () => {
 				if ( blockDragSuppressed ) {
@@ -502,6 +478,96 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				}
 			};
 
+			const clearTouchNoticeTimer = () => {
+				if ( touchPress?.noticeTimer !== null && touchPress?.noticeTimer !== undefined ) {
+					view.clearTimeout( touchPress.noticeTimer );
+					touchPress.noticeTimer = null;
+				}
+			};
+			const resetTouchPress = () => {
+				clearTouchNoticeTimer();
+				touchPress = null;
+			};
+			const onTouchPointerDown = ( event: PointerEvent ) => {
+				if ( event.pointerType === 'mouse' ) {
+					return;
+				}
+
+				const target = event.target as Element | null;
+				const row = target?.closest< HTMLTableRowElement >( 'tr' ) ?? null;
+				if ( ! row || row.parentElement !== tbody ) {
+					return;
+				}
+
+				const rowIndex = Array.from( tbody.rows ).indexOf( row );
+				if ( rowIndex < 0 ) {
+					return;
+				}
+
+				resetTouchPress();
+				touchPress = {
+					longPressReached: false,
+					moved: false,
+					noticeTimer: null,
+					pointerId: event.pointerId,
+					rowIndex,
+					startX: event.clientX,
+					startY: event.clientY,
+					startedAt: view.performance.now(),
+				};
+
+				if ( nonMovableRows.has( rowIndex ) ) {
+					touchPress.noticeTimer = view.setTimeout( () => {
+						if ( ! touchPress || touchPress.moved ) {
+							return;
+						}
+
+						touchPress.longPressReached = true;
+						void createNotice(
+							'warning',
+							__( '縦結合を含む行は並び替えできません。', 'yamabiko-editor-tools' ),
+							{ type: 'snackbar' }
+						);
+					}, TOUCH_DRAG_DELAY_MS );
+				}
+			};
+			const onTouchPointerMove = ( event: PointerEvent ) => {
+				if ( ! touchPress || event.pointerId !== touchPress.pointerId ) {
+					return;
+				}
+
+				const movedDistance = Math.hypot(
+					event.clientX - touchPress.startX,
+					event.clientY - touchPress.startY
+				);
+				if ( movedDistance > TOUCH_START_THRESHOLD_PX ) {
+					touchPress.moved = true;
+					clearTouchNoticeTimer();
+				}
+			};
+			const onTouchPointerUp = ( event: PointerEvent ) => {
+				if ( ! touchPress || event.pointerId !== touchPress.pointerId ) {
+					return;
+				}
+
+				const pressDuration = view.performance.now() - touchPress.startedAt;
+				const shouldExitReorderMode =
+					! touchPress.moved &&
+					! touchPress.longPressReached &&
+					! isDragging &&
+					pressDuration < TOUCH_DRAG_DELAY_MS;
+				resetTouchPress();
+
+				if ( shouldExitReorderMode ) {
+					setIsTouchReorderMode( false );
+				}
+			};
+			const onTouchPointerCancel = ( event: PointerEvent ) => {
+				if ( touchPress && event.pointerId === touchPress.pointerId ) {
+					resetTouchPress();
+				}
+			};
+
 			if ( useHoverMode ) {
 				for ( const { zone } of entries ) {
 					zone.addEventListener( 'pointerenter', onZonePointerEnter );
@@ -513,6 +579,15 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				if ( hoveredEntry ) {
 					activateEntry( hoveredEntry );
 				}
+			} else {
+				tbody.style.userSelect = 'none';
+				for ( const rowIndex of nonMovableRowIndices ) {
+					tbody.rows.item( rowIndex )?.classList.add( NON_MOVABLE_ROW_CLASS );
+				}
+				tbody.addEventListener( 'pointerdown', onTouchPointerDown );
+				tbody.addEventListener( 'pointermove', onTouchPointerMove );
+				tbody.addEventListener( 'pointerup', onTouchPointerUp );
+				tbody.addEventListener( 'pointercancel', onTouchPointerCancel );
 			}
 
 			void ensureSortableRuntime( document, view, runtimeUrl ).then( ( Sortable ) => {
@@ -520,19 +595,18 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					return;
 				}
 
-				sortable = Sortable.create( tbody, {
+				const options: SortableOptions = {
 					animation: 150,
-					draggable: 'tr',
+					draggable: useTouchMode
+						? `tr:not(.${ NON_MOVABLE_ROW_CLASS })`
+						: 'tr',
 					forceFallback: true,
-					handle: `.${ HANDLE_ZONE_CLASS }`,
 					onChoose: () => {
 						dragRows = Array.from( tbody.rows );
 					},
 					onStart: () => {
 						isDragging = true;
-						if ( useTouchMode ) {
-							suppressBlockDrag();
-						}
+						suppressBlockDrag();
 						if ( activeEntry ) {
 							setHandleVisible( activeEntry, true );
 						}
@@ -593,17 +667,36 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 						setAttributes( { body: reorderedBody } );
 					},
-				} );
+				};
+
+				if ( useHoverMode ) {
+					options.handle = `.${ HANDLE_ZONE_CLASS }`;
+				} else {
+					options.delay = TOUCH_DRAG_DELAY_MS;
+					options.touchStartThreshold = TOUCH_START_THRESHOLD_PX;
+				}
+
+				sortable = Sortable.create( tbody, options );
 			} );
 
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
+				resetTouchPress();
 				if ( useHoverMode ) {
 					for ( const { zone } of entries ) {
 						zone.removeEventListener( 'pointerenter', onZonePointerEnter );
 						zone.removeEventListener( 'pointerleave', onZonePointerLeave );
 						zone.removeEventListener( 'pointerdown', onZonePointerDown );
+					}
+				} else {
+					tbody.removeEventListener( 'pointerdown', onTouchPointerDown );
+					tbody.removeEventListener( 'pointermove', onTouchPointerMove );
+					tbody.removeEventListener( 'pointerup', onTouchPointerUp );
+					tbody.removeEventListener( 'pointercancel', onTouchPointerCancel );
+					tbody.style.userSelect = originalUserSelect;
+					for ( const rowIndex of nonMovableRowIndices ) {
+						tbody.rows.item( rowIndex )?.classList.remove( NON_MOVABLE_ROW_CLASS );
 					}
 				}
 				for ( const eventName of blockSelectionEvents ) {
@@ -622,6 +715,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 		}, [
 			body,
 			clientId,
+			createNotice,
 			isHoverCapable,
 			isSelected,
 			isTableBlock,
