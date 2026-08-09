@@ -13,6 +13,7 @@ const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 const HANDLE_ZONE_CLASS = 'yamabiko-sortablejs-poc-handle-zone';
 const NON_MOVABLE_ROW_CLASS = 'yamabiko-sortablejs-poc-non-movable-row';
 const INSERTION_LINE_CLASS = 'yamabiko-sortablejs-poc-insertion-line';
+const TOUCH_CHOSEN_CLASS = 'yamabiko-sortablejs-poc-touch-chosen';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
 const AUTO_SCROLL_SENSITIVITY_PX = 80;
 const AUTO_SCROLL_SPEED_PX = 8;
@@ -47,6 +48,7 @@ type SortableInstance = {
 type SortableOptions = {
 	animation: number;
 	bubbleScroll: boolean;
+	chosenClass?: string;
 	delay?: number;
 	draggable: string;
 	forceFallback: boolean;
@@ -173,6 +175,33 @@ const showInsertionLine = (
 	line.style.top = `${ willInsertAfter ? rect.bottom : rect.top }px`;
 	line.style.width = `${ rect.width }px`;
 	line.style.display = 'block';
+};
+
+const createTouchChosenStyle = ( document: Document ): HTMLStyleElement => {
+	const style = document.createElement( 'style' );
+	style.textContent = `.${ TOUCH_CHOSEN_CLASS } > td, .${ TOUCH_CHOSEN_CLASS } > th { box-shadow: inset 0 0 0 2px var(--wp-admin-theme-color, #3858e9); }`;
+	document.head.append( style );
+	return style;
+};
+
+const disableTouchCellEditing = ( tbody: HTMLTableSectionElement ): ( () => void ) => {
+	const editableElements = Array.from(
+		tbody.querySelectorAll< HTMLElement >( '[contenteditable="true"]' )
+	);
+	const originalPointerEvents = editableElements.map( ( element ) => ( {
+		element,
+		pointerEvents: element.style.pointerEvents,
+	} ) );
+
+	for ( const element of editableElements ) {
+		element.style.pointerEvents = 'none';
+	}
+
+	return () => {
+		for ( const { element, pointerEvents } of originalPointerEvents ) {
+			element.style.pointerEvents = pointerEvents;
+		}
+	};
 };
 
 const addMinimalHandles = (
@@ -411,10 +440,15 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 			let entries: MinimalHandle[] = [];
 			let restoreCellStyles: () => void = () => undefined;
+			let restoreTouchCellEditing: () => void = () => undefined;
+			let touchChosenStyle: HTMLStyleElement | null = null;
 			if ( useHoverMode ) {
 				const handles = addMinimalHandles( document, tbody, nonMovableRowIndices );
 				entries = handles.entries;
 				restoreCellStyles = handles.restoreCellStyles;
+			} else {
+				restoreTouchCellEditing = disableTouchCellEditing( tbody );
+				touchChosenStyle = createTouchChosenStyle( document );
 			}
 
 			const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
@@ -734,6 +768,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				if ( useHoverMode ) {
 					options.handle = `.${ HANDLE_ZONE_CLASS }`;
 				} else {
+					options.chosenClass = TOUCH_CHOSEN_CLASS;
 					options.delay = TOUCH_DRAG_DELAY_MS;
 					options.touchStartThreshold = TOUCH_START_THRESHOLD_PX;
 				}
@@ -759,7 +794,9 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 					tbody.removeEventListener( 'pointerup', onTouchPointerUp );
 					tbody.removeEventListener( 'pointercancel', onTouchPointerCancel );
 					tbody.style.userSelect = originalUserSelect;
-					for ( const rowIndex of nonMovableRowIndices ) {
+					restoreTouchCellEditing();
+					touchChosenStyle?.remove();
+				for ( const rowIndex of nonMovableRowIndices ) {
 						tbody.rows.item( rowIndex )?.classList.remove( NON_MOVABLE_ROW_CLASS );
 					}
 				}
