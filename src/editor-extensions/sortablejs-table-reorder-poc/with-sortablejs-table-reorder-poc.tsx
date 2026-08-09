@@ -5,6 +5,7 @@ const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
 const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
 const HANDLE_FADE_MS = 300;
+const HANDLE_GUTTER_PX = 32;
 
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
@@ -92,7 +93,11 @@ const reorderRows = (
 
 const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement ): MinimalHandles => {
 	const handles: HTMLElement[] = [];
-	const changedCells: Array< { cell: HTMLTableCellElement; position: string } > = [];
+	const changedCells: Array< {
+		cell: HTMLTableCellElement;
+		paddingInlineStart: string;
+		position: string;
+	} > = [];
 	const view = document.defaultView;
 
 	for ( const row of Array.from( tbody.rows ) ) {
@@ -101,10 +106,19 @@ const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement )
 			continue;
 		}
 
-		if ( view?.getComputedStyle( firstCell ).position === 'static' ) {
-			changedCells.push( { cell: firstCell, position: firstCell.style.position } );
+		const computedStyle = view?.getComputedStyle( firstCell );
+		changedCells.push( {
+			cell: firstCell,
+			paddingInlineStart: firstCell.style.paddingInlineStart,
+			position: firstCell.style.position,
+		} );
+
+		if ( computedStyle?.position === 'static' ) {
 			firstCell.style.position = 'relative';
 		}
+		firstCell.style.paddingInlineStart = computedStyle
+			? `calc(${ computedStyle.paddingInlineStart } + ${ HANDLE_GUTTER_PX }px)`
+			: `${ HANDLE_GUTTER_PX }px`;
 
 		const handle = document.createElement( 'span' );
 		handle.className = HANDLE_CLASS;
@@ -112,9 +126,9 @@ const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement )
 		handle.setAttribute( 'aria-hidden', 'true' );
 		handle.textContent = '⋮⋮';
 		handle.style.position = 'absolute';
-		handle.style.insetInlineStart = '4px';
+		handle.style.insetInlineStart = '0';
 		handle.style.top = '50%';
-		handle.style.transform = 'translateY(-50%)';
+		handle.style.transform = 'translate(-50%, -50%)';
 		handle.style.padding = '2px 4px';
 		handle.style.border = '1px solid currentColor';
 		handle.style.borderRadius = '2px';
@@ -133,7 +147,8 @@ const addMinimalHandles = ( document: Document, tbody: HTMLTableSectionElement )
 	return {
 		handles,
 		restoreCellStyles: () => {
-			for ( const { cell, position } of changedCells ) {
+			for ( const { cell, paddingInlineStart, position } of changedCells ) {
+				cell.style.paddingInlineStart = paddingInlineStart;
 				cell.style.position = position;
 			}
 		},
