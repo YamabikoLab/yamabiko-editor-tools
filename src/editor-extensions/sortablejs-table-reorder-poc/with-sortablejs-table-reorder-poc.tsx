@@ -118,15 +118,6 @@ const isHandleInteraction = ( event: Event ): boolean => {
 	return Boolean( target?.closest?.( `.${ HANDLE_CLASS }` ) );
 };
 
-const focusHandleCellEditable = ( event: PointerEvent ) => {
-	const target = event.target as Element | null;
-	const handle = target?.closest?.( `.${ HANDLE_CLASS }` );
-	const cell = handle?.closest( 'td, th' );
-	const editable = cell?.querySelector< HTMLElement >( ':scope > [contenteditable="true"]' ) ?? null;
-
-	editable?.focus( { preventScroll: true } );
-};
-
 const stopHandleInteractionPropagation = ( event: Event ) => {
 	if ( isHandleInteraction( event ) ) {
 		event.stopPropagation();
@@ -228,8 +219,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 
 			const handles = addMinimalHandles( document, tbody );
 
-			document.addEventListener( 'pointerdown', focusHandleCellEditable, true );
-
 			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 			for ( const eventName of blockSelectionEvents ) {
 				tbody.addEventListener( eventName, stopHandleInteractionPropagation );
@@ -293,7 +282,6 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
-				document.removeEventListener( 'pointerdown', focusHandleCellEditable, true );
 				for ( const eventName of blockSelectionEvents ) {
 					tbody.removeEventListener( eventName, stopHandleInteractionPropagation );
 				}
