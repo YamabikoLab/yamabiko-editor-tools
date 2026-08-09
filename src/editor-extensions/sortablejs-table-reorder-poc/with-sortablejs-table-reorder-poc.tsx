@@ -461,10 +461,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 						}
 
 						const insertionIndex = getMoveInsertionIndex( event, dragRows );
-						if (
-							insertionIndex !== null &&
-							forbiddenInsertionIndices.includes( insertionIndex )
-						) {
+						if ( insertionIndex !== null && forbiddenInsertionIndices.includes( insertionIndex ) ) {
 							return false;
 						}
 					},
