@@ -10,8 +10,11 @@ It is not production code and does not attempt to reproduce the previous keyboar
 - The same implementation locates the selected Table from its owning `document` in both iframe and non-iframe editors.
 - SortableJS is initialized in the `window` that owns the target Table, rather than assuming the top-level editor window.
 - PC / fine-pointer environments expose one inline handle only while its row-start gutter is hovered.
-- Touch / hover-unavailable environments keep row handles absent during normal editing and expose a toolbar reorder mode that shows the movable row handles.
-- Rows participating in a vertical `rowspan` merge do not receive drag handles in either input mode.
+- Touch / hover-unavailable environments keep the toolbar reorder mode but do not add row handles or a 32px gutter.
+- In touch reorder mode, a movable row starts DnD after a short long press.
+- A normal tap in touch reorder mode exits the mode and returns to cell editing.
+- Rows participating in a vertical `rowspan` merge are not draggable.
+- Long-pressing a `rowspan` row on touch shows a snackbar instead of silently doing nothing.
 - Insertion positions inside a `rowspan` range remain forbidden while normal rows may cross the whole merged range.
 - PC and touch modes share the same SortableJS row-DnD implementation and `body` update path.
 - No row `top / left / width / height` tracking is used.
@@ -67,12 +70,13 @@ A separate reorder mode is intentionally not required for fine-pointer environme
 ### Touch / hover unavailable
 
 1. Select a Core Table block with body rows.
-2. Normal editing starts without row handles or the additional 32px gutter.
+2. Normal editing starts without row handles or an additional gutter.
 3. Use the reorder icon in the block toolbar to turn reorder mode on.
-4. Handles and gutters appear only on movable body rows while reorder mode is on.
-5. Rows participating in a vertical `rowspan` merge remain handle-free.
-6. Drag a movable row from its handle.
-7. Tap a normal table cell or turn the reorder toggle off to return to the normal editing / scrolling state.
+4. The Table layout remains unchanged while reorder mode is on.
+5. Long-press a movable row for about 300ms, then drag vertically to reorder it.
+6. A normal tap exits reorder mode and returns to cell editing.
+7. Long-pressing a row that participates in a vertical `rowspan` merge does not start DnD and shows: `縦結合を含む行は並び替えできません。`
+8. Turn the reorder toggle off to leave reorder mode explicitly.
 
 Reorder mode is also cleared when the Table block is deselected.
 
@@ -91,11 +95,12 @@ This keeps the SortableJS setup identical after the target Table has been found.
 When manually validating iframe and non-iframe editors, confirm these Issue #159 points:
 
 - PC / mouse shows only the hovered movable-row handle and can drag directly from the gutter;
-- rows participating in a vertical `rowspan` merge never receive a handle;
+- PC `rowspan` rows remain handle-free;
 - touch / hover-unavailable normal mode has no handles and preserves normal editing / scrolling;
-- touch reorder mode shows handles only on movable rows and can drag from them;
-- tapping a normal cell exits touch reorder mode;
-- turning touch reorder mode off removes the handles and gutters;
+- touch reorder mode does not change the Table width or add a first-column gutter;
+- a movable row starts DnD only after the long-press delay;
+- a normal tap exits touch reorder mode and returns to editing;
+- long-pressing either row in a two-row vertical merge shows the snackbar and does not start DnD;
 - the same 150ms SortableJS push-aside animation runs in both input modes;
 - insertion inside a `rowspan` range remains forbidden while crossing the whole range remains possible;
 - `oldIndex` / `newIndex` result in the expected row order;
@@ -108,13 +113,14 @@ The important questions are not feature completeness. Inspect these instead:
 
 1. Does PC hover make the drag affordance easy to discover without adding persistent UI?
 2. Does touch normal mode remain natural for cell editing and scrolling?
-3. Does touch reorder mode make the intended drag target obvious without accidental row DnD?
-4. Are both rows of a two-row vertical merge handle-free in touch and PC modes?
-5. Does the row push-aside animation feel stable in both input modes?
-6. Does full-width Table work without special width shrinking?
-7. Does scrolling during drag remain stable without handle-position tracking?
-8. After drop, does Gutenberg render the committed row order without flicker or stale DOM?
-9. Does the approach behave in both iframe and non-iframe editor versions you support?
+3. Does touch reorder mode preserve the Table layout on narrow screens?
+4. Does the 300ms long press distinguish row DnD from a normal tap and ordinary scrolling well enough?
+5. Does a `rowspan` long press give clear feedback without starting DnD?
+6. Does the row push-aside animation feel stable in both input modes?
+7. Does full-width Table work without special width shrinking?
+8. Does scrolling during drag remain stable without handle-position tracking?
+9. After drop, does Gutenberg render the committed row order without flicker or stale DOM?
+10. Does the approach behave in both iframe and non-iframe editor versions you support?
 
 ## Deliberately out of scope
 
@@ -122,7 +128,7 @@ The important questions are not feature completeness. Inspect these instead:
 - Keyboard reorder interaction.
 - `aria-live` announcements.
 - Focus restoration.
-- Snackbar messages for forbidden moves.
+- Final snackbar wording / styling.
 - Exact visual parity with the previous dnd-kit `DragOverlay`.
 - E2E tests.
 
