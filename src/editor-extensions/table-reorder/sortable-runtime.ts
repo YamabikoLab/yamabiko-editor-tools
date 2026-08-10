@@ -1,55 +1,54 @@
 /**
- * Table Reorder が利用する SortableJS runtime の読み込みを管理する。
+ * Table Reorderが利用するSortableJS runtimeの読み込みを管理する。
  *
- * owning window に既にある runtime は再利用し、同じ window で読み込み中なら同じ loading
- * state を返す。必要な場合だけ owning document へ script を挿入し、instance lifecycle や
- * Gutenberg の state / block attribute 更新は扱わない。
+ * owning windowに既にあるruntimeは再利用し、同じwindowで読み込み中なら同じloading stateを返す。
+ * 必要な場合だけowning documentへscriptを挿入し、instance lifecycleやGutenbergのstate / block
+ * attribute更新は扱わない。
  */
 
 /**
- * Table Reorder が SortableJS instance の破棄に必要とする最小 interface。
+ * Table ReorderがSortableJS instanceの破棄に必要とする最小interface。
  */
 export type SortableInstance = {
 	destroy: () => void;
 };
 
 /**
- * script から owning window に公開される SortableJS runtime の最小 interface。
+ * scriptからowning windowに公開されるSortableJS runtimeの最小interface。
  */
 export type SortableRuntime = {
 	create: ( element: HTMLElement, options: object ) => SortableInstance;
 };
 
 /**
- * SortableJS runtime が公開される owning window の形。
+ * SortableJS runtimeが公開されるowning windowの形。
  */
 type SortableWindow = Window & {
 	Sortable?: SortableRuntime;
 };
 
 /**
- * editor document 内で Table Reorder 用 runtime script を一意に識別する ID。
+ * editor document内でTable Reorder用runtime scriptを一意に識別するID。
  */
 export const SORTABLE_SCRIPT_ID = 'yamabiko-table-reorder-sortable-runtime';
 
 /**
- * owning window ごとの読み込み中 Promise。
+ * owning windowごとの読み込み中Promise。
  *
- * iframe と root document の runtime を混同せず、同じ window への重複 script 挿入を防ぐ。
- * 成功・失敗のどちらでも解決後に削除し、後続呼び出しは現在の runtime 状態を再評価する。
+ * iframeとroot documentのruntimeを混同せず、同じwindowへの重複script挿入を防ぐ。
+ * 成功・失敗のどちらでも解決後に削除し、後続呼び出しは現在のruntime状態を再評価する。
  */
 const loadingStates = new WeakMap< Window, Promise< SortableRuntime | null > >();
 
 /**
- * owning document / window に対応する SortableJS runtime を取得する。
+ * owning document / windowに対応するSortableJS runtimeを取得する。
  *
- * 既存 runtime、読み込み中 state の順に再利用し、必要な場合だけ script を追加する。
- * script の読み込みに失敗した場合、または読み込み後に runtime が公開されなかった場合は
- * `null` を返す。
+ * 既存runtime、読み込み中stateの順に再利用し、必要な場合だけscriptを追加する。
+ * scriptの読み込みに失敗した場合、または読み込み後にruntimeが公開されなかった場合は`null`を返す。
  *
- * @param document   runtime script を探索・挿入する owning document。
- * @param view       SortableJS runtime が公開される owning window。
- * @param runtimeUrl 必要な場合に読み込む SortableJS runtime script の URL。
+ * @param document runtime scriptを探索・挿入するowning document。
+ * @param view SortableJS runtimeが公開されるowning window。
+ * @param runtimeUrl 必要な場合に読み込むSortableJS runtime scriptのURL。
  */
 export const ensureSortableRuntime = (
 	document: Document,
@@ -107,7 +106,7 @@ export const ensureSortableRuntime = (
 		}
 
 		script.id = SORTABLE_SCRIPT_ID;
-	script.src = runtimeUrl;
+		script.src = runtimeUrl;
 		document.head.append( script );
 	} );
 
