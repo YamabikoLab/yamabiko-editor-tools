@@ -1,4 +1,13 @@
 /**
+ * Table Reorder の行順序計算を扱うモジュール。
+ *
+ * React / Gutenberg の状態管理や SortableJS instance の lifecycle は扱わず、
+ * 行配列の並び替えと、drag 中・drag 完了時の挿入 index 計算だけを担当する。
+ * DOM の一時的な並び替えを source of truth にせず、Gutenberg へ commit するための
+ * 決定的な行順序計算をこのファイルに集約する。
+ */
+
+/**
  * SortableJS の onMove callback から、挿入位置の判定に必要な情報だけを表す。
  *
  * SortableJS 本体の型に直接依存させず、行順序の計算に必要な境界だけをこのモジュールで扱う。
