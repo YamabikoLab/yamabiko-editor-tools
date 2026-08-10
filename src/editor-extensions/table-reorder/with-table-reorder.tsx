@@ -8,8 +8,9 @@ import { store as noticesStore } from '@wordpress/notices';
 
 import { getEndInsertionIndex, getMoveInsertionIndex, reorderRows } from './row-order';
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
+import { ensureSortableRuntime } from './sortable-runtime';
+import { findBlockElement, resolveTableContext } from './table-context';
 
-const SORTABLE_SCRIPT_ID = 'yamabiko-table-reorder-sortable-runtime';
 const HANDLE_CLASS = 'yamabiko-table-reorder-handle';
 const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';
 const NON_MOVABLE_ROW_CLASS = 'yamabiko-table-reorder-non-movable-row';
@@ -67,14 +68,6 @@ type SortableOptions = {
 	scrollSensitivity: number;
 	scrollSpeed: number;
 	touchStartThreshold?: number;
-};
-
-type SortableRuntime = {
-	create: ( element: HTMLElement, options: SortableOptions ) => SortableInstance;
-};
-
-type SortableWindow = Window & {
-	Sortable?: SortableRuntime;
 };
 
 type TableReorderConfigWindow = Window & {
@@ -300,64 +293,6 @@ const stopHandleInteractionPropagation = ( event: Event ) => {
 	}
 };
 
-const findBlockElement = ( rootDocument: Document, clientId: string ): HTMLElement | null => {
-	const selector = `[data-block="${ clientId }"]`;
-	const directBlock = rootDocument.querySelector< HTMLElement >( selector );
-	if ( directBlock ) {
-		return directBlock;
-	}
-
-	const iframe = rootDocument.querySelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
-	return iframe?.contentDocument?.querySelector< HTMLElement >( selector ) ?? null;
-};
-
-const ensureSortableRuntime = (
-	document: Document,
-	view: SortableWindow,
-	runtimeUrl: string
-): Promise< SortableRuntime | null > => {
-	if ( view.Sortable ) {
-		return Promise.resolve( view.Sortable );
-	}
-
-	const existingScript = document.getElementById( SORTABLE_SCRIPT_ID ) as HTMLScriptElement | null;
-	if ( existingScript ) {
-		return new Promise( ( resolve ) => {
-			const onLoad = () => resolve( view.Sortable ?? null );
-			const onError = () => resolve( null );
-			existingScript.addEventListener( 'load', onLoad, { once: true } );
-			existingScript.addEventListener( 'error', onError, { once: true } );
-
-			view.setTimeout( () => {
-				if ( view.Sortable ) {
-					resolve( view.Sortable );
-				}
-			}, 0 );
-		} );
-	}
-
-	return new Promise( ( resolve ) => {
-		const script = document.createElement( 'script' );
-		script.id = SORTABLE_SCRIPT_ID;
-		script.src = runtimeUrl;
-		script.addEventListener(
-			'load',
-			() => {
-				resolve( view.Sortable ?? null );
-			},
-			{ once: true }
-		);
-		script.addEventListener(
-			'error',
-			() => {
-				resolve( null );
-			},
-			{ once: true }
-		);
-		document.head.append( script );
-	} );
-};
-
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	function WithTableReorder( props: TableBlockEditProps ) {
 		const anchorRef = useRef< HTMLSpanElement >( null );
@@ -416,14 +351,11 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				return;
 			}
 
-			const blockElement = findBlockElement( anchor.ownerDocument, clientId );
-			const document = blockElement?.ownerDocument ?? null;
-			const view = document?.defaultView as SortableWindow | null;
-			const table = blockElement?.querySelector< HTMLTableElement >( 'table' ) ?? null;
-			const tbody = table?.tBodies.item( 0 ) ?? null;
-			if ( ! blockElement || ! document || ! view || ! table || ! tbody ) {
+			const context = resolveTableContext( anchor, clientId );
+			if ( ! context ) {
 				return;
 			}
+			const { blockElement, document, window: view, tbody } = context;
 
 			const rowspanRanges = getRowspanRanges( body );
 			const nonMovableRowIndices = getNonMovableRowIndices( rowspanRanges );
