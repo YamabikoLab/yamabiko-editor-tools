@@ -6,22 +6,25 @@ import { useEffect, useRef, useState, type ComponentType } from '@wordpress/elem
 import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
+import {
+	createHoverHandles,
+	createInsertionLine,
+	createTouchDragUi,
+	fixFallbackRowCellWidths,
+	HANDLE_ZONE_CLASS,
+	type HoverHandleEntry,
+	NON_MOVABLE_ROW_CLASS,
+	stopHoverHandleInteractionPropagation,
+	TOUCH_CHOSEN_CLASS,
+} from './drag-ui';
 import { getEndInsertionIndex, getMoveInsertionIndex, reorderRows } from './row-order';
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { ensureSortableRuntime } from './sortable-runtime';
 import { findBlockElement, resolveTableContext } from './table-context';
 
-const HANDLE_CLASS = 'yamabiko-table-reorder-handle';
-const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';
-const NON_MOVABLE_ROW_CLASS = 'yamabiko-table-reorder-non-movable-row';
-const INSERTION_LINE_CLASS = 'yamabiko-table-reorder-insertion-line';
-const TOUCH_CHOSEN_CLASS = 'yamabiko-table-reorder-touch-chosen';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
 const AUTO_SCROLL_SENSITIVITY_PX = 80;
 const AUTO_SCROLL_SPEED_PX = 8;
-const HANDLE_FADE_MS = 300;
-const HANDLE_GUTTER_PX = 32;
-const INSERTION_LINE_HEIGHT_PX = 2;
 const TOUCH_DRAG_DELAY_MS = 300;
 const TOUCH_START_THRESHOLD_PX = 5;
 
@@ -76,16 +79,6 @@ type TableReorderConfigWindow = Window & {
 	};
 };
 
-type MinimalHandle = {
-	handle: HTMLElement;
-	zone: HTMLElement;
-};
-
-type MinimalHandles = {
-	entries: MinimalHandle[];
-	restoreCellStyles: () => void;
-};
-
 type TouchPress = {
 	longPressReached: boolean;
 	moved: boolean;
@@ -103,193 +96,6 @@ const restoreOriginalRowOrder = (
 ) => {
 	for ( const row of rows ) {
 		tbody.append( row );
-	}
-};
-
-const createInsertionLine = ( document: Document ): HTMLDivElement => {
-	const line = document.createElement( 'div' );
-	line.className = INSERTION_LINE_CLASS;
-	line.setAttribute( 'aria-hidden', 'true' );
-	line.style.position = 'fixed';
-	line.style.height = `${ INSERTION_LINE_HEIGHT_PX }px`;
-	line.style.background = 'var(--wp-admin-theme-color, #3858e9)';
-	line.style.pointerEvents = 'none';
-	line.style.zIndex = '100000';
-	line.style.display = 'none';
-	line.style.transform = 'translateY(-50%)';
-	document.body.append( line );
-	return line;
-};
-
-const hideInsertionLine = ( line: HTMLElement ) => {
-	line.style.display = 'none';
-};
-
-const showInsertionLine = (
-	line: HTMLElement,
-	row: HTMLTableRowElement,
-	willInsertAfter: boolean
-) => {
-	const rect = row.getBoundingClientRect();
-	line.style.left = `${ rect.left }px`;
-	line.style.top = `${ willInsertAfter ? rect.bottom : rect.top }px`;
-	line.style.width = `${ rect.width }px`;
-	line.style.display = 'block';
-};
-
-const createTouchChosenStyle = ( document: Document ): HTMLStyleElement => {
-	const style = document.createElement( 'style' );
-	style.textContent = `.${ TOUCH_CHOSEN_CLASS } { outline: 2px solid var(--wp-admin-theme-color, #3858e9); outline-offset: -2px; }`;
-	document.head.append( style );
-	return style;
-};
-
-const disableTouchCellEditing = ( tbody: HTMLTableSectionElement ): ( () => void ) => {
-	const editableElements = Array.from(
-		tbody.querySelectorAll< HTMLElement >( '[contenteditable="true"]' )
-	);
-	const originalPointerEvents = editableElements.map( ( element ) => ( {
-		element,
-		pointerEvents: element.style.pointerEvents,
-	} ) );
-
-	for ( const element of editableElements ) {
-		element.style.pointerEvents = 'none';
-	}
-
-	return () => {
-		for ( const { element, pointerEvents } of originalPointerEvents ) {
-			element.style.pointerEvents = pointerEvents;
-		}
-	};
-};
-
-const fixRowCellWidthsForFallback = ( row: HTMLElement ): ( () => void ) => {
-	if ( ! row.matches( 'tr' ) ) {
-		return () => undefined;
-	}
-
-	const cells = Array.from( row.querySelectorAll< HTMLElement >( ':scope > td, :scope > th' ) );
-	const originalStyles = cells.map( ( cell ) => ( {
-		boxSizing: cell.style.boxSizing,
-		cell,
-		maxWidth: cell.style.maxWidth,
-		minWidth: cell.style.minWidth,
-		width: cell.style.width,
-	} ) );
-
-	for ( const cell of cells ) {
-		const width = `${ cell.getBoundingClientRect().width }px`;
-		cell.style.boxSizing = 'border-box';
-		cell.style.width = width;
-		cell.style.minWidth = width;
-		cell.style.maxWidth = width;
-	}
-
-	return () => {
-		for ( const { boxSizing, cell, maxWidth, minWidth, width } of originalStyles ) {
-			cell.style.boxSizing = boxSizing;
-			cell.style.width = width;
-			cell.style.minWidth = minWidth;
-			cell.style.maxWidth = maxWidth;
-		}
-	};
-};
-
-const addMinimalHandles = (
-	document: Document,
-	tbody: HTMLTableSectionElement,
-	nonMovableRowIndices: readonly number[]
-): MinimalHandles => {
-	const entries: MinimalHandle[] = [];
-	const changedCells: Array< {
-		cell: HTMLTableCellElement;
-		paddingInlineStart: string;
-		position: string;
-	} > = [];
-	const view = document.defaultView;
-	const nonMovableRows = new Set( nonMovableRowIndices );
-
-	for ( const [ rowIndex, row ] of Array.from( tbody.rows ).entries() ) {
-		if ( nonMovableRows.has( rowIndex ) ) {
-			continue;
-		}
-
-		const firstCell = row.cells.item( 0 );
-		if ( ! firstCell ) {
-			continue;
-		}
-
-		const computedStyle = view?.getComputedStyle( firstCell );
-		changedCells.push( {
-			cell: firstCell,
-			paddingInlineStart: firstCell.style.paddingInlineStart,
-			position: firstCell.style.position,
-		} );
-
-		if ( computedStyle?.position === 'static' ) {
-			firstCell.style.position = 'relative';
-		}
-		firstCell.style.paddingInlineStart = computedStyle
-			? `calc(${ computedStyle.paddingInlineStart } + ${ HANDLE_GUTTER_PX }px)`
-			: `${ HANDLE_GUTTER_PX }px`;
-
-		const zone = document.createElement( 'span' );
-		zone.className = HANDLE_ZONE_CLASS;
-		zone.setAttribute( 'contenteditable', 'false' );
-		zone.setAttribute( 'aria-hidden', 'true' );
-		zone.style.position = 'absolute';
-		zone.style.insetInlineStart = '0';
-		zone.style.top = '0';
-		zone.style.bottom = '0';
-		zone.style.width = `${ HANDLE_GUTTER_PX }px`;
-		zone.style.display = 'flex';
-		zone.style.alignItems = 'center';
-		zone.style.justifyContent = 'center';
-		zone.style.cursor = 'grab';
-		zone.style.userSelect = 'none';
-		zone.style.zIndex = '1';
-
-		const handle = document.createElement( 'span' );
-		handle.className = HANDLE_CLASS;
-		handle.setAttribute( 'aria-hidden', 'true' );
-		handle.textContent = '⋮⋮';
-		handle.style.padding = '2px 4px';
-		handle.style.border = '1px solid currentColor';
-		handle.style.borderRadius = '2px';
-		handle.style.lineHeight = '1';
-		handle.style.pointerEvents = 'none';
-		handle.style.opacity = '0';
-		handle.style.transition = `opacity ${ HANDLE_FADE_MS }ms ease`;
-
-		zone.append( handle );
-		firstCell.prepend( zone );
-		entries.push( { handle, zone } );
-	}
-
-	return {
-		entries,
-		restoreCellStyles: () => {
-			for ( const { cell, paddingInlineStart, position } of changedCells ) {
-				cell.style.paddingInlineStart = paddingInlineStart;
-				cell.style.position = position;
-			}
-		},
-	};
-};
-
-const setHandleVisible = ( entry: MinimalHandle, isVisible: boolean ) => {
-	entry.handle.style.opacity = isVisible ? '1' : '0';
-};
-
-const isHandleInteraction = ( event: Event ): boolean => {
-	const target = event.target as Element | null;
-	return Boolean( target?.closest?.( `.${ HANDLE_ZONE_CLASS }` ) );
-};
-
-const stopHandleInteractionPropagation = ( event: Event ) => {
-	if ( isHandleInteraction( event ) ) {
-		event.stopPropagation();
 	}
 };
 
@@ -369,36 +175,28 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 
 			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
 			const insertionLine = createInsertionLine( document );
-
-			let entries: MinimalHandle[] = [];
-			let restoreCellStyles: () => void = () => undefined;
-			let restoreTouchCellEditing: () => void = () => undefined;
-			let restoreFallbackCellWidths: () => void = () => undefined;
-			let touchChosenStyle: HTMLStyleElement | null = null;
-			if ( useHoverMode ) {
-				const handles = addMinimalHandles( document, tbody, nonMovableRowIndices );
-				entries = handles.entries;
-				restoreCellStyles = handles.restoreCellStyles;
-			} else {
-				restoreTouchCellEditing = disableTouchCellEditing( tbody );
-				touchChosenStyle = createTouchChosenStyle( document );
-			}
-
+			const hoverHandles = useHoverMode
+				? createHoverHandles( document, tbody, nonMovableRowIndices )
+				: null;
+			const touchDragUi = useTouchMode
+				? createTouchDragUi( document, tbody, nonMovableRowIndices )
+				: null;
+			const entries = hoverHandles?.entries ?? [];
 			const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
 			const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 			for ( const eventName of blockSelectionEvents ) {
-				tbody.addEventListener( eventName, stopHandleInteractionPropagation );
+				tbody.addEventListener( eventName, stopHoverHandleInteractionPropagation );
 			}
 
 			let cancelled = false;
 			let sortable: SortableInstance | null = null;
 			let dragRows: HTMLTableRowElement[] | null = null;
-			let activeEntry: MinimalHandle | null = null;
+			let activeEntry: HoverHandleEntry | null = null;
 			let isDragging = false;
 			let blockDragSuppressed = false;
 			let originalDraggable: string | null = null;
 			let touchPress: TouchPress | null = null;
-			const originalUserSelect = tbody.style.userSelect;
+			let restoreFallbackCellWidths: () => void = () => undefined;
 
 			const suppressBlockDrag = () => {
 				if ( blockDragSuppressed ) {
@@ -422,24 +220,24 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				originalDraggable = null;
 				blockDragSuppressed = false;
 			};
-			const activateEntry = ( entry: MinimalHandle ) => {
-				if ( ! useHoverMode ) {
+			const activateEntry = ( entry: HoverHandleEntry ) => {
+				if ( ! useHoverMode || ! hoverHandles ) {
 					return;
 				}
 
 				if ( activeEntry && activeEntry !== entry ) {
-					setHandleVisible( activeEntry, false );
+					hoverHandles.setVisible( activeEntry, false );
 				}
 				activeEntry = entry;
 				suppressBlockDrag();
-				setHandleVisible( entry, true );
+				hoverHandles.setVisible( entry, true );
 			};
-			const deactivateEntry = ( entry: MinimalHandle ) => {
+			const deactivateEntry = ( entry: HoverHandleEntry ) => {
 				if ( isDragging && activeEntry === entry ) {
 					return;
 				}
 
-				setHandleVisible( entry, false );
+				hoverHandles?.setVisible( entry, false );
 				if ( activeEntry === entry ) {
 					activeEntry = null;
 					restoreBlockDrag();
@@ -448,7 +246,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			const releaseEntry = () => {
 				isDragging = false;
 				if ( activeEntry ) {
-					setHandleVisible( activeEntry, false );
+					hoverHandles?.setVisible( activeEntry, false );
 				}
 				activeEntry = null;
 				restoreBlockDrag();
@@ -458,8 +256,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					return;
 				}
 
-				const zone = event.currentTarget as HTMLElement;
-				const entry = entryByZone.get( zone );
+				const entry = entryByZone.get( event.currentTarget as HTMLElement );
 				if ( entry ) {
 					activateEntry( entry );
 				}
@@ -469,8 +266,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					return;
 				}
 
-				const zone = event.currentTarget as HTMLElement;
-				const entry = entryByZone.get( zone );
+				const entry = entryByZone.get( event.currentTarget as HTMLElement );
 				if ( entry ) {
 					deactivateEntry( entry );
 				}
@@ -480,8 +276,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					return;
 				}
 
-				const zone = event.currentTarget as HTMLElement;
-				const entry = entryByZone.get( zone );
+				const entry = entryByZone.get( event.currentTarget as HTMLElement );
 				if ( entry ) {
 					activateEntry( entry );
 				}
@@ -589,10 +384,6 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					activateEntry( hoveredEntry );
 				}
 			} else {
-				tbody.style.userSelect = 'none';
-				for ( const rowIndex of nonMovableRowIndices ) {
-					tbody.rows.item( rowIndex )?.classList.add( NON_MOVABLE_ROW_CLASS );
-				}
 				tbody.addEventListener( 'pointerdown', onTouchPointerDown );
 				tbody.addEventListener( 'pointermove', onTouchPointerMove );
 				tbody.addEventListener( 'pointerup', onTouchPointerUp );
@@ -610,46 +401,46 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					draggable: useTouchMode ? `tr:not(.${ NON_MOVABLE_ROW_CLASS })` : 'tr',
 					forceFallback: true,
 					onChoose: ( event ) => {
-						hideInsertionLine( insertionLine );
+						insertionLine.hide();
 						dragRows = Array.from( tbody.rows );
 						restoreFallbackCellWidths();
-						restoreFallbackCellWidths = fixRowCellWidthsForFallback( event.item );
+						restoreFallbackCellWidths = fixFallbackRowCellWidths( event.item );
 					},
 					onStart: () => {
-						hideInsertionLine( insertionLine );
+						insertionLine.hide();
 						isDragging = true;
 						suppressBlockDrag();
 						if ( activeEntry ) {
-							setHandleVisible( activeEntry, true );
+							hoverHandles?.setVisible( activeEntry, true );
 						}
 					},
 					onMove: ( event ) => {
 						if ( ! dragRows ) {
-							hideInsertionLine( insertionLine );
+							insertionLine.hide();
 							return;
 						}
 
 						const insertionIndex = getMoveInsertionIndex( event, dragRows );
 						if ( insertionIndex === null ) {
-							hideInsertionLine( insertionLine );
+							insertionLine.hide();
 							return;
 						}
 
 						if ( forbiddenInsertionIndices.includes( insertionIndex ) ) {
-							hideInsertionLine( insertionLine );
+							insertionLine.hide();
 							return false;
 						}
 
 						const relatedRow = event.related.closest< HTMLTableRowElement >( 'tr' );
 						if ( ! relatedRow || relatedRow.parentElement !== tbody ) {
-							hideInsertionLine( insertionLine );
+							insertionLine.hide();
 							return;
 						}
 
-						showInsertionLine( insertionLine, relatedRow, event.willInsertAfter );
+						insertionLine.show( relatedRow, event.willInsertAfter );
 					},
 					onEnd: ( event ) => {
-						hideInsertionLine( insertionLine );
+						insertionLine.hide();
 						isDragging = false;
 						restoreFallbackCellWidths();
 
@@ -694,7 +485,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 						setAttributes( { body: reorderedBody } );
 					},
 					onUnchoose: () => {
-						hideInsertionLine( insertionLine );
+						insertionLine.hide();
 						restoreFallbackCellWidths();
 					},
 					scroll: true,
@@ -716,8 +507,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			return () => {
 				cancelled = true;
 				sortable?.destroy();
-				hideInsertionLine( insertionLine );
-				insertionLine.remove();
+				insertionLine.cleanup();
 				resetTouchPress();
 				restoreFallbackCellWidths();
 				if ( useHoverMode ) {
@@ -731,25 +521,17 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					tbody.removeEventListener( 'pointermove', onTouchPointerMove );
 					tbody.removeEventListener( 'pointerup', onTouchPointerUp );
 					tbody.removeEventListener( 'pointercancel', onTouchPointerCancel );
-					tbody.style.userSelect = originalUserSelect;
-					restoreTouchCellEditing();
-					touchChosenStyle?.remove();
-					for ( const rowIndex of nonMovableRowIndices ) {
-						tbody.rows.item( rowIndex )?.classList.remove( NON_MOVABLE_ROW_CLASS );
-					}
 				}
 				for ( const eventName of blockSelectionEvents ) {
-					tbody.removeEventListener( eventName, stopHandleInteractionPropagation );
+					tbody.removeEventListener( eventName, stopHoverHandleInteractionPropagation );
 				}
 				if ( dragRows ) {
 					restoreOriginalRowOrder( tbody, dragRows );
 					dragRows = null;
 				}
 				releaseEntry();
-				for ( const { zone } of entries ) {
-					zone.remove();
-				}
-				restoreCellStyles();
+				hoverHandles?.cleanup();
+				touchDragUi?.cleanup();
 			};
 		}, [
 			body,
