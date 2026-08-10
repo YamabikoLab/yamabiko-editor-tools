@@ -1,5 +1,0 @@
-{
-	"src/editor-extensions/table-reorder/sortable-row.tsx": "build/editor-extensions/table-reorder/index.js",
-	"src/editor-extensions/table-reorder/table-reorder-controller.tsx": "build/editor-extensions/table-reorder/index.js",
-	"src/editor-extensions/table-reorder/with-table-reorder.tsx": "build/editor-extensions/table-reorder/index.js"
-}
