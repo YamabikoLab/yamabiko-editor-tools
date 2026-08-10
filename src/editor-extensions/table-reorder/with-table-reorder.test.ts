@@ -1,10 +1,5 @@
-import {
-	findBlockElement,
-	getEndInsertionIndex,
-	getMoveInsertionIndex,
-	reorderRows,
-	restoreOriginalRowOrder,
-} from './with-table-reorder';
+import { getEndInsertionIndex, getMoveInsertionIndex, reorderRows } from './row-order';
+import { findBlockElement, restoreOriginalRowOrder } from './with-table-reorder';
 
 jest.mock( '@wordpress/block-editor', () => ( {} ) );
 jest.mock( '@wordpress/components', () => ( {} ) );
