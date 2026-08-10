@@ -238,28 +238,50 @@ Gutenbergが新しい正規DOM順序を描画
 
 ## 実装フェーズ
 
-### フェーズ0: Jestの基準と最初のテスト境界を作る
+### フェーズ0: 現行挙動をJest characterization testsで固定する
 
 成果:
 
-- 大きなライフサイクル分割に入る前に、決定的な挙動がfocused unit testで保護されている。
+- リファクタリングに入る前に、Issue #177で定めた主要な現行挙動がJest characterization testsで保護されている。
 
 作業:
 
-- `rowspan.ts` の隣に `rowspan.test.ts` を追加する。
-- rowspanなし、number/stringのrowspan、不正値、末尾超過のclamp、重複range、移動不可行、禁止挿入indexをテストする。
-- focused testに必要な決定的な行並び替えhelperだけを `with-table-reorder.tsx` から `row-order.ts` へ抽出する。
-- 同じ変更で `row-order.test.ts` を追加する。
-- 上方向移動、下方向移動、同一index、不正index、immutability、move時の挿入index、end時の挿入indexをテストする。
-- この抽出は意図的に小さく保ち、ReactライフサイクルやSortableJS初期化にはまだ触れない。
+- Issue #177の範囲に従い、このフェーズではリファクタリングそのものを行わない。
+- `rowspan.ts` の主要ロジックをテストする。
+- `with-table-reorder.tsx` の現行配置のまま、`reorderRows()`、`getMoveInsertionIndex()`、`getEndInsertionIndex()` の挙動をテストする。
+- `restoreOriginalRowOrder()` と `findBlockElement()` の小さなDOM処理をJest / jsdomでテストする。
+- テスト可能にするための本体変更が必要な場合も、関数への `export` 追加など必要最小限に留める。
+- helperのファイル移動、責務抽出、Reactライフサイクル変更、SortableJS初期化変更は行わない。
 
 検証:
 
+- `npm run test:unit`
 - `npm test`
 - `npm run build`
 - `git diff --check origin/main...HEAD`
 
-### フェーズ1: エディターTable context解決を分離する
+### フェーズ1: 決定的な行並び替えhelperを分離する
+
+成果:
+
+- characterization testsで固定済みの行並び替えロジックに、React/Gutenberg統合層から独立した所有者ができる。
+
+作業:
+
+- Phase 0のテストを変更せず安全網として利用する。
+- `reorderRows()`、`getMoveInsertionIndex()`、`getEndInsertionIndex()` を `with-table-reorder.tsx` から `row-order.ts` へ移す。
+- 必要に応じてテストのimport先だけを新しいモジュールへ追従させ、期待する挙動自体は変更しない。
+- 純粋なデータ変換と挿入index計算をWordPressやReactへ依存させない。
+- `restoreOriginalRowOrder()` の所有先は、controller抽出後の利用関係を見て `row-order.ts` と `drag-ui.ts` のどちらが自然か判断するため、このフェーズでは無理に移動しない。
+
+検証:
+
+- focused Jest test
+- `npm test`
+- `npm run build`
+- `git diff --check origin/main...HEAD`
+
+### フェーズ2: エディターTable context解決を分離する
 
 成果:
 
@@ -269,6 +291,7 @@ Gutenbergが新しい正規DOM順序を描画
 
 - `table-context.ts` を追加する。
 - `findBlockElement` と関連するdocument/window/table/tbody解決をこのモジュールへ移す。
+- Phase 0で固定したroot document / iframe fallbackの挙動を維持する。
 - 返されたcontextを、後続フェーズのeditor canvas DOM所有元として利用する。
 - 安定した価値がある範囲でfocused jsdom testを追加し、特にdirect document、iframe fallback、未解決contextを確認する。
 
@@ -277,7 +300,7 @@ Gutenbergが新しい正規DOM順序を描画
 - 実装中はfocused Jest testを利用する。
 - handoff前に `npm test`、`npm run build`、repository diff checkを実行する。
 
-### フェーズ2: SortableJS runtime読み込みを分離する
+### フェーズ3: SortableJS runtime読み込みを分離する
 
 成果:
 
@@ -297,7 +320,7 @@ Gutenbergが新しい正規DOM順序を描画
 - `npm run build`
 - repository diff check。
 
-### フェーズ3: drag専用DOM UI helperを分離する
+### フェーズ4: drag専用DOM UI helperを分離する
 
 成果:
 
@@ -319,7 +342,7 @@ Gutenbergが新しい正規DOM順序を描画
 - `npm run build`
 - repository diff check。
 
-### フェーズ4: SortableJS controllerを分離する
+### フェーズ5: SortableJS controllerを分離する
 
 成果:
 
@@ -342,7 +365,7 @@ Gutenbergが新しい正規DOM順序を描画
 - このフェーズではライフサイクル所有者が大きく変わるため、手動smoke checkを推奨する。
 - repository diff check。
 
-### フェーズ5: Reactライフサイクルhookを導入する
+### フェーズ6: Reactライフサイクルhookを導入する
 
 成果:
 
@@ -364,7 +387,7 @@ Gutenbergが新しい正規DOM順序を描画
 - `npm run build`
 - repository diff check。
 
-### フェーズ6: HOCを薄くし、ソース所有関係を確定する
+### フェーズ7: HOCを薄くし、ソース所有関係を確定する
 
 成果:
 
@@ -393,7 +416,7 @@ Gutenbergが新しい正規DOM順序を描画
 - 新しいモジュールはすべて `src/editor-extensions/table-reorder/` 内に置く。
 - `rowspan.ts` は既存の制約所有者として残し、controllerへ統合しない。
 - 全面rewriteではなく段階的な抽出で進める。
-- Jestによるcharacterization coverageを最初の実装フェーズにする。
+- Issue #177のJest characterization coverageをリファクタリング前の独立した安全網として先に完成させる。
 - 本リファクタリング開始前に新しいPlaywrightテストを必須としない。
 - 実際のcross-module所有が必要になるまで `constants.ts` / `types.ts` は作らない。
 
@@ -409,17 +432,18 @@ Gutenbergが新しい正規DOM順序を描画
 
 ## Issue分割案
 
-本プランのレビューが完了し、責務境界が安定した後に実装Issueを作成する。
+Phase 0のJest characterization testsは既存のIssue #177で扱う。Issue #177を完了して安全網を作った後に、リファクタリング実装Issueを作成する。
 
 実装単位の候補:
 
-- [ ] Jest基準整備 + `row-order.ts` 抽出。
-- [ ] `table-context.ts` + `sortable-runtime.ts` 抽出。
-- [ ] `drag-ui.ts` 抽出。
-- [ ] `sortable-controller.ts` 抽出。
+- [ ] Issue #177: 現行配置のままJest characterization testsを追加する。
+- [ ] `row-order.ts` を抽出する。
+- [ ] `table-context.ts` + `sortable-runtime.ts` を抽出する。
+- [ ] `drag-ui.ts` を抽出する。
+- [ ] `sortable-controller.ts` を抽出する。
 - [ ] `use-table-reorder.ts` + HOC薄型化 + README最終更新。
 
-最初の2単位はレビュー量に応じて結合・分割してよい。この一覧に合わせること自体を目的として細かく分けず、少ないPRの方がまとまりよくレビューできる場合はそちらを優先する。
+後続単位はレビュー量に応じて結合・分割してよい。この一覧に合わせること自体を目的として細かく分けず、少ないPRの方がまとまりよくレビューできる場合はそちらを優先する。ただしIssue #177のcharacterization testsと最初の責務抽出は同じPRに混在させない。
 
 ## 検証
 
