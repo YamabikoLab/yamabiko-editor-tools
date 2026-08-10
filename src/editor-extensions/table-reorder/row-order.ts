@@ -13,6 +13,9 @@ type SortableMoveEventLike = {
  *
  * 元の配列は変更しない。index が整数でない、負数、または配列範囲外の場合は
  * 並び替えを行わず null を返す。
+ * @param rows
+ * @param oldIndex
+ * @param newIndex
  */
 export const reorderRows = (
 	rows: readonly unknown[],
@@ -41,6 +44,8 @@ export const reorderRows = (
  *
  * related が行要素に属さない場合や、その行が rows に含まれない場合は null を返す。
  * willInsertAfter が true の場合は関連行の直後を挿入位置として扱う。
+ * @param event
+ * @param rows
  */
 export const getMoveInsertionIndex = (
 	event: SortableMoveEventLike,
@@ -60,6 +65,8 @@ export const getMoveInsertionIndex = (
  *
  * 下方向へ移動した場合は、移動対象行を元の位置へ戻してから commit する処理に合わせて
  * 1 行分を補正する。上方向への移動では newIndex をそのまま使用する。
+ * @param oldIndex
+ * @param newIndex
  */
 export const getEndInsertionIndex = ( oldIndex: number, newIndex: number ): number =>
 	newIndex > oldIndex ? newIndex + 1 : newIndex;
