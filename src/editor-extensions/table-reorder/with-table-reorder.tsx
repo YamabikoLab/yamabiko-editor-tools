@@ -33,7 +33,11 @@ type TableBlockEditProps = BlockEditProps< TableAttributes > & {
  * @param BlockEdit Gutenbergが提供する元のBlockEdit component。
  */
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
-	/** Table Reorderを接続したBlockEdit component。 */
+	/**
+	 * Table Reorderを接続したBlockEdit component。
+	 *
+	 * @param props Gutenbergから渡されるBlockEdit props。
+	 */
 	function WithTableReorder( props: TableBlockEditProps ) {
 		const {
 			attributes: { body },
