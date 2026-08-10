@@ -79,7 +79,7 @@ describe( 'drag-ui', () => {
 		if ( ! editable ) {
 			throw new Error( 'Expected editable table cell' );
 		}
-		editable.contentEditable = 'true';
+		editable.setAttribute( 'contenteditable', 'true' );
 		editable.style.pointerEvents = 'auto';
 		tbody.style.userSelect = 'text';
 
