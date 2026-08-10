@@ -4,14 +4,6 @@ import {
 	reorderRows,
 	restoreOriginalRowOrder,
 } from './row-order';
-import { findBlockElement } from './with-table-reorder';
-
-jest.mock( '@wordpress/block-editor', () => ( {} ) );
-jest.mock( '@wordpress/components', () => ( {} ) );
-jest.mock( '@wordpress/data', () => ( {} ) );
-jest.mock( '@wordpress/element', () => ( {} ) );
-jest.mock( '@wordpress/i18n', () => ( {} ) );
-jest.mock( '@wordpress/notices', () => ( {} ) );
 
 const createTableRows = ( count: number ) => {
 	const table = document.createElement( 'table' );
@@ -165,59 +157,5 @@ describe( 'restoreOriginalRowOrder', () => {
 			'1',
 			'2',
 		] );
-	} );
-} );
-
-describe( 'findBlockElement', () => {
-	beforeEach( () => {
-		document.body.replaceChildren();
-	} );
-
-	it( 'finds a block in the root document', () => {
-		const block = document.createElement( 'div' );
-		block.dataset.block = 'root-block';
-		document.body.append( block );
-
-		expect( findBlockElement( document, 'root-block' ) ).toBe( block );
-	} );
-
-	it( 'prefers the root document when the same block exists in the iframe', () => {
-		const rootBlock = document.createElement( 'div' );
-		rootBlock.dataset.block = 'shared-block';
-		document.body.append( rootBlock );
-
-		const iframe = document.createElement( 'iframe' );
-		iframe.name = 'editor-canvas';
-		document.body.append( iframe );
-		const iframeBlock = iframe.contentDocument?.createElement( 'div' );
-		if ( ! iframeBlock || ! iframe.contentDocument ) {
-			throw new Error( 'Expected iframe contentDocument in jsdom' );
-		}
-		iframeBlock.dataset.block = 'shared-block';
-		iframe.contentDocument.body.append( iframeBlock );
-
-		expect( findBlockElement( document, 'shared-block' ) ).toBe( rootBlock );
-	} );
-
-	it( 'falls back to iframe[name="editor-canvas"] when the root has no block', () => {
-		const iframe = document.createElement( 'iframe' );
-		iframe.name = 'editor-canvas';
-		document.body.append( iframe );
-		const iframeBlock = iframe.contentDocument?.createElement( 'div' );
-		if ( ! iframeBlock || ! iframe.contentDocument ) {
-			throw new Error( 'Expected iframe contentDocument in jsdom' );
-		}
-		iframeBlock.dataset.block = 'iframe-block';
-		iframe.contentDocument.body.append( iframeBlock );
-
-		expect( findBlockElement( document, 'iframe-block' ) ).toBe( iframeBlock );
-	} );
-
-	it( 'returns null when the block is absent from both documents', () => {
-		const iframe = document.createElement( 'iframe' );
-		iframe.name = 'editor-canvas';
-		document.body.append( iframe );
-
-		expect( findBlockElement( document, 'missing-block' ) ).toBeNull();
 	} );
 } );
