@@ -31,6 +31,7 @@
 - 対象エディター `window` へのSortableJS runtime読み込みを局所化する。
 - ドラッグ時のみ必要なDOM装飾と復元処理を局所化する。
 - SortableJSライフサイクル制御を専用controller境界へ移す。
+- controllerから独立して変更・検証できるtouch press追跡を専用モジュールへ分離する。
 - 下位レイヤーの境界が安定した後に、Reactのstate/effectライフサイクルをカスタムhookへ移す。
 - `with-table-reorder.tsx` を薄いGutenberg統合・描画境界として残す。
 - 最終的なソース構成が確定した後、機能READMEを更新する。
@@ -94,6 +95,7 @@ sortable-controller.ts
   ├─ table-context.ts
   ├─ sortable-runtime.ts
   ├─ drag-ui.ts
+  ├─ touch-press.ts
   ├─ row-order.ts
   └─ rowspan.ts
 ```
@@ -140,7 +142,7 @@ DOM nodeの直接生成、SortableJS読み込み、pointer session追跡、Sorta
 
 - `oldIndex` から `newIndex` へ、元配列を変更せず行配列を並び替える。
 - React stateに依存しない決定的な計算として扱えるSortableJS move/end用挿入indexを算出する。
-- SortableJSが一時的に行DOMを移動した後、取得済みのDOM行順を復元するhelperは、controller抽出後の利用関係を見て `row-order.ts` と `drag-ui.ts` のどちらが自然か判断する。
+- SortableJSが一時的に行DOMを移動した後、取得済みのDOM行順を復元する。
 
 純粋なデータ変換はWordPressやReactへ依存させない。
 
@@ -190,6 +192,18 @@ Gutenberg block attributeやReact stateは扱わない。
 
 最初からさらに分割しない。将来 `drag-ui.ts` 自体に独立して変更される複数責務が蓄積した場合のみ、`hover-handles.ts`、`insertion-line.ts`、`touch-ui.ts` などへの追加分割を検討する。
 
+### `touch-press.ts`
+
+担当:
+
+- touch / pen pointerの`pointerdown`、`pointermove`、`pointerup`、`pointercancel`を追跡する。
+- 長押し時間と移動thresholdを所有する。
+- 移動不可行の長押しを狭いcallbackで通知する。
+- dragが始まらなかった短いtapを、touch並び替えモード終了callbackへ変換する。
+- trackerが追加したpointer listenerと長押しtimerを`destroy()`でcleanupする。
+
+SortableJS instanceやDOM ownership handoffは扱わない。React stateを直接変更せず、現在drag中かどうかはcontrollerから狭い参照callbackとして受け取る。
+
 ### `sortable-controller.ts`
 
 担当:
@@ -199,14 +213,14 @@ Gutenberg block attributeやReact stateは扱わない。
 - React描画を必要としないdrag sessionのmutable stateを所有する。
 - 行dragがpointerを所有している間、Gutenbergブロックdragを抑止し、終了後に復元する。
 - hoverハンドルのactivate/deactivateを制御する。
-- タッチpress追跡と長押し警告を制御する。
+- touch press trackerを生成・破棄し、drag状態とcallback境界を接続する。
 - `rowspan` による禁止挿入位置を拒否する。
 - drag開始時の元行DOM順序を取得する。
 - 並び替え済み `body` を確定する前に元のDOM順序を復元する。
 - Gutenberg APIを直接importせず、狭い `onCommit(reorderedBody)` callbackを呼ぶ。
-- controllerが追加した全listener、DOM装飾、timeout、一時styleをcleanupする。
+- controllerが所有するlistener、DOM装飾、一時style、SortableJS instanceと、配下trackerのcleanupを統括する。
 
-controllerをSortableJS周辺の命令的な統合境界とする。React層には単一のcleanup / destroy入口を返す。
+controllerをSortableJS周辺の命令的な統合境界とする。React層には単一のcleanup / destroy入口を返す。一方、touch pressのpointer session詳細は専用モジュールへ分離し、controller自体が再び巨大な操作実装の集積点にならないようにする。
 
 ### `constants.ts` と `types.ts`
 
@@ -347,16 +361,21 @@ Gutenbergが新しい正規DOM順序を描画
 成果:
 
 - SortableJSの命令的な処理に一つのライフサイクル所有者ができ、React層がdrag callbackを直接実装しなくなる。
+- touch press追跡は独立した小さな所有者へ分かれ、controllerはSortableJS lifecycleとDOM ownership handoffを中心に保つ。
 
 作業:
 
 - `sortable-controller.ts` を追加する。
 - SortableJS optionsとcallbacksをcontrollerへ移す。
-- drag rows、active handle、drag suppression、touch press、timeout、cleanupなどのmutable stateをcontrollerへ移す。
+- drag rows、active handle、drag suppression、fallback styleなどSortableJS drag sessionのmutable stateをcontrollerへ移す。
+- `touch-press.ts` を追加し、touch / penのpointer追跡、長押しtimer、移動threshold、短いtap判定を移す。
+- controllerからtouch press trackerへ、現在drag中かを参照するcallbackとユーザー通知・モード終了callbackだけを渡す。
 - 解決済みcontextと算出済み制約を入力として受け取る。
 - commitとユーザー通知は狭いcallbackとして受け取る。
 - 有効なcommitの前に、必ずDOM所有権の不変条件を維持する。
+- controllerの`destroy()`からtouch press trackerも破棄し、listenerとtimeoutが残らないようにする。
 - `destroy()` がruntime読み込み途中でも安全に動作し、遅れて完了したruntime読み込みが古いSortableJS instanceを生成しないことを保証する。
+- controllerやtouch pressを`onChoose.ts`、`onMove.ts`などcallback単位には分割しない。責務境界ではなく行数だけを理由にした細分化を避ける。
 
 検証:
 
@@ -419,16 +438,16 @@ Gutenbergが新しい正規DOM順序を描画
 - Issue #177のJest characterization coverageをリファクタリング前の独立した安全網として先に完成させる。
 - 本リファクタリング開始前に新しいPlaywrightテストを必須としない。
 - 実際のcross-module所有が必要になるまで `constants.ts` / `types.ts` は作らない。
+- touch pressのpointer sessionは独立した責務として`touch-press.ts`へ分離し、controllerはそのtrackerの生成・破棄とcallback接続だけを担当する。
 
 ### 実装中に確認する事項
 
 - controller抽出後の利用関係を見たとき、`restoreOriginalRowOrder` の所有先が `row-order.ts` と `drag-ui.ts` のどちらが明確か。
-- タッチpointer追跡をすべて `sortable-controller.ts` に置くべきか、ファイル規模と独立した変更圧力によってtouch専用モジュールが必要になるか。
 - `drag-ui.ts` が抽出後も一つの責務としてまとまっているか、後から一段だけ分割する価値があるか。
 - runtime/controller抽出後も、既存のlocal `sortablejs.d.ts` が最も明確な型定義元か。
 - 責務分離後、現在の `useEffect` dependencyによって不要なcontroller再生成が起きていないか。
 
-これらは実装を進めながら確認する事項であり、先に機能を再設計する理由にはしない。
+`restoreOriginalRowOrder` はcontroller抽出後の利用関係から `row-order.ts` に置く。touch pointer追跡についてもcontrollerの規模と独立した変更圧力を確認した結果、`touch-press.ts` へ分離する。これらは実装中の確認事項から確定事項へ移した。
 
 ## Issue分割案
 
@@ -440,7 +459,7 @@ Phase 0のJest characterization testsは既存のIssue #177で扱う。Issue #17
 - [ ] `row-order.ts` を抽出する。
 - [ ] `table-context.ts` + `sortable-runtime.ts` を抽出する。
 - [ ] `drag-ui.ts` を抽出する。
-- [ ] `sortable-controller.ts` を抽出する。
+- [ ] `sortable-controller.ts` + `touch-press.ts` を抽出する。
 - [ ] `use-table-reorder.ts` + HOC薄型化 + README最終更新。
 
 後続単位はレビュー量に応じて結合・分割してよい。この一覧に合わせること自体を目的として細かく分けず、少ないPRの方がまとまりよくレビューできる場合はそちらを優先する。ただしIssue #177のcharacterization testsと最初の責務抽出は同じPRに混在させない。
@@ -498,6 +517,7 @@ PC / hover可能端末
 - iframe / non-iframe解決に一つの明示的なソース所有者がある。
 - SortableJS runtime読み込みに一つの明示的なソース所有者がある。
 - 一時的なdrag DOM装飾に、明確な生成・復元の所有関係がある。
+- touch pressのpointer追跡、長押しtimer、移動thresholdに明示的な所有者がある。
 - SortableJSライフサイクルとcleanupに一つの命令的controller所有者がある。
 - React/Gutenberg統合層がcontroller周辺の薄いadapterになっている。
 - ユーザーから見える挙動を意図的に変更していない。
