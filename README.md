@@ -2,7 +2,22 @@
 
 サイト制作者向けのWordPressプラグインです。
 
-ブロックやエディター拡張を通じて、Gutenbergでのコンテンツ制作における課題を補完します。最初のテーマとして、文書構造とアウトラインの改善に取り組みます。
+Gutenbergの編集体験をより直感的にするエディター拡張を開発しています。
+
+現在は **Core Table ブロックの行ドラッグ＆ドロップ（Table Reorder）** を中心に開発しています。
+
+## Table Reorder
+
+Core Table ブロックの本文行をドラッグ＆ドロップで並べ替える機能です。
+
+- PCでは行の左端に表示されるハンドルからドラッグして並べ替え
+- タッチ端末では並べ替えモードから長押しドラッグに対応
+- SortableJSによる自然な並べ替え
+- iframe / non-iframe エディターの両方に対応
+- `rowspan` を含む縦結合行の不正な移動を制限
+- 並べ替え結果をGutenbergのブロック属性へ反映
+
+実装は [`src/editor-extensions/table-reorder/`](src/editor-extensions/table-reorder/) にあります。
 
 現在は開発中です。
 
