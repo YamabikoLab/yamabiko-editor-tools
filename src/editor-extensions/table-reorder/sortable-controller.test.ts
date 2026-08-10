@@ -46,7 +46,7 @@ const createContext = () => {
 
 const createRuntime = (): SortableRuntime => ( {
 	create: jest.fn(
-		( _element: HTMLElement, _options: object ): SortableInstance => ( {
+		(): SortableInstance => ( {
 			destroy: jest.fn(),
 		} )
 	),
