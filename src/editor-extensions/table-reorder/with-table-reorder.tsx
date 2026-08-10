@@ -46,18 +46,14 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			setAttributes,
 		} = props;
 		const isTableBlock = props.name === 'core/table';
-		const {
-			anchorRef,
-			isHoverCapable,
-			isTouchReorderMode,
-			toggleTouchReorderMode,
-		} = useTableReorder( {
-			body,
-			clientId,
-			enabled: isTableBlock,
-			isSelected,
-			setAttributes,
-		} );
+		const { anchorRef, isHoverCapable, isTouchReorderMode, toggleTouchReorderMode } =
+			useTableReorder( {
+				body,
+				clientId,
+				enabled: isTableBlock,
+				isSelected,
+				setAttributes,
+			} );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
