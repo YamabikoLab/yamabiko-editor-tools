@@ -36,8 +36,5 @@ module.exports = {
 		...getWebpackEntryPoints( 'script' )(),
 		'editor-extensions/table-reorder/index': './src/editor-extensions/table-reorder/index.tsx',
 	} ),
-	plugins: [
-		...( defaultConfig.plugins ?? [] ),
-		new EmitSortableJsTableReorderRuntimePlugin(),
-	],
+	plugins: [ ...( defaultConfig.plugins ?? [] ), new EmitSortableJsTableReorderRuntimePlugin() ],
 };

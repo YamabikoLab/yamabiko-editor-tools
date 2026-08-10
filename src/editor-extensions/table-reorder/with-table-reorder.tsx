@@ -447,7 +447,8 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				return;
 			}
 
-			const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoEditorToolsTableReorder?.runtimeUrl;
+			const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoEditorToolsTableReorder
+				?.runtimeUrl;
 			if ( ! runtimeUrl ) {
 				return;
 			}
