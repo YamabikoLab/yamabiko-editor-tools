@@ -261,7 +261,7 @@ export const createSortableController = (
 				onRequestTouchModeExit,
 				tbody,
 				view,
-			} );
+		  } );
 
 	void ensureSortableRuntime( document, view, runtimeUrl ).then( ( Sortable ) => {
 		if ( destroyed || ! Sortable ) {

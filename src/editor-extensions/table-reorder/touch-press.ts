@@ -46,9 +46,7 @@ type TouchPress = {
  *
  * @param options touch press追跡に必要なDOM、状態参照、callback。
  */
-export const createTouchPressTracker = (
-	options: TouchPressTrackerOptions
-): TouchPressTracker => {
+export const createTouchPressTracker = ( options: TouchPressTrackerOptions ): TouchPressTracker => {
 	const {
 		isDragging,
 		nonMovableRowIndices,
