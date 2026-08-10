@@ -24,9 +24,9 @@ describe( 'ensureSortableRuntime', () => {
 		const runtime = createRuntime();
 		getSortableWindow().Sortable = runtime;
 
-		await expect(
-			ensureSortableRuntime( document, window, '/sortable.js' )
-		).resolves.toBe( runtime );
+		await expect( ensureSortableRuntime( document, window, '/sortable.js' ) ).resolves.toBe(
+			runtime
+		);
 		expect( document.getElementById( SORTABLE_SCRIPT_ID ) ).toBeNull();
 	} );
 

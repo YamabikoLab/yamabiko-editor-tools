@@ -36,9 +36,7 @@ export const findBlockElement = (
 		return directBlock;
 	}
 
-	const iframe = rootDocument.querySelector< HTMLIFrameElement >(
-		'iframe[name="editor-canvas"]'
-	);
+	const iframe = rootDocument.querySelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
 	return iframe?.contentDocument?.querySelector< HTMLElement >( selector ) ?? null;
 };
 
@@ -47,10 +45,7 @@ export const findBlockElement = (
  *
  * block、owning window、table、先頭 tbody のいずれかを解決できない場合は `null` を返す。
  */
-export const resolveTableContext = (
-	anchor: Element,
-	clientId: string
-): TableContext | null => {
+export const resolveTableContext = ( anchor: Element, clientId: string ): TableContext | null => {
 	const blockElement = findBlockElement( anchor.ownerDocument, clientId );
 	if ( ! blockElement ) {
 		return null;

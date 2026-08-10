@@ -39,10 +39,7 @@ describe( 'resolveTableContext', () => {
 		if ( ! iframe.contentDocument || ! iframe.contentWindow ) {
 			throw new Error( 'Expected iframe document and window in jsdom' );
 		}
-		const { block, table, tbody } = appendTableBlock(
-			iframe.contentDocument,
-			'iframe-block'
-		);
+		const { block, table, tbody } = appendTableBlock( iframe.contentDocument, 'iframe-block' );
 
 		expect( resolveTableContext( anchor, 'iframe-block' ) ).toEqual( {
 			blockElement: block,
