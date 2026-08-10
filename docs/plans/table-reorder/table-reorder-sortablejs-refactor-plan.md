@@ -1,87 +1,87 @@
 # Table Reorder SortableJS 責務分割リファクタリングプラン
 
-## References
+## 参照資料
 
-- Current implementation: `src/editor-extensions/table-reorder/with-table-reorder.tsx`
-- Current feature README: `src/editor-extensions/table-reorder/README.md`
-- Existing rowspan logic: `src/editor-extensions/table-reorder/rowspan.ts`
-- Source organization: `docs/development/source-organization.md`
-- Testing and validation: `docs/development/testing.md`
-- Historical dnd-kit refactor plan: `docs/plans/table-reorder/table-reorder-controller-refactor-plan.md`
+- 現在の実装: `src/editor-extensions/table-reorder/with-table-reorder.tsx`
+- 現在の機能README: `src/editor-extensions/table-reorder/README.md`
+- 既存のrowspanロジック: `src/editor-extensions/table-reorder/rowspan.ts`
+- ソース構成方針: `docs/development/source-organization.md`
+- テストと検証: `docs/development/testing.md`
+- 過去のdnd-kit版リファクタリングプラン: `docs/plans/table-reorder/table-reorder-controller-refactor-plan.md`
 
-The historical controller refactor plan describes the former dnd-kit based implementation. It remains useful as project history, but this plan is based on the current SortableJS implementation and does not reuse its controller or hook boundaries mechanically.
+過去のcontrollerリファクタリングプランは、以前のdnd-kitベース実装を対象としている。プロジェクトの履歴としては有用だが、本プランは現在のSortableJS実装を前提とし、旧プランのcontrollerやhookの境界を機械的には再利用しない。
 
-## Goal
+## 目的
 
-Preserve the current Table Reorder behavior while separating the responsibilities concentrated in `with-table-reorder.tsx`.
+現在のTable Reorderの挙動を維持したまま、`with-table-reorder.tsx` に集中している責務を分離する。
 
-After the refactor, `withTableReorder` should be a thin Gutenberg adapter that renders `BlockEdit`, exposes the touch reorder toolbar control, and connects the feature lifecycle. SortableJS orchestration, editor DOM resolution, runtime loading, drag-only DOM decoration, and deterministic row-order logic should live in focused modules inside the same `table-reorder` feature directory.
+リファクタリング後の `withTableReorder` は、`BlockEdit` の描画、タッチ端末向け並び替えツールバーの表示、機能ライフサイクルの接続を担当する薄いGutenbergアダプターとする。SortableJSの制御、エディターDOMの解決、runtimeの読み込み、ドラッグ時だけ必要なDOM装飾、決定的な行並び替えロジックは、同じ `table-reorder` 機能ディレクトリ内の担当モジュールへ分離する。
 
-The refactor must not change the user-visible interaction model. In particular, iframe and non-iframe editors, hover handles, touch long-press dragging, `rowspan` restrictions, insertion feedback, SortableJS animation and auto-scroll, and the DOM ownership handoff back to Gutenberg must continue to behave as they do before the refactor.
+このリファクタリングでは、ユーザーから見える操作モデルを変更しない。特に、iframe / non-iframeエディター、hoverハンドル、タッチ端末の長押しドラッグ、`rowspan` 制約、挿入位置表示、SortableJSのアニメーションとauto-scroll、GutenbergへDOM所有権を戻す処理は、リファクタリング前と同じように動作させる。
 
-## Scope
+## 対象範囲
 
-### Included
+### 含むもの
 
-- Split the responsibilities currently concentrated in `with-table-reorder.tsx`.
-- Add focused Jest tests that establish a baseline for deterministic row-reorder and `rowspan` behavior before larger structural changes.
-- Keep tests beside the modules they verify.
-- Extract deterministic row-order helpers from the React/Gutenberg integration layer.
-- Localize iframe / non-iframe Table DOM resolution.
-- Localize SortableJS runtime loading into the target editor `window`.
-- Localize drag-only DOM decoration and restoration.
-- Move SortableJS lifecycle orchestration behind a focused controller boundary.
-- Move React state/effect lifecycle into a custom hook only after the lower-level boundaries are stable.
-- Keep `with-table-reorder.tsx` as the thin Gutenberg integration and rendering boundary.
-- Update the feature README after the final source layout is established.
+- 現在 `with-table-reorder.tsx` に集中している責務の分離。
+- 大きな構造変更の前に、決定的な行並び替えと `rowspan` の挙動を固定するJestテストの追加。
+- テスト対象モジュールの近くへのテスト配置。
+- React/Gutenberg統合層から、決定的な行並び替えhelperを分離する。
+- iframe / non-iframeのTable DOM解決を局所化する。
+- 対象エディター `window` へのSortableJS runtime読み込みを局所化する。
+- ドラッグ時のみ必要なDOM装飾と復元処理を局所化する。
+- SortableJSライフサイクル制御を専用controller境界へ移す。
+- 下位レイヤーの境界が安定した後に、Reactのstate/effectライフサイクルをカスタムhookへ移す。
+- `with-table-reorder.tsx` を薄いGutenberg統合・描画境界として残す。
+- 最終的なソース構成が確定した後、機能READMEを更新する。
 
-### Not included
+### 含まないもの
 
-- New Table Reorder features.
-- Interaction, UI, timing, animation, auto-scroll, or notification changes.
-- Replacing SortableJS.
-- Changing the Core Table block save format or attribute shape.
-- Reworking the existing `rowspan` rules.
-- Introducing a generic `shared/`, `utils/`, or `helpers/` layer.
-- Introducing a state machine or another state-management library.
-- Creating abstractions for hypothetical future reuse.
-- Splitting every helper into a separate file solely to reduce line count.
-- Adding new Playwright coverage as a prerequisite for this refactor. Existing E2E coverage may be run when useful, but the baseline for this work is focused Jest coverage plus the existing manual editor verification matrix.
+- Table Reorderの新機能追加。
+- 操作仕様、UI、タイミング、アニメーション、auto-scroll、通知仕様の変更。
+- SortableJSの置き換え。
+- Core Tableブロックの保存形式やattribute構造の変更。
+- 既存の `rowspan` ルールの再設計。
+- 汎用的な `shared/`、`utils/`、`helpers/` レイヤーの導入。
+- state machineや新しい状態管理ライブラリの導入。
+- 将来利用を想定した先行抽象化。
+- 行数を減らすことだけを目的とした1helper 1ファイルへの分割。
+- 本リファクタリングの前提条件としての新規Playwrightテスト追加。必要に応じて既存E2Eテストは実行するが、本作業の基準はJestによるfocused testと既存の手動エディター確認とする。
 
-## Current responsibilities
+## 現在集中している責務
 
-`with-table-reorder.tsx` currently owns or coordinates all of the following responsibilities:
+現在の `with-table-reorder.tsx` は、主に次の責務を所有または制御している。
 
-1. Gutenberg `BlockEdit` wrapping and Table block filtering.
-2. Hover-capability detection and touch reorder mode state.
-3. Anchor DOM ownership and target block lookup.
-4. iframe / non-iframe editor DOM resolution.
-5. `table` / `tbody` lookup.
-6. SortableJS runtime URL lookup and target-window script loading.
-7. `rowspan` range, non-movable-row, and forbidden-insertion calculations.
-8. Hover handle creation, visibility, event propagation, and cell-style restoration.
-9. Touch-mode cell editing suppression and non-movable-row decoration.
-10. Insertion-line creation, positioning, visibility, and cleanup.
-11. Fallback drag cell-width fixing and restoration.
-12. Gutenberg block drag suppression and restoration.
-13. Touch press tracking, long-press timing, movement threshold, and warning notification.
-14. SortableJS `onChoose`, `onStart`, `onMove`, `onEnd`, and `onUnchoose` orchestration.
-15. Temporary DOM reorder restoration before Gutenberg attribute commit.
-16. `setAttributes({ body })` commit.
-17. Event-listener, style, SortableJS, and DOM-node cleanup.
-18. Touch toolbar rendering.
+1. Gutenberg `BlockEdit` のラップとTableブロック判定。
+2. hover可能端末の判定とタッチ並び替えモードstate。
+3. anchor DOMの所有と対象ブロック探索。
+4. iframe / non-iframeエディターDOMの解決。
+5. `table` / `tbody` の取得。
+6. SortableJS runtime URLの取得と対象windowへのscript読み込み。
+7. `rowspan` range、移動不可行、禁止挿入位置の算出。
+8. hoverハンドルの生成、表示、イベント伝播制御、セルstyle復元。
+9. タッチモード時のセル編集抑止と移動不可行の装飾。
+10. 挿入線の生成、位置調整、表示、cleanup。
+11. fallback drag時のセル幅固定と復元。
+12. Gutenbergブロックdragの抑止と復元。
+13. タッチpress追跡、長押し時間、移動閾値、警告通知。
+14. SortableJS `onChoose`、`onStart`、`onMove`、`onEnd`、`onUnchoose` の制御。
+15. Gutenberg attribute更新前の一時的なDOM並び順復元。
+16. `setAttributes({ body })` による確定。
+17. event listener、style、SortableJS、DOM nodeのcleanup。
+18. タッチ向けツールバー描画。
 
-The problem is not that these behaviors exist, but that their ownership and lifecycle are concentrated in one React effect and one module. This makes later changes harder to reason about and makes focused tests unnecessarily difficult.
+問題はこれらの処理が存在することではなく、所有者とライフサイクルが一つのReact effectと一つのモジュールへ集中していることである。この状態では後続変更の影響範囲を把握しにくく、focused testも書きにくい。
 
-## Approach
+## 方針
 
-Use incremental extraction rather than a rewrite.
+全面書き換えではなく、段階的な抽出で進める。
 
-Each phase should preserve behavior and keep the extension runnable. Move an existing responsibility to a focused owner, keep its public surface narrow, validate that phase, and only then continue to the next boundary.
+各フェーズでは外部挙動を維持し、拡張機能が動作する状態を保つ。既存責務を一つの明確な所有者へ移し、公開するinterfaceを小さく保ち、そのフェーズを検証してから次の境界へ進む。
 
-Prefer concrete feature-local modules over generic abstractions. A new file should exist because the current implementation has a distinct responsibility that benefits from an explicit owner.
+汎用抽象化よりも、機能ディレクトリ内の具体的なモジュールを優先する。新しいファイルは、現在の実装に明確に異なる責務があり、その所有者を明示する価値がある場合にのみ作成する。
 
-The dependency direction should remain simple:
+依存方向はシンプルに保つ。
 
 ```text
 index.tsx
@@ -98,334 +98,334 @@ sortable-controller.ts
   └─ rowspan.ts
 ```
 
-The exact imports may be slightly flatter than this diagram where appropriate, but lower-level modules must not import React/Gutenberg integration code merely to share state.
+必要に応じて実際のimport関係はこの図より少し平坦でもよい。ただしstate共有だけを理由に、下位モジュールからReact/Gutenberg統合コードへ依存させない。
 
-## Architecture
+## アーキテクチャ
 
 ### `index.tsx`
 
-Responsibility:
+担当:
 
-- Register `withTableReorder` with `editor.BlockEdit`.
+- `withTableReorder` を `editor.BlockEdit` に登録する。
 
-Keep this file unchanged except for import-path adjustments if needed.
+必要なimport path調整を除き、このファイルは変更しない。
 
 ### `with-table-reorder.tsx`
 
-Responsibility after the refactor:
+リファクタリング後の担当:
 
-- Filter to `core/table`.
-- Render the wrapped `BlockEdit`.
-- Render the touch-mode `BlockControls` / `ToolbarButton`.
-- Render the hidden anchor used to locate the owning editor document.
-- Call the Table Reorder hook and pass the minimum required Gutenberg props.
+- `core/table` のみを対象にする。
+- ラップ対象の `BlockEdit` を描画する。
+- タッチモード用 `BlockControls` / `ToolbarButton` を描画する。
+- owning editor documentを解決するためのhidden anchorを描画する。
+- Table Reorder hookを呼び出し、必要最小限のGutenberg propsを渡す。
 
-It should not directly create DOM nodes, load SortableJS, track pointer sessions, or implement SortableJS callbacks.
+DOM nodeの直接生成、SortableJS読み込み、pointer session追跡、SortableJS callbackの実装は担当しない。
 
 ### `use-table-reorder.ts`
 
-Responsibility:
+担当:
 
-- Own React-facing Table Reorder lifecycle.
-- Own hover capability state.
-- Own touch reorder mode state and selected-block synchronization.
-- Create and destroy the lower-level reorder controller when the feature is active.
-- Bridge WordPress notices and `setAttributes` into narrow callbacks used by the controller.
+- React側から見たTable Reorderライフサイクルを所有する。
+- hover capability stateを所有する。
+- タッチ並び替えモードstateとブロック選択状態との同期を所有する。
+- 機能が有効なときに下位のreorder controllerを生成・破棄する。
+- WordPress noticesと `setAttributes` を、controllerが利用する狭いcallbackへ接続する。
 
-It should not contain low-level DOM decoration helpers or script-loading implementation.
+低レベルのDOM装飾helperやscript読み込み実装は持たない。
 
 ### `row-order.ts`
 
-Responsibility:
+担当:
 
-- Reorder an immutable row array from `oldIndex` to `newIndex`.
-- Calculate the insertion index used by SortableJS move/end events where that calculation is deterministic and independent of React state.
-- Restore a captured DOM row order when SortableJS has temporarily moved rows, if keeping that helper beside row-order semantics remains clearer than placing it in `drag-ui.ts`.
+- `oldIndex` から `newIndex` へ、元配列を変更せず行配列を並び替える。
+- React stateに依存しない決定的な計算として扱えるSortableJS move/end用挿入indexを算出する。
+- SortableJSが一時的に行DOMを移動した後、取得済みのDOM行順を復元するhelperは、controller抽出後の利用関係を見て `row-order.ts` と `drag-ui.ts` のどちらが自然か判断する。
 
-Pure data transforms must not depend on WordPress or React.
+純粋なデータ変換はWordPressやReactへ依存させない。
 
 ### `rowspan.ts`
 
-Responsibility:
+担当:
 
-- Keep the existing `rowspan` range parsing.
-- Keep non-movable-row calculations.
-- Keep forbidden-insertion-index calculations.
+- 既存の `rowspan` range解析を維持する。
+- 移動不可行の算出を維持する。
+- 禁止挿入indexの算出を維持する。
 
-Do not redesign this module as part of the refactor.
+今回のリファクタリングではこのモジュールを再設計しない。
 
 ### `table-context.ts`
 
-Responsibility:
+担当:
 
-- Resolve the Table block element from `clientId` starting from the anchor's owning document.
-- Fall back to `iframe[name="editor-canvas"]` when the block is not in the root document.
-- Return the resolved `blockElement`, owning `document`, owning `window`, `table`, and first `tbody` as one context object.
-- Return `null` when the required context cannot be resolved.
+- anchorのowning documentを起点として、`clientId` からTableブロック要素を解決する。
+- root documentに対象ブロックがない場合、`iframe[name="editor-canvas"]` へfallbackする。
+- 解決した `blockElement`、owning `document`、owning `window`、`table`、先頭の `tbody` を一つのcontext objectとして返す。
+- 必要なcontextを解決できない場合は `null` を返す。
 
-This is the explicit iframe / non-iframe boundary. Callers should use the returned owning document/window rather than reaching back to the parent `window` for editor-canvas work.
+ここをiframe / non-iframeの明示的な境界とする。呼び出し側はエディターcanvas内の処理で親 `window` へ戻らず、返されたowning document/windowを利用する。
 
 ### `sortable-runtime.ts`
 
-Responsibility:
+担当:
 
-- Reuse `window.Sortable` when already available.
-- Reuse an existing runtime script element when loading is already in progress.
-- Insert the configured SortableJS runtime script into the resolved editor document when necessary.
-- Resolve to the runtime or `null` on load failure.
+- すでに `window.Sortable` が存在する場合は再利用する。
+- runtime scriptが読み込み途中ですでに存在する場合はそれを再利用する。
+- 必要な場合のみ、設定済みSortableJS runtime scriptを解決済みeditor documentへ挿入する。
+- 読み込み成功時はruntime、失敗時は `null` を返す。
 
-This module should not know about Gutenberg block attributes or React state.
+Gutenberg block attributeやReact stateは扱わない。
 
 ### `drag-ui.ts`
 
-Initial responsibility:
+初期担当:
 
-- Create/show/hide/remove the insertion line.
-- Add/remove hover handles and restore modified first-cell styles.
-- Toggle handle visibility.
-- Suppress touch cell editing and restore it.
-- Add/remove touch chosen styling where still required.
-- Fix fallback drag cell widths and restore them.
-- Hold other short-lived DOM decoration helpers whose only purpose is visual/interaction support during drag.
+- 挿入線の生成、表示、非表示、削除。
+- hoverハンドルの追加、削除、変更した先頭セルstyleの復元。
+- ハンドル表示状態の切り替え。
+- タッチ時のセル編集抑止と復元。
+- 必要なtouch chosen styleの追加・削除。
+- fallback drag時のセル幅固定と復元。
+- その他、drag中の表示・操作補助だけを目的とする短命なDOM装飾helper。
 
-Do not immediately split this file further. Only introduce `hover-handles.ts`, `insertion-line.ts`, `touch-ui.ts`, or similar modules later if `drag-ui.ts` itself develops multiple independently changing responsibilities.
+最初からさらに分割しない。将来 `drag-ui.ts` 自体に独立して変更される複数責務が蓄積した場合のみ、`hover-handles.ts`、`insertion-line.ts`、`touch-ui.ts` などへの追加分割を検討する。
 
 ### `sortable-controller.ts`
 
-Responsibility:
+担当:
 
-- Create/destroy the SortableJS instance.
-- Coordinate drag start, move, end, and unchoose behavior.
-- Own drag-session mutable state that does not need React rendering.
-- Suppress and restore Gutenberg block dragging while a row drag owns the pointer.
-- Coordinate hover-handle activation/deactivation.
-- Coordinate touch press tracking and long-press warning behavior.
-- Reject forbidden `rowspan` insertion positions.
-- Capture the original row DOM order at drag start.
-- Restore the original DOM order before committing the reordered `body`.
-- Call a narrow `onCommit(reorderedBody)` callback instead of importing Gutenberg APIs directly.
-- Clean up every listener, DOM decoration, timeout, and temporary style created by the controller.
+- SortableJS instanceの生成・破棄。
+- drag開始、移動、終了、unchooseの制御。
+- React描画を必要としないdrag sessionのmutable stateを所有する。
+- 行dragがpointerを所有している間、Gutenbergブロックdragを抑止し、終了後に復元する。
+- hoverハンドルのactivate/deactivateを制御する。
+- タッチpress追跡と長押し警告を制御する。
+- `rowspan` による禁止挿入位置を拒否する。
+- drag開始時の元行DOM順序を取得する。
+- 並び替え済み `body` を確定する前に元のDOM順序を復元する。
+- Gutenberg APIを直接importせず、狭い `onCommit(reorderedBody)` callbackを呼ぶ。
+- controllerが追加した全listener、DOM装飾、timeout、一時styleをcleanupする。
 
-The controller is the imperative integration boundary around SortableJS. It should return a single cleanup/destroy entry point to the React layer.
+controllerをSortableJS周辺の命令的な統合境界とする。React層には単一のcleanup / destroy入口を返す。
 
-### `constants.ts` and `types.ts`
+### `constants.ts` と `types.ts`
 
-These files are optional, not mandatory scaffolding.
+これらは任意であり、必須の雛形ではない。
 
-Create `constants.ts` only if the extraction leaves mode-independent constants shared by multiple real modules. Keep a constant with its owning module when only that module uses it.
+抽出後、複数の実在モジュールで共有されるmode非依存constantが残る場合のみ `constants.ts` を作る。一つのモジュールだけが使うconstantは、その所有モジュール内に残す。
 
-Create `types.ts` only if multiple extracted modules genuinely need the same feature-specific types and keeping those types with their natural owner would introduce a cycle or unclear ownership.
+複数の抽出モジュールが同じ機能固有型へ本当に依存し、自然な所有者からexportすると循環依存や所有関係の不明瞭さが生じる場合のみ `types.ts` を作る。
 
-## DOM ownership invariant
+## DOM所有権の不変条件
 
-The existing DOM ownership handoff is a compatibility requirement and must remain explicit throughout the refactor:
+現在のDOM所有権handoffは互換性要件であり、リファクタリング中も常に明示して維持する。
 
 ```text
-Gutenberg renders canonical <tbody><tr> DOM
+Gutenbergが正規の <tbody><tr> DOMを描画
         ↓
-SortableJS temporarily moves <tr> nodes during drag
+SortableJSがdrag中だけ一時的に <tr> nodeを移動
         ↓
-onEnd captures old/new positions
+onEndでold/new位置を取得
         ↓
-original <tr> DOM order is restored
+元の <tr> DOM順序を復元
         ↓
-reordered body is committed through setAttributes()
+setAttributes() で並び替え済みbodyを確定
         ↓
-Gutenberg renders the new canonical DOM order
+Gutenbergが新しい正規DOM順序を描画
 ```
 
-Do not let the extracted controller treat SortableJS-mutated DOM as the persisted source of truth.
+抽出後のcontrollerが、SortableJSによって変更されたDOMを永続的なsource of truthとして扱わないこと。
 
-## Implementation phases
+## 実装フェーズ
 
-### Phase 0: Establish the Jest baseline and first testing seam
+### フェーズ0: Jestの基準と最初のテスト境界を作る
 
-Outcome:
+成果:
 
-- Deterministic behavior has focused unit coverage before the larger lifecycle extraction begins.
+- 大きなライフサイクル分割に入る前に、決定的な挙動がfocused unit testで保護されている。
 
-Tasks:
+作業:
 
-- Add `rowspan.test.ts` beside `rowspan.ts`.
-- Cover no-rowspan, numeric/string rowspan, invalid values, end clamping, overlapping ranges, non-movable rows, and forbidden insertion indices.
-- Extract only the deterministic row-order helpers needed for focused testing from `with-table-reorder.tsx` into `row-order.ts`.
-- Add `row-order.test.ts` in the same change.
-- Cover upward/downward reorder, equal index, invalid indices, immutability, move insertion index, and end insertion index.
-- Keep this extraction deliberately small; do not move React lifecycle or SortableJS setup yet.
+- `rowspan.ts` の隣に `rowspan.test.ts` を追加する。
+- rowspanなし、number/stringのrowspan、不正値、末尾超過のclamp、重複range、移動不可行、禁止挿入indexをテストする。
+- focused testに必要な決定的な行並び替えhelperだけを `with-table-reorder.tsx` から `row-order.ts` へ抽出する。
+- 同じ変更で `row-order.test.ts` を追加する。
+- 上方向移動、下方向移動、同一index、不正index、immutability、move時の挿入index、end時の挿入indexをテストする。
+- この抽出は意図的に小さく保ち、ReactライフサイクルやSortableJS初期化にはまだ触れない。
 
-Validation:
-
-- `npm test`
-- `npm run build`
-- `git diff --check origin/main...HEAD`
-
-### Phase 1: Extract editor Table context resolution
-
-Outcome:
-
-- iframe / non-iframe lookup has one explicit owner.
-
-Tasks:
-
-- Add `table-context.ts`.
-- Move `findBlockElement` and related document/window/table/tbody resolution into the module.
-- Make the returned context the source of editor-canvas DOM ownership for later phases.
-- Add focused jsdom tests where they provide stable value, especially direct-document resolution, iframe fallback, and unresolved context.
-
-Validation:
-
-- Focused Jest tests while iterating.
-- `npm test`, `npm run build`, and repository diff check before handoff.
-
-### Phase 2: Extract SortableJS runtime loading
-
-Outcome:
-
-- Runtime loading is independent from React and Gutenberg attribute updates.
-
-Tasks:
-
-- Add `sortable-runtime.ts`.
-- Move the script ID and runtime-loading implementation out of the HOC.
-- Preserve existing-runtime, existing-script, load, and error behavior.
-- Keep the runtime attached to the target editor `window`, including iframe editors.
-- Add focused tests only where the async script behavior can be tested without over-mocking browser behavior.
-
-Validation:
-
-- `npm test`
-- `npm run build`
-- Repository diff check.
-
-### Phase 3: Extract drag-only DOM UI helpers
-
-Outcome:
-
-- Temporary DOM decoration and restoration no longer obscure SortableJS lifecycle code.
-
-Tasks:
-
-- Add `drag-ui.ts`.
-- Move insertion-line helpers.
-- Move hover-handle creation/visibility/restoration.
-- Move touch editing suppression/chosen styling.
-- Move fallback cell-width fixing/restoration.
-- Keep cleanup paired with creation so every helper has an obvious restoration path.
-- Add DOM-focused Jest tests for high-value invariants such as restoration of modified inline styles and omission of handles on non-movable rows.
-
-Validation:
-
-- `npm test`
-- `npm run build`
-- Repository diff check.
-
-### Phase 4: Extract the SortableJS controller
-
-Outcome:
-
-- SortableJS imperative behavior has one lifecycle owner and the React layer no longer implements drag callbacks directly.
-
-Tasks:
-
-- Add `sortable-controller.ts`.
-- Move SortableJS options and callbacks into the controller.
-- Move drag rows, active handle, drag suppression, touch press, timeout, and cleanup mutable state with the controller.
-- Accept resolved context and calculated constraints as inputs.
-- Accept narrow callbacks for commit and user notice behavior.
-- Preserve the DOM ownership invariant before every successful commit.
-- Ensure `destroy()` is safe after partial async initialization and prevents a late runtime load from creating a stale SortableJS instance.
-
-Validation:
-
-- `npm test`
-- `npm run build`
-- Manual smoke check is recommended at this boundary because lifecycle ownership changes materially here.
-- Repository diff check.
-
-### Phase 5: Introduce the React lifecycle hook
-
-Outcome:
-
-- React state/effects have a focused owner and the HOC becomes thin.
-
-Tasks:
-
-- Add `use-table-reorder.ts`.
-- Move hover capability detection and media-query lifecycle.
-- Move touch reorder mode state and selected-block reset.
-- Resolve runtime URL and Table context through the extracted modules.
-- Create/destroy the SortableJS controller from the effect.
-- Keep the WordPress notice and attribute APIs at this adapter boundary.
-- Return only the values/callbacks needed by `with-table-reorder.tsx`.
-
-Validation:
-
-- `npm test`
-- `npm run build`
-- Repository diff check.
-
-### Phase 6: Thin the HOC and finalize source ownership
-
-Outcome:
-
-- `with-table-reorder.tsx` is primarily a Gutenberg composition/rendering boundary.
-
-Tasks:
-
-- Remove implementation helpers and imperative lifecycle code that now belong to extracted modules.
-- Keep `BlockEdit`, toolbar rendering, hidden anchor, and hook wiring readable in one pass.
-- Review constants/types and create shared feature-local files only where current cross-module usage justifies them.
-- Remove dead local types or duplicated helpers exposed by the extraction.
-- Update `src/editor-extensions/table-reorder/README.md` with the final file layout and responsibility boundaries.
-
-Validation:
+検証:
 
 - `npm test`
 - `npm run build`
 - `git diff --check origin/main...HEAD`
-- Final manual verification matrix below.
 
-## Decisions and validation questions
+### フェーズ1: エディターTable context解決を分離する
 
-### Decide before implementation
+成果:
 
-- Keep the current SortableJS behavior and timings unchanged unless a separate bug is discovered and tracked separately.
-- Keep all new modules inside `src/editor-extensions/table-reorder/`.
-- Keep `rowspan.ts` as the existing constraint owner rather than merging it into the controller.
-- Use incremental extraction rather than a rewrite.
-- Make Jest characterization coverage the first implementation phase.
-- Do not require new Playwright tests before starting this refactor.
-- Do not create `constants.ts` / `types.ts` unless actual cross-module ownership requires them.
+- iframe / non-iframe探索に一つの明示的な所有者ができる。
 
-### Validate during implementation
+作業:
 
-- Whether `restoreOriginalRowOrder` is clearer in `row-order.ts` or `drag-ui.ts` once controller extraction makes its callers visible.
-- Whether all touch pointer tracking belongs in `sortable-controller.ts` or whether a distinct touch-only module becomes justified by size and independent change pressure.
-- Whether `drag-ui.ts` remains cohesive after extraction or later deserves one additional split.
-- Whether the existing local `sortablejs.d.ts` remains the clearest type source after runtime/controller extraction.
-- Whether any `useEffect` dependency currently causes unnecessary controller recreation after the responsibilities are separated.
+- `table-context.ts` を追加する。
+- `findBlockElement` と関連するdocument/window/table/tbody解決をこのモジュールへ移す。
+- 返されたcontextを、後続フェーズのeditor canvas DOM所有元として利用する。
+- 安定した価値がある範囲でfocused jsdom testを追加し、特にdirect document、iframe fallback、未解決contextを確認する。
 
-These are implementation observations, not reasons to redesign the feature in advance.
+検証:
 
-## Issue breakdown
+- 実装中はfocused Jest testを利用する。
+- handoff前に `npm test`、`npm run build`、repository diff checkを実行する。
 
-Create implementation issues only after this plan has been reviewed and the boundaries are stable.
+### フェーズ2: SortableJS runtime読み込みを分離する
 
-Suggested implementation units:
+成果:
 
-- [ ] Jest baseline + `row-order.ts` extraction.
-- [ ] `table-context.ts` + `sortable-runtime.ts` extraction.
-- [ ] `drag-ui.ts` extraction.
-- [ ] `sortable-controller.ts` extraction.
-- [ ] `use-table-reorder.ts` + thin HOC + README finalization.
+- runtime読み込みがReactやGutenberg attribute更新から独立する。
 
-The first two units may be combined or separated depending on review size. Do not split work merely to match this list if a smaller number of coherent PRs is easier to review.
+作業:
 
-## Validation
+- `sortable-runtime.ts` を追加する。
+- script IDとruntime読み込み処理をHOCから移す。
+- 既存runtime、既存script、load、errorの現在の挙動を維持する。
+- iframeを含め、runtimeを対象editor `window` に紐づける。
+- async script挙動をbrowserそのものの過剰mockなしでテストできる範囲だけfocused testを追加する。
 
-### Automated
+検証:
 
-For implementation changes:
+- `npm test`
+- `npm run build`
+- repository diff check。
+
+### フェーズ3: drag専用DOM UI helperを分離する
+
+成果:
+
+- 一時的なDOM装飾と復元処理がSortableJSライフサイクルコードを覆い隠さなくなる。
+
+作業:
+
+- `drag-ui.ts` を追加する。
+- 挿入線helperを移す。
+- hoverハンドルの生成・表示・復元処理を移す。
+- タッチ時の編集抑止 / chosen styleを移す。
+- fallback cell width固定・復元を移す。
+- 各helperの生成とcleanupを対にし、復元経路を明確にする。
+- 変更したinline styleが復元されること、移動不可行にhandleを作らないことなど、価値の高いDOM不変条件をJestで確認する。
+
+検証:
+
+- `npm test`
+- `npm run build`
+- repository diff check。
+
+### フェーズ4: SortableJS controllerを分離する
+
+成果:
+
+- SortableJSの命令的な処理に一つのライフサイクル所有者ができ、React層がdrag callbackを直接実装しなくなる。
+
+作業:
+
+- `sortable-controller.ts` を追加する。
+- SortableJS optionsとcallbacksをcontrollerへ移す。
+- drag rows、active handle、drag suppression、touch press、timeout、cleanupなどのmutable stateをcontrollerへ移す。
+- 解決済みcontextと算出済み制約を入力として受け取る。
+- commitとユーザー通知は狭いcallbackとして受け取る。
+- 有効なcommitの前に、必ずDOM所有権の不変条件を維持する。
+- `destroy()` がruntime読み込み途中でも安全に動作し、遅れて完了したruntime読み込みが古いSortableJS instanceを生成しないことを保証する。
+
+検証:
+
+- `npm test`
+- `npm run build`
+- このフェーズではライフサイクル所有者が大きく変わるため、手動smoke checkを推奨する。
+- repository diff check。
+
+### フェーズ5: Reactライフサイクルhookを導入する
+
+成果:
+
+- React state/effectに明示的な所有者ができ、HOCが薄くなる。
+
+作業:
+
+- `use-table-reorder.ts` を追加する。
+- hover capability判定とmedia queryライフサイクルを移す。
+- タッチ並び替えモードstateと選択解除時のresetを移す。
+- 抽出済みモジュールを使ってruntime URLとTable contextを解決する。
+- effectからSortableJS controllerを生成・破棄する。
+- WordPress notice APIとattribute APIはこのadapter境界に残す。
+- `with-table-reorder.tsx` が必要とする値とcallbackだけを返す。
+
+検証:
+
+- `npm test`
+- `npm run build`
+- repository diff check。
+
+### フェーズ6: HOCを薄くし、ソース所有関係を確定する
+
+成果:
+
+- `with-table-reorder.tsx` が主にGutenbergのcomposition / rendering境界になる。
+
+作業:
+
+- 抽出済みモジュールへ移ったimplementation helperと命令的ライフサイクル処理を削除する。
+- `BlockEdit`、toolbar描画、hidden anchor、hook接続が一読で把握できる状態にする。
+- constants/typesを見直し、現在のcross-module利用が本当に必要な場合だけ機能内共有ファイルを作る。
+- 抽出によって不要になったlocal typeや重複helperを削除する。
+- `src/editor-extensions/table-reorder/README.md` を、最終的なファイル構成と責務境界に合わせて更新する。
+
+検証:
+
+- `npm test`
+- `npm run build`
+- `git diff --check origin/main...HEAD`
+- 後述の最終手動確認。
+
+## 実装前の決定事項と実装中の確認事項
+
+### 実装前に固定する事項
+
+- 別のbugが見つかり個別に追跡する場合を除き、現在のSortableJS挙動とtimingは変更しない。
+- 新しいモジュールはすべて `src/editor-extensions/table-reorder/` 内に置く。
+- `rowspan.ts` は既存の制約所有者として残し、controllerへ統合しない。
+- 全面rewriteではなく段階的な抽出で進める。
+- Jestによるcharacterization coverageを最初の実装フェーズにする。
+- 本リファクタリング開始前に新しいPlaywrightテストを必須としない。
+- 実際のcross-module所有が必要になるまで `constants.ts` / `types.ts` は作らない。
+
+### 実装中に確認する事項
+
+- controller抽出後の利用関係を見たとき、`restoreOriginalRowOrder` の所有先が `row-order.ts` と `drag-ui.ts` のどちらが明確か。
+- タッチpointer追跡をすべて `sortable-controller.ts` に置くべきか、ファイル規模と独立した変更圧力によってtouch専用モジュールが必要になるか。
+- `drag-ui.ts` が抽出後も一つの責務としてまとまっているか、後から一段だけ分割する価値があるか。
+- runtime/controller抽出後も、既存のlocal `sortablejs.d.ts` が最も明確な型定義元か。
+- 責務分離後、現在の `useEffect` dependencyによって不要なcontroller再生成が起きていないか。
+
+これらは実装を進めながら確認する事項であり、先に機能を再設計する理由にはしない。
+
+## Issue分割案
+
+本プランのレビューが完了し、責務境界が安定した後に実装Issueを作成する。
+
+実装単位の候補:
+
+- [ ] Jest基準整備 + `row-order.ts` 抽出。
+- [ ] `table-context.ts` + `sortable-runtime.ts` 抽出。
+- [ ] `drag-ui.ts` 抽出。
+- [ ] `sortable-controller.ts` 抽出。
+- [ ] `use-table-reorder.ts` + HOC薄型化 + README最終更新。
+
+最初の2単位はレビュー量に応じて結合・分割してよい。この一覧に合わせること自体を目的として細かく分けず、少ないPRの方がまとまりよくレビューできる場合はそちらを優先する。
+
+## 検証
+
+### 自動検証
+
+実装変更では次を実行する。
 
 ```bash
 npm test
@@ -433,57 +433,57 @@ npm run build
 git diff --check origin/main...HEAD
 ```
 
-Focused Jest commands may be used while iterating, but the full Node.js quality gate and production build are required before implementation handoff.
+実装中はfocused Jest commandを利用してよいが、handoff前にはNode.js全体のquality gateとproduction buildを実行する。
 
-For this plan-only documentation PR, the repository testing guide requires only the repository diff/whitespace check. If work is performed through a GitHub connector without a local checkout, verify the PR diff through GitHub and state that the local `git diff --check` command was unavailable rather than claiming it ran.
+本プランだけを変更するdocumentation PRでは、repositoryのtesting guide上、repository diff / whitespace checkだけが必要となる。GitHub connector経由で作業しlocal checkoutがない場合は、GitHub上でPR diffを確認し、localの `git diff --check` は実行できなかったと明記する。実行していないcommandを成功扱いしない。
 
-### Manual editor verification after implementation
+### 実装完了後の手動エディター確認
 
-Verify the current behavior in both editor modes:
+現在の挙動を両方のエディターモードで確認する。
 
 ```text
-Desktop / hover-capable
+PC / hover可能端末
 ├─ iframe
 └─ non-iframe
 
-Touch / long-press reorder mode
+タッチ / 長押し並び替えモード
 ├─ iframe
 └─ non-iframe
 ```
 
-For each applicable mode, verify:
+各対象モードで次を確認する。
 
-- Normal Table row can move upward.
-- Normal Table row can move downward.
-- Hover handle appears only for movable rows on hover-capable devices.
-- Touch reorder mode enables long-press drag and a short tap exits the mode as before.
-- `rowspan`-participating rows cannot be dragged.
-- Insertion positions that split a vertical merged range are rejected.
-- Warning notification still appears for long-press on a non-movable merged row.
-- Insertion line appears at valid destinations and disappears for forbidden destinations/end/cancel.
-- SortableJS animation and auto-scroll remain unchanged.
-- Fallback dragged row keeps stable cell widths and restores temporary inline styles afterward.
-- Gutenberg block dragging is restored after row drag/cancel/cleanup.
-- Reordered data persists through `setAttributes({ body })` and the DOM remains owned by Gutenberg after commit.
-- Selecting away from the block disables touch reorder mode as before.
+- 通常Table行を上方向へ移動できる。
+- 通常Table行を下方向へ移動できる。
+- hover可能端末では、移動可能行にのみhoverハンドルが表示される。
+- タッチ並び替えモードでは長押しdragが有効になり、短いtapでは従来どおりモードを終了する。
+- `rowspan` に含まれる行をdragできない。
+- 縦結合rangeを分断する挿入位置が拒否される。
+- 移動不可の縦結合行を長押しした場合、警告通知が従来どおり表示される。
+- 有効な移動先では挿入線が表示され、禁止位置・終了・cancel時には消える。
+- SortableJSのanimationとauto-scrollが変わっていない。
+- fallback drag中の行でセル幅が安定し、終了後に一時inline styleが復元される。
+- 行drag終了・cancel・cleanup後にGutenbergブロックdragが復元される。
+- 並び替え済みdataが `setAttributes({ body })` で確定され、その後のDOMはGutenbergが所有する。
+- ブロック選択解除時にタッチ並び替えモードが従来どおり解除される。
 
-## Completion criteria
+## 完了条件
 
-- Focused Jest coverage protects the deterministic row-order and `rowspan` rules.
-- `with-table-reorder.tsx` no longer owns low-level DOM helper implementations or SortableJS callback bodies.
-- iframe / non-iframe resolution has one explicit source owner.
-- SortableJS runtime loading has one explicit source owner.
-- Temporary drag DOM decoration has clear creation/restoration ownership.
-- SortableJS lifecycle and cleanup have one imperative controller owner.
-- React/Gutenberg integration remains a thin adapter around that controller.
-- No user-visible behavior is intentionally changed.
-- No new generic shared architecture or dependency is introduced.
-- Automated validation succeeds.
-- Manual iframe / non-iframe and hover / touch verification succeeds.
-- Feature README matches the final code structure.
+- focused Jest coverageで、決定的な行並び替えと `rowspan` ルールが保護されている。
+- `with-table-reorder.tsx` が低レベルDOM helper実装やSortableJS callback本体を所有していない。
+- iframe / non-iframe解決に一つの明示的なソース所有者がある。
+- SortableJS runtime読み込みに一つの明示的なソース所有者がある。
+- 一時的なdrag DOM装飾に、明確な生成・復元の所有関係がある。
+- SortableJSライフサイクルとcleanupに一つの命令的controller所有者がある。
+- React/Gutenberg統合層がcontroller周辺の薄いadapterになっている。
+- ユーザーから見える挙動を意図的に変更していない。
+- 新しい汎用shared architectureやdependencyを導入していない。
+- 自動検証が成功する。
+- iframe / non-iframe、hover / touchの手動確認が成功する。
+- 機能READMEが最終コード構成と一致している。
 
-## Notes
+## 補足
 
-- The current feature README defines the Gutenberg-to-SortableJS DOM ownership handoff. Treat it as a core invariant during every phase.
-- The historical `table-reorder-controller-refactor-plan.md` targeted a different dnd-kit architecture. Do not modify that historical document to describe the new SortableJS implementation; this plan supersedes it for future responsibility refactoring.
-- If a behavior bug is discovered while extracting responsibilities, record it separately unless fixing it is required to keep the refactor buildable or testable. Avoid mixing product behavior changes into structural PRs.
+- 現在の機能READMEに記載されているGutenbergとSortableJS間のDOM所有権handoffは、各フェーズで維持すべき主要な不変条件として扱う。
+- 過去の `table-reorder-controller-refactor-plan.md` は、別のdnd-kitアーキテクチャを対象としている。新しいSortableJS実装を説明するために過去文書を書き換えず、今後の責務分割では本プランを後継プランとして扱う。
+- 責務抽出中に挙動bugが見つかった場合、refactorをbuildable/testableに保つために修正必須でない限り別Issueとして記録する。構造変更PRへproduct behavior変更を混在させない。
