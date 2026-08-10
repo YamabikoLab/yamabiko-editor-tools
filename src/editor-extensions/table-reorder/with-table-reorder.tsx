@@ -3,9 +3,9 @@ import { useEffect, useRef, type ComponentType } from '@wordpress/element';
 
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 
-const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
-const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
-const HANDLE_ZONE_CLASS = 'yamabiko-sortablejs-poc-handle-zone';
+const SORTABLE_SCRIPT_ID = 'yamabiko-table-reorder-sortable-runtime';
+const HANDLE_CLASS = 'yamabiko-table-reorder-handle';
+const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
 const HANDLE_FADE_MS = 300;
 const HANDLE_GUTTER_PX = 32;
@@ -52,8 +52,8 @@ type SortableWindow = Window & {
 	Sortable?: SortableRuntime;
 };
 
-type PocConfigWindow = Window & {
-	yamabikoEditorToolsSortableJsPoc?: {
+type TableReorderConfigWindow = Window & {
+	yamabikoEditorToolsTableReorder?: {
 		runtimeUrl?: string;
 	};
 };
@@ -270,8 +270,8 @@ const ensureSortableRuntime = (
 	} );
 };
 
-export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
-	function WithSortableJsTableReorderPoc( props: TableBlockEditProps ) {
+export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
+	function WithTableReorder( props: TableBlockEditProps ) {
 		const anchorRef = useRef< HTMLSpanElement >( null );
 		const {
 			attributes: { body },
@@ -290,7 +290,8 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const runtimeUrl = ( window as PocConfigWindow ).yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
+			const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoEditorToolsTableReorder
+				?.runtimeUrl;
 			if ( ! runtimeUrl ) {
 				return;
 			}
