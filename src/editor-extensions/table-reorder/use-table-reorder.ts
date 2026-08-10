@@ -62,8 +62,13 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	);
 	const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
 
-	createNoticeRef.current = createNotice;
-	setAttributesRef.current = setAttributes;
+	useEffect( () => {
+		createNoticeRef.current = createNotice;
+	}, [ createNotice ] );
+
+	useEffect( () => {
+		setAttributesRef.current = setAttributes;
+	}, [ setAttributes ] );
 
 	useEffect( () => {
 		if ( ! enabled ) {
