@@ -6,6 +6,13 @@ import {
 	restoreOriginalRowOrder,
 } from './with-table-reorder';
 
+jest.mock( '@wordpress/block-editor', () => ( {} ) );
+jest.mock( '@wordpress/components', () => ( {} ) );
+jest.mock( '@wordpress/data', () => ( {} ) );
+jest.mock( '@wordpress/element', () => ( {} ) );
+jest.mock( '@wordpress/i18n', () => ( {} ) );
+jest.mock( '@wordpress/notices', () => ( {} ) );
+
 const createTableRows = ( count: number ) => {
 	const table = document.createElement( 'table' );
 	const tbody = document.createElement( 'tbody' );
