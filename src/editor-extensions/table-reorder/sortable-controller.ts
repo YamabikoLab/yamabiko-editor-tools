@@ -1,9 +1,9 @@
 /**
  * Table ReorderのSortableJS instanceとdrag session lifecycleを管理する。
  *
- * mutable state、SortableJS callbacks、pointer session、cleanupをこのcontrollerへ集約する。
- * React / Gutenberg統合層とは狭いcallback境界で接続し、UI描画やReact state自体は扱わない。
- * drag中にSortableJSが変更する行DOMは一時状態として扱い、commit前またはdestroy時に元の順序へ戻す。
+ * SortableJS callbacks、drag session state、hover handle制御、DOM所有権handoff、cleanupを集約する。
+ * touch pressのpointer追跡は`touch-press.ts`へ委譲し、React / Gutenberg統合層とは狭いcallback境界で接続する。
+ * UI描画やReact state自体は扱わず、drag中にSortableJSが変更する行DOMはcommit前またはdestroy時に元へ戻す。
  */
 
 import {
@@ -25,18 +25,17 @@ import {
 } from './row-order';
 import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
 import type { TableContext } from './table-context';
+import {
+	createTouchPressTracker,
+	TOUCH_DRAG_DELAY_MS,
+	TOUCH_START_THRESHOLD_PX,
+} from './touch-press';
 
 /** SortableJSのauto-scrollを開始する端からの距離。 */
 const AUTO_SCROLL_SENSITIVITY_PX = 80;
 
 /** SortableJSのauto-scroll速度。 */
 const AUTO_SCROLL_SPEED_PX = 8;
-
-/** touch modeでdrag開始と長押し通知に使う待機時間。 */
-const TOUCH_DRAG_DELAY_MS = 300;
-
-/** touch pressをtapではなく移動として扱う距離。 */
-const TOUCH_START_THRESHOLD_PX = 5;
 
 /** controllerが扱う入力方式。 */
 export type SortableControllerMode = 'hover' | 'touch';
@@ -96,23 +95,12 @@ type SortableOptions = {
 	touchStartThreshold?: number;
 };
 
-/** touch pointer session中だけ保持するpress情報。 */
-type TouchPress = {
-	longPressReached: boolean;
-	moved: boolean;
-	noticeTimer: number | null;
-	pointerId: number;
-	rowIndex: number;
-	startX: number;
-	startY: number;
-	startedAt: number;
-};
-
 /**
  * 解決済みTable contextと制約からSortableJS controllerを生成する。
  *
- * controllerはlistener、timeout、一時DOM装飾、fallback style、Gutenberg block drag抑止、
- * SortableJS instanceの生成と破棄を所有する。runtime読み込み完了前に`destroy()`された場合は、
+ * controllerはSortableJS instance、drag callbacks、hover listener、一時DOM装飾、fallback style、
+ * Gutenberg block drag抑止を所有する。touch press listenerとtimerは専用trackerへ委譲し、
+ * `destroy()`から同じcleanup境界で破棄する。runtime読み込み完了前に`destroy()`された場合は、
  * 遅れて読み込みが完了しても古いSortableJS instanceを生成しない。
  *
  * @param options controller生成に必要なcontext、制約、callback。
@@ -141,7 +129,6 @@ export const createSortableController = (
 		: createTouchDragUi( document, tbody, nonMovableRowIndices );
 	const entries = hoverHandles?.entries ?? [];
 	const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
-	const nonMovableRows = new Set( nonMovableRowIndices );
 	const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 
 	let destroyed = false;
@@ -151,7 +138,6 @@ export const createSortableController = (
 	let isDragging = false;
 	let blockDragSuppressed = false;
 	let originalDraggable: string | null = null;
-	let touchPress: TouchPress | null = null;
 	let restoreFallbackCellWidths: () => void = () => undefined;
 
 	const restoreFallbackWidths = () => {
@@ -249,91 +235,6 @@ export const createSortableController = (
 			activateEntry( entry );
 		}
 	};
-	const clearTouchNoticeTimer = () => {
-		if ( touchPress?.noticeTimer !== null && touchPress?.noticeTimer !== undefined ) {
-			view.clearTimeout( touchPress.noticeTimer );
-			touchPress.noticeTimer = null;
-		}
-	};
-	const resetTouchPress = () => {
-		clearTouchNoticeTimer();
-		touchPress = null;
-	};
-	const onTouchPointerDown = ( event: PointerEvent ) => {
-		if ( event.pointerType === 'mouse' ) {
-			return;
-		}
-
-		const target = event.target as Element | null;
-		const row = target?.closest< HTMLTableRowElement >( 'tr' ) ?? null;
-		if ( ! row || row.parentElement !== tbody ) {
-			return;
-		}
-
-		const rowIndex = Array.from( tbody.rows ).indexOf( row );
-		if ( rowIndex < 0 ) {
-			return;
-		}
-
-		resetTouchPress();
-		touchPress = {
-			longPressReached: false,
-			moved: false,
-			noticeTimer: null,
-			pointerId: event.pointerId,
-			rowIndex,
-			startX: event.clientX,
-			startY: event.clientY,
-			startedAt: view.performance.now(),
-		};
-
-		if ( nonMovableRows.has( rowIndex ) ) {
-			touchPress.noticeTimer = view.setTimeout( () => {
-				if ( ! touchPress || touchPress.moved ) {
-					return;
-				}
-
-				touchPress.longPressReached = true;
-				onNonMovableRowLongPress();
-			}, TOUCH_DRAG_DELAY_MS );
-		}
-	};
-	const onTouchPointerMove = ( event: PointerEvent ) => {
-		if ( ! touchPress || event.pointerId !== touchPress.pointerId ) {
-			return;
-		}
-
-		const movedDistance = Math.hypot(
-			event.clientX - touchPress.startX,
-			event.clientY - touchPress.startY
-		);
-		if ( movedDistance > TOUCH_START_THRESHOLD_PX ) {
-			touchPress.moved = true;
-			clearTouchNoticeTimer();
-		}
-	};
-	const onTouchPointerUp = ( event: PointerEvent ) => {
-		if ( ! touchPress || event.pointerId !== touchPress.pointerId ) {
-			return;
-		}
-
-		const pressDuration = view.performance.now() - touchPress.startedAt;
-		const shouldExitReorderMode =
-			! touchPress.moved &&
-			! touchPress.longPressReached &&
-			! isDragging &&
-			pressDuration < TOUCH_DRAG_DELAY_MS;
-		resetTouchPress();
-
-		if ( shouldExitReorderMode ) {
-			onRequestTouchModeExit();
-		}
-	};
-	const onTouchPointerCancel = ( event: PointerEvent ) => {
-		if ( touchPress && event.pointerId === touchPress.pointerId ) {
-			resetTouchPress();
-		}
-	};
 
 	for ( const eventName of blockSelectionEvents ) {
 		tbody.addEventListener( eventName, stopHoverHandleInteractionPropagation );
@@ -349,12 +250,18 @@ export const createSortableController = (
 		if ( hoveredEntry ) {
 			activateEntry( hoveredEntry );
 		}
-	} else {
-		tbody.addEventListener( 'pointerdown', onTouchPointerDown );
-		tbody.addEventListener( 'pointermove', onTouchPointerMove );
-		tbody.addEventListener( 'pointerup', onTouchPointerUp );
-		tbody.addEventListener( 'pointercancel', onTouchPointerCancel );
 	}
+
+	const touchPressTracker = useHoverMode
+		? null
+		: createTouchPressTracker( {
+				isDragging: () => isDragging,
+				nonMovableRowIndices,
+				onNonMovableRowLongPress,
+				onRequestTouchModeExit,
+				tbody,
+				view,
+			} );
 
 	void ensureSortableRuntime( document, view, runtimeUrl ).then( ( Sortable ) => {
 		if ( destroyed || ! Sortable ) {
@@ -478,7 +385,7 @@ export const createSortableController = (
 			sortable?.destroy();
 			sortable = null;
 			insertionLine.cleanup();
-			resetTouchPress();
+			touchPressTracker?.destroy();
 			restoreFallbackWidths();
 			if ( useHoverMode ) {
 				for ( const { zone } of entries ) {
@@ -486,11 +393,6 @@ export const createSortableController = (
 					zone.removeEventListener( 'pointerleave', onZonePointerLeave );
 					zone.removeEventListener( 'pointerdown', onZonePointerDown );
 				}
-			} else {
-				tbody.removeEventListener( 'pointerdown', onTouchPointerDown );
-				tbody.removeEventListener( 'pointermove', onTouchPointerMove );
-				tbody.removeEventListener( 'pointerup', onTouchPointerUp );
-				tbody.removeEventListener( 'pointercancel', onTouchPointerCancel );
 			}
 			for ( const eventName of blockSelectionEvents ) {
 				tbody.removeEventListener( eventName, stopHoverHandleInteractionPropagation );
