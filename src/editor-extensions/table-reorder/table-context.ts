@@ -25,6 +25,9 @@ export type TableContext = {
  *
  * root document に対象 block があれば必ずそれを採用し、存在しない場合だけ editor canvas
  * iframe を探索する。Issue #177 で固定した iframe / non-iframe の優先順位を維持する。
+ *
+ * @param rootDocument 探索を開始する anchor の owning document。
+ * @param clientId     解決対象となる Gutenberg block の clientId。
  */
 export const findBlockElement = (
 	rootDocument: Document,
@@ -44,6 +47,9 @@ export const findBlockElement = (
  * anchor の owning document を起点に、Table Reorder が必要とする DOM context を解決する。
  *
  * block、owning window、table、先頭 tbody のいずれかを解決できない場合は `null` を返す。
+ *
+ * @param anchor   Table block の探索起点となる DOM element。
+ * @param clientId 解決対象となる Gutenberg block の clientId。
  */
 export const resolveTableContext = ( anchor: Element, clientId: string ): TableContext | null => {
 	const blockElement = findBlockElement( anchor.ownerDocument, clientId );
