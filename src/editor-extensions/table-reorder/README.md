@@ -6,7 +6,7 @@ Table Reorder extends the Core Table block with row reordering powered by Sortab
 
 - `with-table-reorder.tsx` is the thin Gutenberg composition and rendering adapter.
 - `use-table-reorder.ts` owns React state / effect lifecycle and connects the adapter to the SortableJS controller.
-- `sortable-controller.ts` owns the imperative SortableJS instance and drag session lifecycle.
+- `controller/sortable-controller.ts` owns the imperative SortableJS instance and drag session lifecycle.
 - SortableJS temporarily reorders Gutenberg-owned `<tbody><tr>` elements during dragging.
 - The selected Table is resolved from its owning `document`, so the same implementation works in iframe and non-iframe editors.
 - SortableJS is initialized in the `window` that owns the target Table.
@@ -24,14 +24,22 @@ table-reorder/
 ├─ index.tsx
 ├─ with-table-reorder.tsx
 ├─ use-table-reorder.ts
-├─ sortable-controller.ts
+├─ controller/
+│  ├─ sortable-controller.ts
+│  ├─ sortable-controller.test.ts
+│  ├─ drag-ui.ts
+│  ├─ drag-ui.test.ts
+│  ├─ touch-press.ts
+│  ├─ touch-press.test.ts
+│  ├─ row-order.ts
+│  ├─ row-order.test.ts
+│  ├─ sortable-runtime.ts
+│  ├─ sortable-runtime.test.ts
+│  └─ sortablejs.d.ts
 ├─ table-context.ts
-├─ sortable-runtime.ts
-├─ drag-ui.ts
-├─ touch-press.ts
-├─ row-order.ts
+├─ table-context.test.ts
 ├─ rowspan.ts
-├─ sortablejs.d.ts
+├─ rowspan.test.ts
 └─ README.md
 ```
 
@@ -40,14 +48,14 @@ Responsibility boundaries:
 - `index.tsx`: registers the HOC with `editor.BlockEdit`.
 - `with-table-reorder.tsx`: identifies `core/table`, renders the original `BlockEdit`, renders touch reorder controls, and provides the hidden anchor used to locate the Table DOM.
 - `use-table-reorder.ts`: owns hover capability state, touch reorder mode state, selection reset, media-query lifecycle, Table context resolution, constraint calculation, and controller creation / destruction. WordPress notices and `setAttributes()` remain at this React / Gutenberg adapter boundary and are passed to the controller as narrow callbacks.
-- `sortable-controller.ts`: owns SortableJS callbacks, mutable drag session state, temporary block-drag suppression, DOM ownership handoff, and controller cleanup.
+- `controller/sortable-controller.ts`: owns SortableJS callbacks, mutable drag session state, temporary block-drag suppression, DOM ownership handoff, and controller cleanup.
 - `table-context.ts`: resolves the Table block and its owning `document`, `window`, `table`, and `tbody`, including iframe fallback.
-- `sortable-runtime.ts`: loads or reuses the SortableJS runtime in the owning editor window.
-- `drag-ui.ts`: owns short-lived drag UI and its restoration, including hover handles, touch-mode DOM changes, insertion line, and fallback row widths.
-- `touch-press.ts`: owns touch / pen long-press pointer tracking and cleanup.
-- `row-order.ts`: owns deterministic row reordering, insertion index calculation, and restoration of the original DOM row order.
+- `controller/sortable-runtime.ts`: loads or reuses the SortableJS runtime in the owning editor window.
+- `controller/drag-ui.ts`: owns short-lived drag UI and its restoration, including hover handles, touch-mode DOM changes, insertion line, and fallback row widths.
+- `controller/touch-press.ts`: owns touch / pen long-press pointer tracking and cleanup.
+- `controller/row-order.ts`: owns deterministic row reordering, insertion index calculation, and restoration of the original DOM row order.
 - `rowspan.ts`: owns vertical-merge range analysis and movement / insertion restrictions.
-- `sortablejs.d.ts`: declares only the SortableJS API surface used by this extension.
+- `controller/sortablejs.d.ts`: declares only the SortableJS API surface used by this extension.
 
 The dependency direction stays from the Gutenberg / React boundary toward lower-level modules. Lower-level modules do not depend on the HOC or custom hook.
 
