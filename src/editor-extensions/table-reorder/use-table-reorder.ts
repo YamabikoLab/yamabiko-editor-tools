@@ -11,8 +11,8 @@ import { useEffect, useRef, useState, type RefObject } from '@wordpress/element'
 import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
+import { createSortableController } from './controller/sortable-controller';
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
-import { createSortableController } from './sortable-controller';
 import { resolveTableContext } from './table-context';
 
 /** hover操作を利用できる端末を判定するmedia query。 */

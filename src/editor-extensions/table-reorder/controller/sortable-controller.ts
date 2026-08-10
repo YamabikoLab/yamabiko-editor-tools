@@ -24,7 +24,7 @@ import {
 	restoreOriginalRowOrder,
 } from './row-order';
 import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
-import type { TableContext } from './table-context';
+import type { TableContext } from '../table-context';
 import {
 	createTouchPressTracker,
 	TOUCH_DRAG_DELAY_MS,

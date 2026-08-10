@@ -4,7 +4,7 @@ import {
 	type SortableInstance,
 	type SortableRuntime,
 } from './sortable-runtime';
-import type { TableContext } from './table-context';
+import type { TableContext } from '../table-context';
 
 jest.mock( './sortable-runtime', () => ( {
 	ensureSortableRuntime: jest.fn(),
