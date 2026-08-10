@@ -89,9 +89,6 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				return;
 			}
 
-			const rowspanRanges = getRowspanRanges( body );
-			const nonMovableRowIndices = getNonMovableRowIndices( rowspanRanges );
-			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
 			const hoverMedia = context.window.matchMedia( HOVER_REORDER_MEDIA_QUERY );
 			const useHoverMode = isHoverCapable && hoverMedia.matches;
 			const useTouchMode = ! useHoverMode && isSelected && isTouchReorderMode;
@@ -99,6 +96,9 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				return;
 			}
 
+			const rowspanRanges = getRowspanRanges( body );
+			const nonMovableRowIndices = getNonMovableRowIndices( rowspanRanges );
+			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
 			const controller = createSortableController( {
 				context,
 				forbiddenInsertionIndices,
