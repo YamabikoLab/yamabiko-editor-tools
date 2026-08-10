@@ -7,9 +7,9 @@
 - 既存のrowspanロジック: `src/editor-extensions/table-reorder/rowspan.ts`
 - ソース構成方針: `docs/development/source-organization.md`
 - テストと検証: `docs/development/testing.md`
-- 過去のdnd-kit版リファクタリングプラン: `docs/plans/table-reorder/table-reorder-controller-refactor-plan.md`
+- 過去のdnd-kit版リファクタリングプラン（アーカイブ）: `docs/plans/table-reorder/archive/table-reorder-controller-refactor-plan.md`
 
-過去のcontrollerリファクタリングプランは、以前のdnd-kitベース実装を対象としている。プロジェクトの履歴としては有用だが、本プランは現在のSortableJS実装を前提とし、旧プランのcontrollerやhookの境界を機械的には再利用しない。
+過去のcontrollerリファクタリングプランは、以前のdnd-kitベース実装を対象としており、現在は履歴資料として `archive/` に保管している。本プランは現在のSortableJS実装を前提とし、旧プランのcontrollerやhookの境界を機械的には再利用しない。
 
 ## 目的
 
@@ -509,5 +509,5 @@ PC / hover可能端末
 ## 補足
 
 - 現在の機能READMEに記載されているGutenbergとSortableJS間のDOM所有権handoffは、各フェーズで維持すべき主要な不変条件として扱う。
-- 過去の `table-reorder-controller-refactor-plan.md` は、別のdnd-kitアーキテクチャを対象としている。新しいSortableJS実装を説明するために過去文書を書き換えず、今後の責務分割では本プランを後継プランとして扱う。
+- `archive/table-reorder-controller-refactor-plan.md` は、旧dnd-kitアーキテクチャを対象とした履歴資料として保管する。現在のSortableJS実装に対する責務分割では、本プランを後継の現行プランとして扱う。
 - 責務抽出中に挙動bugが見つかった場合、refactorをbuildable/testableに保つために修正必須でない限り別Issueとして記録する。構造変更PRへproduct behavior変更を混在させない。
