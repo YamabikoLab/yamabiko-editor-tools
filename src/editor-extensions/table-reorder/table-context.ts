@@ -1,16 +1,16 @@
 /**
- * Table Reorder が利用する editor DOM context を解決する。
+ * Table Reorderが利用する editor DOM contextを解決する。
  *
- * anchor の owning document を root として優先し、対象 block が root に存在しない場合だけ
- * `iframe[name="editor-canvas"]` へ fallback する。ここでは DOM / document / window / table の
- * 対応関係だけを扱い、SortableJS runtime や instance lifecycle は扱わない。
+ * anchorのowning documentをrootとして優先し、対象blockがrootに存在しない場合だけ
+ * `iframe[name="editor-canvas"]`へfallbackする。ここではDOM / document / window / tableの
+ * 対応関係だけを扱い、SortableJS runtimeやinstance lifecycleは扱わない。
  */
 
 /**
- * 解決済み Table block が利用する DOM context。
+ * 解決済みTable blockが利用するDOM context。
  *
- * `blockElement`、`table`、`tbody` はすべて `document` に属し、`window` はその
- * `document.defaultView` であることを保証する。
+ * `blockElement`、`table`、`tbody`はすべて`document`に属し、`window`はその
+ * `document.defaultView`であることを保証する。
  */
 export type TableContext = {
 	blockElement: HTMLElement;
@@ -21,13 +21,13 @@ export type TableContext = {
 };
 
 /**
- * clientId に対応する Table block element を root document から解決する。
+ * clientIdに対応するTable block elementをroot documentから解決する。
  *
- * root document に対象 block があれば必ずそれを採用し、存在しない場合だけ editor canvas
- * iframe を探索する。Issue #177 で固定した iframe / non-iframe の優先順位を維持する。
+ * root documentに対象blockがあれば必ずそれを採用し、存在しない場合だけeditor canvas
+ * iframeを探索する。Issue #177で固定したiframe / non-iframeの優先順位を維持する。
  *
- * @param rootDocument 探索を開始する anchor の owning document。
- * @param clientId     解決対象となる Gutenberg block の clientId。
+ * @param rootDocument 探索を開始するanchorのowning document。
+ * @param clientId 解決対象となるGutenberg blockのclientId。
  */
 export const findBlockElement = (
 	rootDocument: Document,
@@ -44,12 +44,12 @@ export const findBlockElement = (
 };
 
 /**
- * anchor の owning document を起点に、Table Reorder が必要とする DOM context を解決する。
+ * anchorのowning documentを起点に、Table Reorderが必要とするDOM contextを解決する。
  *
- * block、owning window、table、先頭 tbody のいずれかを解決できない場合は `null` を返す。
+ * block、owning window、table、先頭tbodyのいずれかを解決できない場合は`null`を返す。
  *
- * @param anchor   Table block の探索起点となる DOM element。
- * @param clientId 解決対象となる Gutenberg block の clientId。
+ * @param anchor Table blockの探索起点となるDOM element。
+ * @param clientId 解決対象となるGutenberg blockのclientId。
  */
 export const resolveTableContext = ( anchor: Element, clientId: string ): TableContext | null => {
 	const blockElement = findBlockElement( anchor.ownerDocument, clientId );
