@@ -27,7 +27,7 @@ export type TableContext = {
  * iframeを探索する。Issue #177で固定したiframe / non-iframeの優先順位を維持する。
  *
  * @param rootDocument 探索を開始するanchorのowning document。
- * @param clientId 解決対象となるGutenberg blockのclientId。
+ * @param clientId     解決対象となるGutenberg blockのclientId。
  */
 export const findBlockElement = (
 	rootDocument: Document,
@@ -48,7 +48,7 @@ export const findBlockElement = (
  *
  * block、owning window、table、先頭tbodyのいずれかを解決できない場合は`null`を返す。
  *
- * @param anchor Table blockの探索起点となるDOM element。
+ * @param anchor   Table blockの探索起点となるDOM element。
  * @param clientId 解決対象となるGutenberg blockのclientId。
  */
 export const resolveTableContext = ( anchor: Element, clientId: string ): TableContext | null => {

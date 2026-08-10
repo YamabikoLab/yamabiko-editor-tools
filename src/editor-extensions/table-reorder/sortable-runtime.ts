@@ -46,8 +46,8 @@ const loadingStates = new WeakMap< Window, Promise< SortableRuntime | null > >()
  * 既存runtime、読み込み中stateの順に再利用し、必要な場合だけscriptを追加する。
  * scriptの読み込みに失敗した場合、または読み込み後にruntimeが公開されなかった場合は`null`を返す。
  *
- * @param document runtime scriptを探索・挿入するowning document。
- * @param view SortableJS runtimeが公開されるowning window。
+ * @param document   runtime scriptを探索・挿入するowning document。
+ * @param view       SortableJS runtimeが公開されるowning window。
  * @param runtimeUrl 必要な場合に読み込むSortableJS runtime scriptのURL。
  */
 export const ensureSortableRuntime = (
