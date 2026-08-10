@@ -44,12 +44,21 @@ const createContext = () => {
 	return { context, tbody };
 };
 
-const createRuntime = ( onCreate?: ( options: TestSortableOptions ) => void ): SortableRuntime => ( {
-	create: jest.fn( ( _element: HTMLElement, options: object ): SortableInstance => {
-		onCreate?.( options as TestSortableOptions );
-		return { destroy: jest.fn() };
-	} ),
+const createRuntime = (): SortableRuntime => ( {
+	create: jest.fn( ( _element: HTMLElement, _options: object ): SortableInstance => ( {
+		destroy: jest.fn(),
+	} ) ),
 } );
+
+const getCreatedOptions = ( runtime: SortableRuntime ): TestSortableOptions => {
+	const createMock = runtime.create as jest.MockedFunction< SortableRuntime[ 'create' ] >;
+	const options = createMock.mock.calls[ 0 ]?.[ 1 ];
+	if ( ! options ) {
+		throw new Error( 'Expected SortableJS options to be created' );
+	}
+
+	return options as TestSortableOptions;
+};
 
 const flushPromises = async () => {
 	await Promise.resolve();
@@ -92,10 +101,7 @@ describe( 'createSortableController', () => {
 	} );
 
 	it( 'restores the original DOM order before committing reordered rows', async () => {
-		let sortableOptions: TestSortableOptions | null = null;
-		const runtime = createRuntime( ( options ) => {
-			sortableOptions = options;
-		} );
+		const runtime = createRuntime();
 		ensureSortableRuntimeMock.mockResolvedValue( runtime );
 		const { context, tbody } = createContext();
 		const commitOrders: string[][] = [];
@@ -115,9 +121,9 @@ describe( 'createSortableController', () => {
 		} );
 		await flushPromises();
 
-		expect( sortableOptions ).not.toBeNull();
+		const sortableOptions = getCreatedOptions( runtime );
 		const originalRows = Array.from( tbody.rows );
-		sortableOptions?.onChoose( { item: originalRows[ 0 ] } );
+		sortableOptions.onChoose( { item: originalRows[ 0 ] } );
 		tbody.append( originalRows[ 0 ] );
 		expect( Array.from( tbody.rows ).map( ( row ) => row.dataset.index ) ).toEqual( [
 			'1',
@@ -125,7 +131,7 @@ describe( 'createSortableController', () => {
 			'0',
 		] );
 
-		sortableOptions?.onEnd( { oldIndex: 0, newIndex: 2 } );
+		sortableOptions.onEnd( { oldIndex: 0, newIndex: 2 } );
 
 		expect( commitOrders ).toEqual( [ [ '0', '1', '2' ] ] );
 		expect( onCommit ).toHaveBeenCalledWith( [ 'b', 'c', 'a' ] );
