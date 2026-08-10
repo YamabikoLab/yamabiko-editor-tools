@@ -8,12 +8,12 @@ import { store as noticesStore } from '@wordpress/notices';
 
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 
-const SORTABLE_SCRIPT_ID = 'yamabiko-sortablejs-poc-runtime';
-const HANDLE_CLASS = 'yamabiko-sortablejs-poc-handle';
-const HANDLE_ZONE_CLASS = 'yamabiko-sortablejs-poc-handle-zone';
-const NON_MOVABLE_ROW_CLASS = 'yamabiko-sortablejs-poc-non-movable-row';
-const INSERTION_LINE_CLASS = 'yamabiko-sortablejs-poc-insertion-line';
-const TOUCH_CHOSEN_CLASS = 'yamabiko-sortablejs-poc-touch-chosen';
+const SORTABLE_SCRIPT_ID = 'yamabiko-table-reorder-sortable-runtime';
+const HANDLE_CLASS = 'yamabiko-table-reorder-handle';
+const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';
+const NON_MOVABLE_ROW_CLASS = 'yamabiko-table-reorder-non-movable-row';
+const INSERTION_LINE_CLASS = 'yamabiko-table-reorder-insertion-line';
+const TOUCH_CHOSEN_CLASS = 'yamabiko-table-reorder-touch-chosen';
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
 const AUTO_SCROLL_SENSITIVITY_PX = 80;
 const AUTO_SCROLL_SPEED_PX = 8;
@@ -76,8 +76,8 @@ type SortableWindow = Window & {
 	Sortable?: SortableRuntime;
 };
 
-type PocConfigWindow = Window & {
-	yamabikoEditorToolsSortableJsPoc?: {
+type TableReorderConfigWindow = Window & {
+	yamabikoEditorToolsTableReorder?: {
 		runtimeUrl?: string;
 	};
 };
@@ -395,8 +395,8 @@ const ensureSortableRuntime = (
 	} );
 };
 
-export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
-	function WithSortableJsTableReorderPoc( props: TableBlockEditProps ) {
+export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
+	function WithTableReorder( props: TableBlockEditProps ) {
 		const anchorRef = useRef< HTMLSpanElement >( null );
 		const {
 			attributes: { body },
@@ -447,7 +447,7 @@ export const withSortableJsTableReorderPoc = ( BlockEdit: ComponentType< TableBl
 				return;
 			}
 
-			const runtimeUrl = ( window as PocConfigWindow ).yamabikoEditorToolsSortableJsPoc?.runtimeUrl;
+			const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoEditorToolsTableReorder?.runtimeUrl;
 			if ( ! runtimeUrl ) {
 				return;
 			}
