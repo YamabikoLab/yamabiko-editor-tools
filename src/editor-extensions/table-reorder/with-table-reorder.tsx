@@ -889,3 +889,11 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			</>
 		);
 	};
+
+export {
+	findBlockElement,
+	getEndInsertionIndex,
+	getMoveInsertionIndex,
+	reorderRows,
+	restoreOriginalRowOrder,
+};
