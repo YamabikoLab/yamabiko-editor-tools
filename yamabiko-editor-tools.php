@@ -31,10 +31,8 @@ final class Plugin {
 	 */
 	public static function init(): void {
 		add_action( 'init', array( self::class, 'register_blocks' ) );
-		add_action(
-			'enqueue_block_editor_assets',
-			array( self::class, 'enqueue_sortablejs_table_reorder_poc_editor_assets' )
-		);
+		add_action( 'enqueue_block_editor_assets', array( self::class, 'enqueue_table_reorder_editor_assets' ) );
+		add_action( 'enqueue_block_assets', array( self::class, 'enqueue_table_reorder_content_assets' ) );
 	}
 
 	/**
@@ -55,85 +53,75 @@ final class Plugin {
 	}
 
 	/**
-	 * Enqueues SortableJS Table Reorder PoC assets for the editor.
+	 * Enqueues Table Reorder assets for editor chrome.
 	 */
-	public static function enqueue_sortablejs_table_reorder_poc_editor_assets(): void {
-		$handle = self::enqueue_sortablejs_table_reorder_poc_script();
-
-		if ( null === $handle ) {
-			return;
-		}
-
-		self::add_sortablejs_poc_runtime_config( $handle );
+	public static function enqueue_table_reorder_editor_assets(): void {
+		self::enqueue_table_reorder_asset( 'index', 'script' );
+		self::enqueue_table_reorder_asset( 'index', 'style' );
 	}
 
 	/**
-	 * Enqueues the generated SortableJS Table Reorder PoC script.
-	 *
-	 * @return string|null Script handle when the asset is available.
+	 * Enqueues Table Reorder styles in the editor content document.
 	 */
-	private static function enqueue_sortablejs_table_reorder_poc_script(): ?string {
-		$asset_path = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/index.asset.php';
-		$file_path  = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/index.js';
+	public static function enqueue_table_reorder_content_assets(): void {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		self::enqueue_table_reorder_asset( 'content', 'style' );
+	}
+
+	/**
+	 * Enqueues a generated Table Reorder asset when its metadata is available.
+	 *
+	 * @param string $entry Asset entry name.
+	 * @param string $type  Asset type.
+	 */
+	private static function enqueue_table_reorder_asset( string $entry, string $type ): void {
+		$asset_path = __DIR__ . "/build/editor-extensions/table-reorder/{$entry}.asset.php";
+		$extension  = 'script' === $type ? 'js' : 'css';
+		$file_path  = __DIR__ . "/build/editor-extensions/table-reorder/{$entry}.{$extension}";
 
 		if ( ! is_readable( $asset_path ) || ! is_readable( $file_path ) ) {
-			return null;
+			return;
 		}
 
 		$asset = require $asset_path;
 
 		if ( ! is_array( $asset ) ) {
-			return null;
+			return;
 		}
 
-		$handle       = 'yamabiko-editor-tools-sortablejs-table-reorder-poc-index';
-		$dependencies = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
-			? $asset['dependencies']
-			: array();
-		$version      = isset( $asset['version'] ) && is_string( $asset['version'] )
+		$handle  = "yamabiko-editor-tools-table-reorder-{$entry}";
+		$version = isset( $asset['version'] ) && is_string( $asset['version'] )
 			? $asset['version']
 			: false;
 
-		wp_enqueue_script(
-			$handle,
-			plugins_url( 'build/editor-extensions/sortablejs-table-reorder-poc/index.js', __FILE__ ),
-			$dependencies,
-			$version,
-			true
-		);
+		if ( 'script' === $type ) {
+			$dependencies = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
+				? $asset['dependencies']
+				: array();
 
-		return $handle;
-	}
-
-	/**
-	 * Exposes the local npm-provided SortableJS runtime URL to the editor script.
-	 *
-	 * @param string $handle Enqueued PoC script handle.
-	 */
-	private static function add_sortablejs_poc_runtime_config( string $handle ): void {
-		$file_path = __DIR__ . '/build/editor-extensions/sortablejs-table-reorder-poc/sortable.min.js';
-
-		if ( ! is_readable( $file_path ) ) {
+			wp_enqueue_script(
+				$handle,
+				plugins_url( "build/editor-extensions/table-reorder/{$entry}.js", __FILE__ ),
+				$dependencies,
+				$version,
+				true
+			);
+			wp_set_script_translations(
+				$handle,
+				'yamabiko-editor-tools',
+				__DIR__ . '/languages'
+			);
 			return;
 		}
 
-		$config = wp_json_encode(
-			array(
-				'runtimeUrl' => plugins_url(
-					'build/editor-extensions/sortablejs-table-reorder-poc/sortable.min.js',
-					__FILE__
-				),
-			)
-		);
-
-		if ( ! is_string( $config ) ) {
-			return;
-		}
-
-		wp_add_inline_script(
+		wp_enqueue_style(
 			$handle,
-			"window.yamabikoEditorToolsSortableJsPoc = {$config};",
-			'before'
+			plugins_url( "build/editor-extensions/table-reorder/{$entry}.css", __FILE__ ),
+			array(),
+			$version
 		);
 	}
 }

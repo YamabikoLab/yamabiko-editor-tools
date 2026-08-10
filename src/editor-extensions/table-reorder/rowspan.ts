@@ -7,15 +7,15 @@ type TableCell = {
 	rowspan?: unknown;
 };
 
-const isRecord = ( value: unknown ): value is Record< string, unknown > =>
-	value !== null && typeof value === 'object';
-
 const getRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body : [] );
 
 const getCells = ( row: unknown ): TableCell[] =>
 	isRecord( row ) && Array.isArray( row.cells )
 		? row.cells.filter( ( cell ): cell is TableCell => isRecord( cell ) )
 		: [];
+
+const isRecord = ( value: unknown ): value is Record< string, unknown > =>
+	value !== null && typeof value === 'object';
 
 const getRowspan = ( cell: TableCell ): number | null => {
 	const value =
@@ -25,9 +25,6 @@ const getRowspan = ( cell: TableCell ): number | null => {
 
 	return value !== null && Number.isInteger( value ) && value >= 2 ? value : null;
 };
-
-const range = ( start: number, end: number ): number[] =>
-	Array.from( { length: end - start + 1 }, ( _, index ) => start + index );
 
 export const getRowspanRanges = ( body: unknown ): RowspanRange[] => {
 	const rows = getRows( body );
@@ -54,3 +51,17 @@ export const getForbiddenInsertionIndices = ( ranges: readonly RowspanRange[] ):
 	[ ...new Set( ranges.flatMap( ( { start, end } ) => range( start + 1, end ) ) ) ].sort(
 		( left, right ) => left - right
 	);
+
+export const crossesRowspanBoundary = (
+	ranges: readonly RowspanRange[],
+	sourceIndex: number,
+	insertionIndex: number
+): boolean =>
+	ranges.some(
+		( { start, end } ) =>
+			( sourceIndex < start && insertionIndex > end ) ||
+			( sourceIndex > end && insertionIndex <= start )
+	);
+
+const range = ( start: number, end: number ): number[] =>
+	Array.from( { length: end - start + 1 }, ( _, index ) => start + index );
