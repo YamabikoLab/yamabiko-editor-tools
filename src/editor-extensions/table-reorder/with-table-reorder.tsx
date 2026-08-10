@@ -1,34 +1,40 @@
+/**
+ * Table ReorderをGutenbergのBlockEditへ接続するcomposition / rendering adapter。
+ *
+ * core/table判定、元のBlockEdit、touch並び替えtoolbar、Table探索用hidden anchorの描画だけを担当する。
+ * React state / effectとcontroller lifecycleは`use-table-reorder.ts`へ委譲し、drag処理やDOM操作は
+ * さらに下位のTable Reorderモジュールが所有する。
+ */
+
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { ToolbarButton } from '@wordpress/components';
-import { useDispatch } from '@wordpress/data';
-import { useEffect, useRef, useState, type ComponentType } from '@wordpress/element';
+import type { ComponentType } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { store as noticesStore } from '@wordpress/notices';
 
-import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
-import { createSortableController } from './sortable-controller';
-import { findBlockElement, resolveTableContext } from './table-context';
+import { useTableReorder } from './use-table-reorder';
 
-const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
-
+/** Core Table blockのbodyを含むattribute形。 */
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
 };
 
+/** HOCが利用するCore Table向けBlockEdit props。 */
 type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
 
-type TableReorderConfigWindow = Window & {
-	yamabikoEditorToolsTableReorder?: {
-		runtimeUrl?: string;
-	};
-};
-
+/**
+ * BlockEditへTable Reorderの描画境界を追加するHOC。
+ *
+ * Table以外のblockは元のBlockEditだけを描画する。Tableではcustom hookが返すstate / callbackを使い、
+ * touch端末向けtoolbarとTable DOM解決の起点となるhidden anchorを追加する。
+ *
+ * @param BlockEdit Gutenbergが提供する元のBlockEdit component。
+ */
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
+	/** Table Reorderを接続したBlockEdit component。 */
 	function WithTableReorder( props: TableBlockEditProps ) {
-		const anchorRef = useRef< HTMLSpanElement >( null );
 		const {
 			attributes: { body },
 			clientId,
@@ -36,104 +42,18 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			setAttributes,
 		} = props;
 		const isTableBlock = props.name === 'core/table';
-		const { createNotice } = useDispatch( noticesStore );
-		const [ isHoverCapable, setIsHoverCapable ] = useState(
-			() => window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
-		);
-		const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
-
-		useEffect( () => {
-			if ( ! isTableBlock ) {
-				return;
-			}
-
-			const hoverMedia = window.matchMedia( HOVER_REORDER_MEDIA_QUERY );
-			const syncHoverCapability = () => {
-				setIsHoverCapable( hoverMedia.matches );
-				if ( hoverMedia.matches ) {
-					setIsTouchReorderMode( false );
-				}
-			};
-
-			syncHoverCapability();
-			hoverMedia.addEventListener( 'change', syncHoverCapability );
-			return () => {
-				hoverMedia.removeEventListener( 'change', syncHoverCapability );
-			};
-		}, [ isTableBlock ] );
-
-		useEffect( () => {
-			if ( ! isSelected ) {
-				setIsTouchReorderMode( false );
-			}
-		}, [ isSelected ] );
-
-		useEffect( () => {
-			if ( ! isTableBlock ) {
-				return;
-			}
-
-			const anchor = anchorRef.current;
-			if ( ! anchor ) {
-				return;
-			}
-
-			const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoEditorToolsTableReorder
-				?.runtimeUrl;
-			if ( ! runtimeUrl ) {
-				return;
-			}
-
-			const context = resolveTableContext( anchor, clientId );
-			if ( ! context ) {
-				return;
-			}
-
-			const hoverMedia = context.window.matchMedia( HOVER_REORDER_MEDIA_QUERY );
-			const useHoverMode = isHoverCapable && hoverMedia.matches;
-			const useTouchMode = ! useHoverMode && isSelected && isTouchReorderMode;
-			if ( ! useHoverMode && ! useTouchMode ) {
-				return;
-			}
-
-			const rowspanRanges = getRowspanRanges( body );
-			const nonMovableRowIndices = getNonMovableRowIndices( rowspanRanges );
-			const forbiddenInsertionIndices = getForbiddenInsertionIndices( rowspanRanges );
-			const controller = createSortableController( {
-				context,
-				forbiddenInsertionIndices,
-				mode: useHoverMode ? 'hover' : 'touch',
-				nonMovableRowIndices,
-				onCommit: ( reorderedBody ) => {
-					setAttributes( { body: reorderedBody } );
-				},
-				onNonMovableRowLongPress: () => {
-					void createNotice(
-						'warning',
-						__( '縦結合を含む行は並び替えできません。', 'yamabiko-editor-tools' ),
-						{ type: 'snackbar' }
-					);
-				},
-				onRequestTouchModeExit: () => {
-					setIsTouchReorderMode( false );
-				},
-				rows: Array.isArray( body ) ? body : null,
-				runtimeUrl,
-			} );
-
-			return () => {
-				controller.destroy();
-			};
-		}, [
+		const {
+			anchorRef,
+			isHoverCapable,
+			isTouchReorderMode,
+			toggleTouchReorderMode,
+		} = useTableReorder( {
 			body,
 			clientId,
-			createNotice,
-			isHoverCapable,
+			enabled: isTableBlock,
 			isSelected,
-			isTableBlock,
-			isTouchReorderMode,
 			setAttributes,
-		] );
+		} );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
@@ -148,7 +68,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 							icon="sort"
 							isPressed={ isTouchReorderMode }
 							label={ __( '行を並び替え', 'yamabiko-editor-tools' ) }
-							onClick={ () => setIsTouchReorderMode( ( isActive ) => ! isActive ) }
+							onClick={ toggleTouchReorderMode }
 							showTooltip
 						/>
 					</BlockControls>
@@ -157,5 +77,3 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			</>
 		);
 	};
-
-export { findBlockElement };
