@@ -1,8 +1,4 @@
-import {
-	getForbiddenInsertionIndices,
-	getNonMovableRowIndices,
-	getRowspanRanges,
-} from './rowspan';
+import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 
 describe( 'getRowspanRanges', () => {
 	it( 'returns no ranges when rowspan is absent', () => {
@@ -26,9 +22,7 @@ describe( 'getRowspanRanges', () => {
 	it.each( [ 1, 0, -2, 2.5, 'invalid', null, undefined, {} ] )(
 		'ignores invalid rowspan value %p',
 		( rowspan ) => {
-			expect( getRowspanRanges( [ { cells: [ { rowspan } ] }, { cells: [ {} ] } ] ) ).toEqual(
-				[]
-			);
+			expect( getRowspanRanges( [ { cells: [ { rowspan } ] }, { cells: [ {} ] } ] ) ).toEqual( [] );
 		}
 	);
 
@@ -45,11 +39,7 @@ describe( 'getRowspanRanges', () => {
 
 	it( 'clamps a rowspan that extends beyond the end of the table', () => {
 		expect(
-			getRowspanRanges( [
-				{ cells: [ {} ] },
-				{ cells: [ { rowspan: 10 } ] },
-				{ cells: [ {} ] },
-			] )
+			getRowspanRanges( [ { cells: [ {} ] }, { cells: [ { rowspan: 10 } ] }, { cells: [ {} ] } ] )
 		).toEqual( [ { start: 1, end: 2 } ] );
 	} );
 
