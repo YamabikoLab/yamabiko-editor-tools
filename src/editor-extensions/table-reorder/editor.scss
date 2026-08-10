@@ -1,0 +1,13 @@
+.yamabiko-editor-tools-table-reorder {
+	box-sizing: border-box;
+}
+
+.yamabiko-editor-tools-table-reorder-content__live-region {
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	height: 1px;
+	overflow: hidden;
+	position: absolute;
+	white-space: nowrap;
+	width: 1px;
+}
