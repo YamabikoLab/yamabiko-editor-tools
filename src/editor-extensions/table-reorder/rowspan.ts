@@ -2,8 +2,7 @@
  * Table Reorderのrowspan制約を行indexの範囲として扱うモジュール。
  *
  * GutenbergのTable body attributeからrowspan範囲を抽出し、
- * 移動できない行indexとrowspanを分断する挿入indexを計算する。
- * DOMやSortableJS instanceは扱わず、rowspanに関する純粋な計算だけを担当する。
+ * 移動できない行indexとrowspanを分断する挿入indexを純粋計算として求める。
  */
 
 /**

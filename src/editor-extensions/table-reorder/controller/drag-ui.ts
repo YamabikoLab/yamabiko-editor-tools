@@ -2,7 +2,7 @@
  * Table Reorderのdrag中だけ存在する一時DOM装飾を管理する。
  *
  * hover handle、insertion line、touch chosen style、fallback drag時のcell width固定など、
- * drag表示と操作補助の生成・復元をここで扱う。SortableJS instance lifecycleやReact stateは扱わない。
+ * drag表示と操作補助の生成・復元、および一時DOM状態のcleanupをここで扱う。
  */
 
 /** hover handle本体に付与するclass。 */

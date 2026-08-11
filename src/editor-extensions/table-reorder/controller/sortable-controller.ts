@@ -37,14 +37,14 @@ const AUTO_SCROLL_SENSITIVITY_PX = 80;
 /** SortableJSのauto-scroll速度。 */
 const AUTO_SCROLL_SPEED_PX = 8;
 
-/** controllerが扱う入力方式。 */
-export type SortableControllerMode = 'hover' | 'touch';
+/** Table Reorderが利用する操作方式。 */
+export type ReorderInteractionMode = 'hover' | 'touch';
 
 /** React / Gutenberg統合層からcontrollerへ渡す設定。 */
 export type SortableControllerOptions = {
 	context: TableContext;
 	forbiddenInsertionIndices: readonly number[];
-	mode: SortableControllerMode;
+	interactionMode: ReorderInteractionMode;
 	nonMovableRowIndices: readonly number[];
 	onCommit: ( reorderedRows: unknown[] ) => void;
 	onNonMovableRowLongPress: () => void;
@@ -111,7 +111,7 @@ export const createSortableController = (
 	const {
 		context: { blockElement, document, tbody, window: view },
 		forbiddenInsertionIndices,
-		mode,
+		interactionMode,
 		nonMovableRowIndices,
 		onCommit,
 		onNonMovableRowLongPress,
@@ -119,7 +119,7 @@ export const createSortableController = (
 		rows,
 		runtimeUrl,
 	} = options;
-	const useHoverMode = mode === 'hover';
+	const useHoverMode = interactionMode === 'hover';
 	const insertionLine = createInsertionLine( document );
 	const hoverHandles = useHoverMode
 		? createHoverHandles( document, tbody, nonMovableRowIndices )
@@ -293,7 +293,13 @@ export const createSortableController = (
 					return;
 				}
 
-				const insertionIndex = getMoveInsertionIndex( event, dragRows );
+				const insertionIndex = getMoveInsertionIndex(
+					{
+						insertAfter: event.willInsertAfter,
+						relatedElement: event.related,
+					},
+					dragRows
+				);
 				if ( insertionIndex === null ) {
 					insertionLine.hide();
 					return;
