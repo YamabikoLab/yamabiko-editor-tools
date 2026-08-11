@@ -15,6 +15,7 @@ const ensureSortableRuntimeMock = ensureSortableRuntime as jest.MockedFunction<
 >;
 
 type TestSortableOptions = {
+	handle?: string;
 	onChoose: ( event: { item: HTMLElement } ) => void;
 	onEnd: ( event: { oldIndex?: number; newIndex?: number } ) => void;
 };
@@ -62,6 +63,12 @@ const getCreatedOptions = ( runtime: SortableRuntime ): TestSortableOptions => {
 	return options as TestSortableOptions;
 };
 
+const dispatchMousePointerEvent = ( target: Element, type: string ) => {
+	const event = new Event( type );
+	Object.defineProperty( event, 'pointerType', { value: 'mouse' } );
+	target.dispatchEvent( event );
+};
+
 const flushPromises = async () => {
 	await Promise.resolve();
 	await Promise.resolve();
@@ -100,6 +107,36 @@ describe( 'createSortableController', () => {
 		await flushPromises();
 
 		expect( runtime.create ).not.toHaveBeenCalled();
+	} );
+
+	it( 'shows the handle when the row is hovered while keeping drag start on the handle zone', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context, tbody } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit: jest.fn(),
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		const firstRow = tbody.rows.item( 0 );
+		const firstHandle = firstRow?.querySelector< HTMLElement >( '.yamabiko-table-reorder-handle' );
+		expect( firstHandle?.style.opacity ).toBe( '0' );
+
+		dispatchMousePointerEvent( firstRow!, 'pointerenter' );
+		expect( firstHandle?.style.opacity ).toBe( '1' );
+		dispatchMousePointerEvent( firstRow!, 'pointerleave' );
+		expect( firstHandle?.style.opacity ).toBe( '0' );
+
+		expect( getCreatedOptions( runtime ).handle ).toBe( '.yamabiko-table-reorder-handle-zone' );
+		controller.destroy();
 	} );
 
 	it( 'restores the original DOM order before committing reordered rows', async () => {
