@@ -4,8 +4,8 @@
 
 - Tracking issue: #34
 - Planning issue: #16
-- Requirements: `../../requirements/outline/outline-requirements.md`
-- Design: `../../design/outline/outline-high-level-design.md`
+- Requirements: `../../../requirements/outline/outline-requirements.md`
+- Design: `../../../design/outline/outline-high-level-design.md`
 
 ## Goal
 
