@@ -10,7 +10,7 @@ Table Reorder extends the Core Table block with row reordering powered by Sortab
 - SortableJS temporarily reorders Gutenberg-owned `<tbody><tr>` elements during dragging.
 - The selected Table is resolved from its owning `document`, so the same implementation works in iframe and non-iframe editors.
 - SortableJS is initialized in the `window` that owns the target Table.
-- On hover-capable devices, an inline handle in the first cell starts dragging without an external Portal handle.
+- On hover-capable devices, hovering a movable row reveals an inline handle at the left edge of the first cell. Dragging still starts only from that handle, not from the row itself.
 - On touch devices, reorder mode enables long-press dragging.
 - Rows involved in vertical merges (`rowspan`) cannot be moved, and insertion positions that would split a merged range are rejected.
 - An insertion line shows the destination while dragging.
@@ -47,7 +47,7 @@ Responsibility boundaries:
 - `index.tsx`: registers the HOC with `editor.BlockEdit`.
 - `with-table-reorder.tsx`: identifies `core/table`, renders the original `BlockEdit`, renders touch reorder controls, and provides the hidden anchor used to locate the Table DOM.
 - `use-table-reorder.ts`: owns hover capability state, touch reorder mode state, selection reset, media-query lifecycle, Table context resolution, constraint calculation, and controller creation / destruction. WordPress notices and `setAttributes()` remain at this React / Gutenberg adapter boundary and are passed to the controller as narrow callbacks.
-- `controller/sortable-controller.ts`: owns SortableJS callbacks, mutable drag session state, temporary block-drag suppression, DOM ownership handoff, and controller cleanup.
+- `controller/sortable-controller.ts`: owns SortableJS callbacks, movable-row hover detection, mutable drag session state, temporary block-drag suppression, DOM ownership handoff, and controller cleanup. The SortableJS `handle` remains the handle zone, so row hover changes visibility only.
 - `table-context.ts`: resolves the Table block and its owning `document`, `window`, `table`, and `tbody`, including iframe fallback.
 - `controller/sortable-runtime.ts`: loads or reuses the SortableJS runtime in the owning editor window.
 - `controller/drag-ui.ts`: owns short-lived drag UI and its restoration, including hover handles, touch-mode DOM changes, insertion line, and fallback row widths.
