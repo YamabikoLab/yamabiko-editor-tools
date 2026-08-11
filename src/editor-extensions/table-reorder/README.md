@@ -34,8 +34,7 @@ table-reorder/
 │  ├─ row-order.ts
 │  ├─ row-order.test.ts
 │  ├─ sortable-runtime.ts
-│  ├─ sortable-runtime.test.ts
-│  └─ sortablejs.d.ts
+│  └─ sortable-runtime.test.ts
 ├─ table-context.ts
 ├─ table-context.test.ts
 ├─ rowspan.ts
@@ -55,7 +54,6 @@ Responsibility boundaries:
 - `controller/touch-press.ts`: owns touch / pen long-press pointer tracking and cleanup.
 - `controller/row-order.ts`: owns deterministic row reordering, insertion index calculation, and restoration of the original DOM row order.
 - `rowspan.ts`: owns vertical-merge range analysis and movement / insertion restrictions.
-- `controller/sortablejs.d.ts`: declares only the SortableJS API surface used by this extension.
 
 The dependency direction stays from the Gutenberg / React boundary toward lower-level modules. Lower-level modules do not depend on the HOC or custom hook.
 
