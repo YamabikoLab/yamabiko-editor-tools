@@ -128,7 +128,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		const controller = createSortableController( {
 			context,
 			forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
-			mode: useHoverMode ? 'hover' : 'touch',
+			interactionMode: useHoverMode ? 'hover' : 'touch',
 			nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
 			onCommit: ( reorderedBody ) => {
 				setAttributesRef.current( { body: reorderedBody } );

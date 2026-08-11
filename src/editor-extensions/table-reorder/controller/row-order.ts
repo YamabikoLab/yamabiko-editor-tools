@@ -1,20 +1,15 @@
 /**
  * Table Reorderの行順序計算を扱うモジュール。
  *
- * React / Gutenbergの状態管理やSortableJS instanceのlifecycleは扱わず、
- * 行配列の並び替えと、drag中・drag完了時の挿入index計算だけを担当する。
+ * 行配列の並び替え、drag中・drag完了時の挿入index計算、元DOM順序への復元を担当する。
  * DOMの一時的な並び替えをsource of truthにせず、Gutenbergへcommitするための
  * 決定的な行順序計算と元DOM順序への復元をこのファイルに集約する。
  */
 
-/**
- * SortableJSのonMove callbackから、挿入位置の判定に必要な情報だけを表す。
- *
- * SortableJS本体の型に直接依存させず、行順序の計算に必要な境界だけをこのモジュールで扱う。
- */
-type SortableMoveEventLike = {
-	related: HTMLElement;
-	willInsertAfter: boolean;
+/** drag中の挿入位置計算に必要な汎用入力。 */
+type MoveInsertionTarget = {
+	relatedElement: HTMLElement;
+	insertAfter: boolean;
 };
 
 /**
@@ -50,25 +45,25 @@ export const reorderRows = (
 };
 
 /**
- * SortableJSのonMove情報から、現在のDOM行一覧に対する挿入位置を求める。
+ * drag中の移動先情報から、現在のDOM行一覧に対する挿入位置を求める。
  *
- * relatedが行要素に属さない場合や、その行がrowsに含まれない場合はnullを返す。
- * willInsertAfterがtrueの場合は関連行の直後を挿入位置として扱う。
+ * relatedElementが行要素に属さない場合や、その行がrowsに含まれない場合はnullを返す。
+ * insertAfterがtrueの場合は関連行の直後を挿入位置として扱う。
  *
- * @param event SortableJSのmove情報。
- * @param rows  drag開始時に取得したDOM行一覧。
+ * @param target drag中の関連要素と挿入方向。
+ * @param rows   drag開始時に取得したDOM行一覧。
  */
 export const getMoveInsertionIndex = (
-	event: SortableMoveEventLike,
+	target: MoveInsertionTarget,
 	rows: readonly HTMLTableRowElement[]
 ): number | null => {
-	const relatedRow = event.related.closest< HTMLTableRowElement >( 'tr' );
+	const relatedRow = target.relatedElement.closest< HTMLTableRowElement >( 'tr' );
 	if ( ! relatedRow ) {
 		return null;
 	}
 
 	const relatedIndex = rows.indexOf( relatedRow );
-	return relatedIndex < 0 ? null : relatedIndex + ( event.willInsertAfter ? 1 : 0 );
+	return relatedIndex < 0 ? null : relatedIndex + ( target.insertAfter ? 1 : 0 );
 };
 
 /**

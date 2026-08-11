@@ -2,7 +2,7 @@
  * Table Reorderのtouch press追跡を管理する。
  *
  * touch / pen pointerのpress状態、長押しtimer、移動threshold、短いtap判定を所有する。
- * SortableJS lifecycleやReact stateは扱わず、結果は狭いcallbackで呼び出し元へ通知する。
+ * 結果は狭いcallbackで呼び出し元へ通知し、listenerとtimerのcleanupまでこのモジュールで完結させる。
  */
 
 /** touch modeでdrag開始と長押し通知に使う待機時間。 */

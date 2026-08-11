@@ -2,8 +2,8 @@
  * Table Reorderが利用する editor DOM contextを解決する。
  *
  * anchorのowning documentをrootとして優先し、対象blockがrootに存在しない場合だけ
- * `iframe[name="editor-canvas"]`へfallbackする。ここではDOM / document / window / tableの
- * 対応関係だけを扱い、SortableJS runtimeやinstance lifecycleは扱わない。
+ * `iframe[name="editor-canvas"]`へfallbackし、対象Table blockと同じdocument / window / table / tbodyを
+ * 一つのcontextとして返す。
  */
 
 /**

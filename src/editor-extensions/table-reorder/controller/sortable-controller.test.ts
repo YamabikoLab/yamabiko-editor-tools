@@ -86,7 +86,7 @@ describe( 'createSortableController', () => {
 		const controller = createSortableController( {
 			context,
 			forbiddenInsertionIndices: [],
-			mode: 'touch',
+			interactionMode: 'touch',
 			nonMovableRowIndices: [],
 			onCommit: jest.fn(),
 			onNonMovableRowLongPress: jest.fn(),
@@ -113,7 +113,7 @@ describe( 'createSortableController', () => {
 		const controller = createSortableController( {
 			context,
 			forbiddenInsertionIndices: [],
-			mode: 'touch',
+			interactionMode: 'touch',
 			nonMovableRowIndices: [],
 			onCommit,
 			onNonMovableRowLongPress: jest.fn(),
