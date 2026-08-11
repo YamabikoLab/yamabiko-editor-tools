@@ -63,9 +63,9 @@ describe( 'getMoveInsertionIndex', () => {
 	it( 'uses the related tr itself for insertion before the row', () => {
 		const { rows } = createTableRows( 3 );
 
-		expect(
-			getMoveInsertionIndex( { relatedElement: rows[ 1 ], insertAfter: false }, rows )
-		).toBe( 1 );
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 1 ], insertAfter: false }, rows ) ).toBe(
+			1
+		);
 	} );
 
 	it( 'resolves a child element to its containing tr', () => {
@@ -74,33 +74,30 @@ describe( 'getMoveInsertionIndex', () => {
 
 		expect( child ).not.toBeNull();
 		expect(
-			getMoveInsertionIndex(
-				{ relatedElement: child as HTMLElement, insertAfter: false },
-				rows
-			)
+			getMoveInsertionIndex( { relatedElement: child as HTMLElement, insertAfter: false }, rows )
 		).toBe( 2 );
 	} );
 
 	it( 'returns the position after the related row when requested', () => {
 		const { rows } = createTableRows( 4 );
 
-		expect(
-			getMoveInsertionIndex( { relatedElement: rows[ 1 ], insertAfter: true }, rows )
-		).toBe( 2 );
-		expect(
-			getMoveInsertionIndex( { relatedElement: rows[ 3 ], insertAfter: true }, rows )
-		).toBe( 4 );
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 1 ], insertAfter: true }, rows ) ).toBe(
+			2
+		);
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 3 ], insertAfter: true }, rows ) ).toBe(
+			4
+		);
 	} );
 
 	it( 'supports insertion positions used while moving upward and downward', () => {
 		const { rows } = createTableRows( 4 );
 
-		expect(
-			getMoveInsertionIndex( { relatedElement: rows[ 0 ], insertAfter: false }, rows )
-		).toBe( 0 );
-		expect(
-			getMoveInsertionIndex( { relatedElement: rows[ 2 ], insertAfter: true }, rows )
-		).toBe( 3 );
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 0 ], insertAfter: false }, rows ) ).toBe(
+			0
+		);
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 2 ], insertAfter: true }, rows ) ).toBe(
+			3
+		);
 	} );
 
 	it( 'returns null when the related tr is not in the supplied rows', () => {
@@ -108,10 +105,7 @@ describe( 'getMoveInsertionIndex', () => {
 		const unrelatedRow = document.createElement( 'tr' );
 
 		expect(
-			getMoveInsertionIndex(
-				{ relatedElement: unrelatedRow, insertAfter: false },
-				rows
-			)
+			getMoveInsertionIndex( { relatedElement: unrelatedRow, insertAfter: false }, rows )
 		).toBeNull();
 	} );
 
@@ -120,10 +114,7 @@ describe( 'getMoveInsertionIndex', () => {
 		const unrelatedElement = document.createElement( 'div' );
 
 		expect(
-			getMoveInsertionIndex(
-				{ relatedElement: unrelatedElement, insertAfter: false },
-				rows
-			)
+			getMoveInsertionIndex( { relatedElement: unrelatedElement, insertAfter: false }, rows )
 		).toBeNull();
 	} );
 } );
