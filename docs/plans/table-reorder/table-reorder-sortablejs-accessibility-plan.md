@@ -98,6 +98,7 @@ controllerには必要最小限の一時sessionだけを追加する。
 - 移動可能行へ対応する行の並べ替えcontrolの生成・cleanup
 - controlの表示、フォーカス、選択中状態の反映
 - PC hover時とキーボードfocus時の短い操作案内
+- touch reorder mode中の短い操作案内
 - 単一ポインター操作時の有効な行間target UIの生成・位置更新・cleanup
 - owning `document` 内の支援技術向けstatus nodeの生成・cleanup
 - 行control / target UIの位置計測と、必要な範囲のスクロール補助
@@ -106,7 +107,7 @@ controllerには必要最小限の一時sessionだけを追加する。
 
 `drag-ui.ts` から既存hover handle生成部分を `reorder-ui.ts` へ移し、同じcontrolをPCのSortableJS handle、クリック入口、キーボード入口として共用する。insertion line、touch drag UI、fallback row widthは `drag-ui.ts` に残す。
 
-永続的なfocus表示、Target Size、選択状態、target UIのhit areaはinline styleを増やし続けず、新規 `editor.scss` に置く。`index.tsx` はこのeditor styleをimportするだけとし、entry pointを太らせない。
+永続的なfocus表示、Target Size、選択状態、target UIのhit areaはinline styleを増やし続けず、新規 `editor.scss` に置く。`index.tsx` はこのeditor styleをimportし、`@wordpress/scripts` が生成する `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` の `enqueue_block_editor_assets` 経路からeditorへenqueueする。JS entryのimportだけで配信済みとみなさず、生成CSSのWordPress側配信までを実装境界に含める。
 
 ### 5. focus復元はGutenberg commit境界をまたいで明示的に扱う
 
@@ -140,6 +141,7 @@ iframe / non-iframeの差を上位へ漏らさないため、行control、target
 | Module | Plan |
 |---|---|
 | `index.tsx` | `editor.scss` のimportだけを追加する。登録責務は変更しない。 |
+| `yamabiko-editor-tools.php` | 生成された `build/editor-extensions/table-reorder/index.css` が存在する場合にTable Reorderのeditor styleとしてenqueueする。既存script enqueueとruntime configの責務は維持する。 |
 | `with-table-reorder.tsx` | PC / タッチのToolbar入口を基本設計に合わせて描画し、controllerへのfocus要求をhook経由で呼ぶ。PCではモードを新設しない。 |
 | `use-table-reorder.ts` | controller ref、Toolbar focus bridge、commit後のpending focus復元を追加する。既存hover / touch mode lifecycleとrowspan制約算出は維持する。 |
 | `table-context.ts` | iframe / non-iframeのowning document / window解決をそのまま再利用する。追加が必要でもcontext解決の範囲に限定する。 |
@@ -149,7 +151,7 @@ iframe / non-iframeの差を上位へ漏らさないため、行control、target
 | `controller/drag-ui.ts` | insertion line、touch drag装飾、fallback幅固定を維持する。行control生成は新しい `reorder-ui.ts` へ移す。 |
 | `controller/row-order.ts` | 入力方式共通の移動可否、次の有効な移動先、target一覧、no-op判定を追加する。行順計算の正本とする。 |
 | `controller/touch-press.ts` | 行controlの短いtapを「セル編集へ戻るtap」と誤判定しない除外境界を追加する。既存長押しthreshold / cleanupは維持する。 |
-| `controller/reorder-ui.ts` | 新規。行control、pointer target、短い案内、live status、focus / position / scroll補助を所有する。 |
+| `controller/reorder-ui.ts` | 新規。行control、pointer target、PC / touch向けの短い案内、live status、focus / position / scroll補助を所有する。 |
 | `editor.scss` | 新規。focus可視性、選択状態、Target Size、target UI、案内の見た目を所有する。 |
 | `README.md` | 実装後の責務・操作フロー・新規fileを反映する。 |
 
@@ -168,7 +170,7 @@ iframe / non-iframeの差を上位へ漏らさないため、行control、target
 | `A11Y-FR-09` 支援技術への情報提供 | `sortable-controller.ts`、`reorder-ui.ts` |
 | `A11Y-FR-10` 名前・役割・状態 | `reorder-ui.ts`、`sortable-controller.ts` |
 | `A11Y-FR-11` 基本要件の共有 | `rowspan.ts`、`row-order.ts`、`sortable-controller.ts` |
-| `A11Y-FR-12` 編集環境 | `table-context.ts`、`sortable-runtime.ts`、`sortable-controller.ts`、`reorder-ui.ts` |
+| `A11Y-FR-12` 編集環境 | `table-context.ts`、`sortable-runtime.ts`、`sortable-controller.ts`、`reorder-ui.ts`、`yamabiko-editor-tools.php` |
 
 ### Main control flow
 
@@ -233,14 +235,21 @@ single-pointer session開始
 row-order.tsで有効な移動先を列挙
         ↓
 reorder-ui.tsで行間targetを表示
-        ↓
-targetをclick / tap
-        ↓
-共通move validation + reorderRows()
-        ↓
-pending focusを保存してsetAttributes()
-        ↓
-再生成controllerが移動後の同じ行controlへfocus
+        ├─ targetをclick / tap
+        │       ↓
+        │  共通move validation + reorderRows()
+        │       ↓
+        │  pending focusを保存してsetAttributes()
+        │       ↓
+        │  再生成controllerが移動後の同じ行controlへfocus
+        │
+        └─ 選択中のrow controlを再click / tap
+                ↓
+           sessionをcancel
+                ↓
+           bodyは変更せず開始行controlへfocus
+
+Touchでは「行を並び替え」モードをOFFにした場合も、activeなsingle-pointer sessionをcommitせずcancelしてからmode cleanupする。
 ```
 
 ## Implementation phases
@@ -269,11 +278,13 @@ pending focusを保存してsetAttributes()
   - `with-table-reorder.tsx` / `use-table-reorder.ts` にToolbar focus bridgeを追加する。
   - controllerで最後に操作していたtbody行を追跡し、基本設計のfocus優先順位を実現する。
   - 新規 `editor.scss` でfocus表示と最低target sizeを実装する。
+  - `yamabiko-editor-tools.php` で生成された `build/editor-extensions/table-reorder/index.css` をTable Reorderのeditor styleとしてenqueueする。CSSが未生成の場合は既存script経路を壊さないよう独立して存在確認する。
 - Validation:
   - Toolbarを実行しただけでは並べ替えsessionを開始しない。
   - 現在行が移動不能ならToolbarへfocusを維持し、理由を通知できる。
   - `Tab` / `Shift + Tab` は独自循環を作らず通常のfocus順で行control間と外部へ移動する。
   - hoverによるPCの既存drag開始が維持される。
+  - iframe / non-iframeの両方で、生成CSSがeditorへ配信され、row controlのfocus表示とTarget Sizeが実際に適用される。
 
 ### Phase 3: キーボード並べ替えを接続する
 
@@ -299,10 +310,14 @@ pending focusを保存してsetAttributes()
   - `reorder-ui.ts` でrowspan途中を除いた行間target buttonをowning document上へ表示し、scroll / resizeに追従させる。
   - PCではSortableJS drag後のclickを抑制し、dragをsingle-pointer開始として二重処理しない。
   - `touch-press.ts` でrow controlの短いtapをセル編集tap扱いから除外し、通常セルの短tapは従来どおりtouch reorder modeを終了して編集へ戻す。
+  - 選択中のrow controlをもう一度click / tapした場合はsingle-pointer sessionをcancelし、target UIをcleanupして開始行controlへfocusを戻す。専用cancel buttonは追加しない。
+  - touch reorder modeをOFFにする既存Toolbar操作では、activeなsingle-pointer sessionをcommitせずcancelしてからmode cleanupする。
   - target選択時はtargetへfocusされた後、commit再描画を経て移動後の同じ行controlへfocusする。
 - Validation:
   - PCで「drag」と「click」が同じcontrol上で共存する。
   - タッチで「セル短tap」「行長押しDnD」「row control tap」が三つの別経路として成立する。
+  - PC / タッチとも選択中のrow controlを再操作すれば確定せず終了でき、データを変更しない。
+  - touch reorder modeをOFFにした場合もactive sessionが残らず、データを変更しない。
   - target UIがrowspan途中を表示せず、キャンセルではデータを変更しない。
 
 ### Phase 5: 案内、通知、focus / scrollを完成させる
@@ -310,13 +325,15 @@ pending focusを保存してsetAttributes()
 - Outcome: `A11Y-FR-05` ～ `A11Y-FR-10` を満たす操作文脈、短い案内、支援技術向け通知、focus可視性、Focus Not Obscuredが揃う。
 - Tasks:
   - PC hover / focus時の「ドラッグして移動 / クリックして移動先を選択」を再確認可能な案内として実装する。
-  - single-pointer session開始後とkeyboard session中の短い操作案内を実装する。
+  - touch reorder mode中に、少なくとも「行を並び替えモードから操作する」「セル短tapは通常編集」「行長押しは既存DnD」「row control tapはドラッグ不要の移動先選択」を確認できる短い案内を実装する。
+  - single-pointer session開始後とkeyboard session中の短い操作案内を実装する。single-pointerでは選択中のrow controlを再操作するとcancelできることも案内する。
   - owning document内のlive status nodeと重複通知抑制を実装する。
   - row controlに現在の操作対象であることを表す状態を付与し、focus表示とは区別する。
   - keyboard候補変更時に現在候補と移動方向側の次の有効位置を可能な範囲で見えるようscrollを補助する。
   - pointer target表示中も元のrow controlをTable Reorder自身のUIで完全に隠さない。
 - Validation:
   - 開始、候補変更、確定、キャンセル、移動不能が必要な情報だけ通知される。
+  - touch reorder mode中に、セル短tap / 行長押し / row control tapの違いとモード経由の操作であることを画面上から再確認できる。
   - key repeatや同じ無効操作で同一通知を連続発火しない。
   - row control / targetのhit areaがWCAG 2.2 2.5.8の最低要件を満たす。
   - focusされたcontrolがTable Reorderの案内 / target UIによって完全に隠れない。
@@ -328,6 +345,7 @@ pending focusを保存してsetAttributes()
   - controller / reorder UI / touch pressのfocused unit testを追加・更新する。
   - Playwrightで安定して再現できるkeyboard / pointer経路を追加する。支援技術固有挙動は手動確認へ残す。
   - iframe / non-iframeの両環境でfocus、target位置、live statusがowning document内にあることを確認する。
+  - iframe / non-iframeの両環境で `index.css` がeditorへ配信され、row control / target / 案内のstyleが適用されることを確認する。
   - 既存PC drag、touch long-press drag、rowspan warning、DOM restore before commit、Undo、セル編集を回帰確認する。
   - `src/editor-extensions/table-reorder/README.md` のfile責務とcontrol flowを更新する。
 - Validation:
@@ -345,7 +363,8 @@ pending focusを保存してsetAttributes()
 - 移動可否と移動後配列の計算は `row-order.ts` / `rowspan.ts` を正本とし、入力方式別に複製しない。
 - Gutenberg再描画をまたぐfocus復元requestだけを `use-table-reorder.ts` がrefで保持する。
 - 行control / target /案内 / live statusは新規 `reorder-ui.ts` に集約し、drag専用UIは `drag-ui.ts` に残す。
-- persistentなaccessibility UIの見た目は新規 `editor.scss` に置き、汎用style基盤を追加しない。
+- persistentなaccessibility UIの見た目は新規 `editor.scss` に置き、生成された `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` からeditorへenqueueする。汎用style基盤は追加しない。
+- single-pointer sessionのpointer-onlyなcancelは、選択中のrow controlを再click / tapして終了する。touch reorder modeをOFFにする場合もactive sessionをcancelしてからcleanupし、専用cancel buttonは追加しない。
 - 支援技術向けstatusはowning document内へTable Reorder自身が一つだけ生成し、新規npm dependencyを追加しない。
 - 初回コーチマークは本実装の完了条件に含めず、閉じた後も使える短い案内を必須経路とする。
 
@@ -386,7 +405,7 @@ pending focusを保存してsetAttributes()
 - `npm test`
   - format、JavaScript lint、CSS lint、typecheck、Jest unit testが成功する。
 - `npm run build`
-  - `editor.scss` を含むTable Reorder production assetが生成できる。
+  - `editor.scss` を含むTable Reorder production assetとして `build/editor-extensions/table-reorder/index.css` が生成できる。
 - `git diff --check origin/main...HEAD`
   - whitespace errorがない。
 - focused Jest
@@ -398,6 +417,7 @@ pending focusを保存してsetAttributes()
 - Playwright
   - PC Toolbar → keyboard row control → move → confirm / cancel
   - PC handle dragとhandle clickの共存
+  - PC / touchのsingle-pointer開始 → row control再操作によるcancel
   - stableに自動化できる範囲のtouch mode / single-pointer経路
   - iframe環境を基準にし、non-iframeは対応するwp-dev環境でも確認する
 
@@ -409,10 +429,14 @@ pending focusを保存してsetAttributes()
   - `Tab` / `Shift + Tab` が論理順で動き、端でTable Reorder外へ出られる。
   - keyboard開始 / 上下移動 / 確定 / cancelが仕様どおり。
   - handleをdragすれば既存DnD、clickすればsingle-pointer選択になる。
+  - single-pointer選択中に同じrow controlを再clickするとcancelでき、行順を変更しない。
   - cell clickは従来どおり編集になる。
 - Touch環境
   - reorder mode開始だけでは特定行を自動選択しない。
+  - reorder mode中に、セル短tapは通常編集、行長押しは既存DnD、row control tapはドラッグ不要の移動先選択であることを画面上から確認できる。
   - cell短tapは編集、row長押しはDnD、row control tapはsingle-pointer選択になる。
+  - single-pointer選択中に同じrow controlを再tapするとcancelでき、行順を変更しない。
+  - single-pointer選択中にToolbarからreorder modeをOFFにしてもsessionが残らず、行順を変更しない。
   - non-movable row長押しwarningが維持される。
   - 外付けkeyboard相当の操作でkeyboard経路を完了できる。
 - rowspan
@@ -424,6 +448,9 @@ pending focusを保存してsetAttributes()
   - row control / targetの操作領域を実測しTarget Sizeを確認する。
   - 長いTableで上下移動し、現在候補と移動方向側の次の有効位置を可能な範囲で確認できる。
   - Table Reorder自身の案内・targetがfocus controlを完全に隠さない。
+- Editor asset delivery
+  - iframe / non-iframeの両環境で `build/editor-extensions/table-reorder/index.css` がeditorへ読み込まれる。
+  - row controlのfocus ring、Target Size、選択状態、pointer target、操作案内に `editor.scss` のstyleが実際に適用される。
 - Support technology
   - 少なくとも一つの主要screen reader + Chrome系browserで、row名、開始、移動先変更、確定、cancel、移動不能理由を確認する。
   - 同じ無効操作やkey repeatで不要な同一通知が連続しない。
@@ -438,9 +465,11 @@ pending focusを保存してsetAttributes()
 - `A11Y-FR-01` ～ `A11Y-FR-12` の各要件が上記module境界のいずれかへ対応付いている。
 - keyboard、single pointer、既存SortableJS DnDが `row-order.ts` / `rowspan.ts` の共通移動可否を利用する計画になっている。
 - 既存の `use-table-reorder.ts`、`with-table-reorder.tsx`、`table-context.ts`、`rowspan.ts`、controller各moduleの再利用範囲が明確である。
-- 新規責務が `reorder-ui.ts` と `editor.scss` に限定され、汎用基盤や入力方式別の重複ロジックを作らない。
+- 新規責務が `reorder-ui.ts` と `editor.scss` を中心に限定され、生成CSSのeditor配信だけを `yamabiko-editor-tools.php` に追加し、汎用基盤や入力方式別の重複ロジックを作らない。
 - Gutenberg commitをまたぐfocus復元と、drag時には不要なfocus変更を行わない境界が明確である。
-- PC drag / click、touch short tap / long press / control tapの競合を実装・検証する順序が明確である。
+- PC drag / click、touch short tap / long press / control tapの競合と、single-pointerの確定しないcancel経路を実装・検証する順序が明確である。
+- touch reorder mode中に必要な操作案内を実装・確認する計画がある。
+- iframe / non-iframeの両方でTable Reorderの生成CSS配信を検証する計画がある。
 - unit test、Playwright、手動accessibility確認、iframe / non-iframe回帰の役割分担が明確である。
 - 各実装Phaseを単独レビュー可能なIssueへ分割できる。
 
