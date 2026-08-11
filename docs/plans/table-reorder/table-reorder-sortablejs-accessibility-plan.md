@@ -478,3 +478,4 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - 旧dnd-kit版アクセシビリティplanは過去資料としてのみ扱う。Portal handle、旧mode、旧state構成を現行実装へ戻す根拠にはしない。
 - `sortable-runtime.ts` と `table-context.ts` は現行のowning window / document境界がすでにiframe / non-iframe共通化の土台になっているため、アクセシビリティ専用のeditor mode分岐を上位へ増やさない。
 - 現在の `drag-ui.ts` は多くのinline styleを持つが、本Issueを既存drag UI全体のstyle refactorへ広げない。新しく追加するpersistent accessibility UIだけを `editor.scss` へ置く。
+- 実装中にcontrollerが過大化する兆候が出ても、先に汎用層を追加しない。keyboard / pointer sessionの純粋計算として独立できる責務が実際に生じた場合だけ、feature内のfocused moduleへ分離する。
