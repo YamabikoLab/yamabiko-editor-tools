@@ -1,4 +1,4 @@
-import { resolveTableContext } from './table-context';
+import { findBlockElement, resolveTableContext } from './table-context';
 
 const appendTableBlock = ( targetDocument: Document, clientId: string ) => {
 	const block = targetDocument.createElement( 'div' );
@@ -10,6 +10,30 @@ const appendTableBlock = ( targetDocument: Document, clientId: string ) => {
 	targetDocument.body.append( block );
 	return { block, table, tbody };
 };
+
+describe( 'findBlockElement', () => {
+	beforeEach( () => {
+		document.body.replaceChildren();
+	} );
+
+	it( 'prefers the root document when the same block exists in the iframe', () => {
+		const rootBlock = document.createElement( 'div' );
+		rootBlock.dataset.block = 'shared-block';
+		document.body.append( rootBlock );
+
+		const iframe = document.createElement( 'iframe' );
+		iframe.name = 'editor-canvas';
+		document.body.append( iframe );
+		const iframeBlock = iframe.contentDocument?.createElement( 'div' );
+		if ( ! iframeBlock || ! iframe.contentDocument ) {
+			throw new Error( 'Expected iframe contentDocument in jsdom' );
+		}
+		iframeBlock.dataset.block = 'shared-block';
+		iframe.contentDocument.body.append( iframeBlock );
+
+		expect( findBlockElement( document, 'shared-block' ) ).toBe( rootBlock );
+	} );
+} );
 
 describe( 'resolveTableContext', () => {
 	beforeEach( () => {

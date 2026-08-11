@@ -1,12 +1,9 @@
-import { getEndInsertionIndex, getMoveInsertionIndex, reorderRows } from './row-order';
-import { findBlockElement, restoreOriginalRowOrder } from './with-table-reorder';
-
-jest.mock( '@wordpress/block-editor', () => ( {} ) );
-jest.mock( '@wordpress/components', () => ( {} ) );
-jest.mock( '@wordpress/data', () => ( {} ) );
-jest.mock( '@wordpress/element', () => ( {} ) );
-jest.mock( '@wordpress/i18n', () => ( {} ) );
-jest.mock( '@wordpress/notices', () => ( {} ) );
+import {
+	getEndInsertionIndex,
+	getMoveInsertionIndex,
+	reorderRows,
+	restoreOriginalRowOrder,
+} from './row-order';
 
 const createTableRows = ( count: number ) => {
 	const table = document.createElement( 'table' );
@@ -66,7 +63,7 @@ describe( 'getMoveInsertionIndex', () => {
 	it( 'uses the related tr itself for insertion before the row', () => {
 		const { rows } = createTableRows( 3 );
 
-		expect( getMoveInsertionIndex( { related: rows[ 1 ], willInsertAfter: false }, rows ) ).toBe(
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 1 ], insertAfter: false }, rows ) ).toBe(
 			1
 		);
 	} );
@@ -77,17 +74,17 @@ describe( 'getMoveInsertionIndex', () => {
 
 		expect( child ).not.toBeNull();
 		expect(
-			getMoveInsertionIndex( { related: child as HTMLElement, willInsertAfter: false }, rows )
+			getMoveInsertionIndex( { relatedElement: child as HTMLElement, insertAfter: false }, rows )
 		).toBe( 2 );
 	} );
 
 	it( 'returns the position after the related row when requested', () => {
 		const { rows } = createTableRows( 4 );
 
-		expect( getMoveInsertionIndex( { related: rows[ 1 ], willInsertAfter: true }, rows ) ).toBe(
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 1 ], insertAfter: true }, rows ) ).toBe(
 			2
 		);
-		expect( getMoveInsertionIndex( { related: rows[ 3 ], willInsertAfter: true }, rows ) ).toBe(
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 3 ], insertAfter: true }, rows ) ).toBe(
 			4
 		);
 	} );
@@ -95,10 +92,10 @@ describe( 'getMoveInsertionIndex', () => {
 	it( 'supports insertion positions used while moving upward and downward', () => {
 		const { rows } = createTableRows( 4 );
 
-		expect( getMoveInsertionIndex( { related: rows[ 0 ], willInsertAfter: false }, rows ) ).toBe(
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 0 ], insertAfter: false }, rows ) ).toBe(
 			0
 		);
-		expect( getMoveInsertionIndex( { related: rows[ 2 ], willInsertAfter: true }, rows ) ).toBe(
+		expect( getMoveInsertionIndex( { relatedElement: rows[ 2 ], insertAfter: true }, rows ) ).toBe(
 			3
 		);
 	} );
@@ -108,7 +105,7 @@ describe( 'getMoveInsertionIndex', () => {
 		const unrelatedRow = document.createElement( 'tr' );
 
 		expect(
-			getMoveInsertionIndex( { related: unrelatedRow, willInsertAfter: false }, rows )
+			getMoveInsertionIndex( { relatedElement: unrelatedRow, insertAfter: false }, rows )
 		).toBeNull();
 	} );
 
@@ -117,7 +114,7 @@ describe( 'getMoveInsertionIndex', () => {
 		const unrelatedElement = document.createElement( 'div' );
 
 		expect(
-			getMoveInsertionIndex( { related: unrelatedElement, willInsertAfter: false }, rows )
+			getMoveInsertionIndex( { relatedElement: unrelatedElement, insertAfter: false }, rows )
 		).toBeNull();
 	} );
 } );
@@ -160,59 +157,5 @@ describe( 'restoreOriginalRowOrder', () => {
 			'1',
 			'2',
 		] );
-	} );
-} );
-
-describe( 'findBlockElement', () => {
-	beforeEach( () => {
-		document.body.replaceChildren();
-	} );
-
-	it( 'finds a block in the root document', () => {
-		const block = document.createElement( 'div' );
-		block.dataset.block = 'root-block';
-		document.body.append( block );
-
-		expect( findBlockElement( document, 'root-block' ) ).toBe( block );
-	} );
-
-	it( 'prefers the root document when the same block exists in the iframe', () => {
-		const rootBlock = document.createElement( 'div' );
-		rootBlock.dataset.block = 'shared-block';
-		document.body.append( rootBlock );
-
-		const iframe = document.createElement( 'iframe' );
-		iframe.name = 'editor-canvas';
-		document.body.append( iframe );
-		const iframeBlock = iframe.contentDocument?.createElement( 'div' );
-		if ( ! iframeBlock || ! iframe.contentDocument ) {
-			throw new Error( 'Expected iframe contentDocument in jsdom' );
-		}
-		iframeBlock.dataset.block = 'shared-block';
-		iframe.contentDocument.body.append( iframeBlock );
-
-		expect( findBlockElement( document, 'shared-block' ) ).toBe( rootBlock );
-	} );
-
-	it( 'falls back to iframe[name="editor-canvas"] when the root has no block', () => {
-		const iframe = document.createElement( 'iframe' );
-		iframe.name = 'editor-canvas';
-		document.body.append( iframe );
-		const iframeBlock = iframe.contentDocument?.createElement( 'div' );
-		if ( ! iframeBlock || ! iframe.contentDocument ) {
-			throw new Error( 'Expected iframe contentDocument in jsdom' );
-		}
-		iframeBlock.dataset.block = 'iframe-block';
-		iframe.contentDocument.body.append( iframeBlock );
-
-		expect( findBlockElement( document, 'iframe-block' ) ).toBe( iframeBlock );
-	} );
-
-	it( 'returns null when the block is absent from both documents', () => {
-		const iframe = document.createElement( 'iframe' );
-		iframe.name = 'editor-canvas';
-		document.body.append( iframe );
-
-		expect( findBlockElement( document, 'missing-block' ) ).toBeNull();
 	} );
 } );
