@@ -253,8 +253,8 @@ export const createSortableController = (
 			entry.zone.addEventListener( 'pointerdown', onZonePointerDown );
 		}
 
-		const hoveredEntry = entries.find( ( entry ) =>
-			entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
+		const hoveredEntry = entries.find(
+			( entry ) => entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
 		);
 		if ( hoveredEntry ) {
 			activateEntry( hoveredEntry );
@@ -334,8 +334,8 @@ export const createSortableController = (
 				restoreDragRows();
 
 				if ( useHoverMode ) {
-					const hoveredAfterDrag = entries.find( ( entry ) =>
-						entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
+					const hoveredAfterDrag = entries.find(
+						( entry ) => entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
 					);
 					if ( hoveredAfterDrag ) {
 						activateEntry( hoveredAfterDrag );

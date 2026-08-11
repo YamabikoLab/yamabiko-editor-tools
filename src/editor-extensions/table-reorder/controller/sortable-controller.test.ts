@@ -127,9 +127,7 @@ describe( 'createSortableController', () => {
 		await flushPromises();
 
 		const firstRow = tbody.rows.item( 0 );
-		const firstHandle = firstRow?.querySelector< HTMLElement >(
-			'.yamabiko-table-reorder-handle'
-		);
+		const firstHandle = firstRow?.querySelector< HTMLElement >( '.yamabiko-table-reorder-handle' );
 		expect( firstHandle?.style.opacity ).toBe( '0' );
 
 		dispatchMousePointerEvent( firstRow!, 'pointerenter' );
@@ -137,9 +135,7 @@ describe( 'createSortableController', () => {
 		dispatchMousePointerEvent( firstRow!, 'pointerleave' );
 		expect( firstHandle?.style.opacity ).toBe( '0' );
 
-		expect( getCreatedOptions( runtime ).handle ).toBe(
-			'.yamabiko-table-reorder-handle-zone'
-		);
+		expect( getCreatedOptions( runtime ).handle ).toBe( '.yamabiko-table-reorder-handle-zone' );
 		controller.destroy();
 	} );
 
