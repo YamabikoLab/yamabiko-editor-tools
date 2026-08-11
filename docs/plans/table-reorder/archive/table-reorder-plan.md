@@ -3,8 +3,8 @@
 ## References
 
 - Parent issue: https://github.com/YamabikoLab/yamabiko-editor-tools/issues/75
-- Requirements: `docs/requirements/table-reorder/table-reorder-requirements.md`
-- Design: `docs/design/table-reorder/table-reorder-design.md`
+- Requirements: `docs/requirements/table-reorder/archive/table-reorder-requirements.md`
+- Design: `docs/design/table-reorder/archive/table-reorder-design.md`
 - Source organization: `docs/development/source-organization.md`
 - React Quickstart: https://dndkit.com/react/quickstart/
 - Sensors: https://dndkit.com/react/guides/sensors/

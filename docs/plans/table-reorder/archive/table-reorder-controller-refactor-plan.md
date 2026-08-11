@@ -6,8 +6,8 @@
 - Parent issue: https://github.com/YamabikoLab/yamabiko-editor-tools/issues/116
 - Jest preparation: https://github.com/YamabikoLab/yamabiko-editor-tools/issues/117
 - Playwright preparation: https://github.com/YamabikoLab/yamabiko-editor-tools/issues/118
-- Base plan: `docs/plans/table-reorder/table-reorder-plan.md`
-- Accessibility plan: `docs/plans/table-reorder/table-reorder-accessibility-plan.md`
+- Base plan: `docs/plans/table-reorder/archive/table-reorder-plan.md`
+- Accessibility plan: `docs/plans/table-reorder/archive/table-reorder-accessibility-plan.md`
 - Current controller: `src/editor-extensions/table-reorder/table-reorder-controller.tsx`
 
 ## Goal

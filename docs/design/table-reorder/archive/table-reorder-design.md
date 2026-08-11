@@ -9,7 +9,7 @@
 | 文書種別 | 基本設計書 |
 | ステータス | 基本設計 |
 | 関連Issue | #47, #55, #59 |
-| 関連要件定義書 | `table-reorder-requirements.md` |
+| 関連要件定義書 | `../../../requirements/table-reorder/archive/table-reorder-requirements.md` |
 
 ## 2. 文書の目的
 

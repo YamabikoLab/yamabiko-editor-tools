@@ -8,7 +8,7 @@
 | 対象 | WordPress Gutenberg のコア Tableブロック |
 | 文書種別 | 基本設計書 |
 | 関連Issue | #104 |
-| 関連要件定義書 | `table-reorder-accessibility-requirements.md` |
+| 関連要件定義書 | `../../../requirements/table-reorder/archive/table-reorder-accessibility-requirements.md` |
 | 基礎設計 | `table-reorder-design.md` |
 
 ## 2. 文書の目的と責務

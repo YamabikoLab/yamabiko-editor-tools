@@ -17,6 +17,7 @@ These instructions apply to the entire repository.
 - Read `docs/development/github-cli.md` when using GitHub CLI.
 - Read `docs/development/releasing.md` before updating versions or creating a release tag.
 - Use `docs/plans/TEMPLATE.md` for features or changes that require multiple implementation steps or important design decisions.
+- Place feature- or issue-specific implementation plans under `docs/plans/<feature>/`. Move historical plans worth keeping into that feature's `archive/` directory.
 - Simple fixes and documentation-only changes do not require a plan.
 
 ## Working rules
