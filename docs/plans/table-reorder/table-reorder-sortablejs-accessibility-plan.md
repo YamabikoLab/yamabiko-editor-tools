@@ -107,7 +107,7 @@ controllerには必要最小限の一時sessionだけを追加する。
 
 `drag-ui.ts` から既存hover handle生成部分を `reorder-ui.ts` へ移し、同じcontrolをPCのSortableJS handle、クリック入口、キーボード入口として共用する。insertion line、touch drag UI、fallback row widthは `drag-ui.ts` に残す。
 
-永続的なfocus表示、Target Size、選択状態、target UIのhit areaはinline styleを増やし続けず、新規 `editor.scss` に置く。`index.tsx` はこのeditor styleをimportし、`@wordpress/scripts` が生成する `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` の `enqueue_block_editor_assets` 経路からeditorへenqueueする。JS entryのimportだけで配信済みとみなさず、生成CSSのWordPress側配信までを実装境界に含める。
+永続的なfocus表示、Target Size、選択状態、target UIのhit areaはinline styleを増やし続けず、新規 `editor.scss` に置く。`index.tsx` はこのeditor styleをimportし、`@wordpress/scripts` が生成する `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` の `enqueue_block_assets` から `is_admin()` でeditorに限定してenqueueする。Table ReorderのJS / runtime configは既存どおり `enqueue_block_editor_assets` を維持する。JS entryのimportだけでCSS配信済みとみなさず、生成CSSのWordPress側配信までを実装境界に含める。
 
 ### 5. focus復元はGutenberg commit境界をまたいで明示的に扱う
 
@@ -141,7 +141,7 @@ iframe / non-iframeの差を上位へ漏らさないため、行control、target
 | Module | Plan |
 |---|---|
 | `index.tsx` | `editor.scss` のimportだけを追加する。登録責務は変更しない。 |
-| `yamabiko-editor-tools.php` | 生成された `build/editor-extensions/table-reorder/index.css` が存在する場合にTable Reorderのeditor styleとしてenqueueする。既存script enqueueとruntime configの責務は維持する。 |
+| `yamabiko-editor-tools.php` | Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持し、生成された `build/editor-extensions/table-reorder/index.css` が存在する場合は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueする。 |
 | `with-table-reorder.tsx` | PC / タッチのToolbar入口を基本設計に合わせて描画し、controllerへのfocus要求をhook経由で呼ぶ。PCではモードを新設しない。 |
 | `use-table-reorder.ts` | controller ref、Toolbar focus bridge、commit後のpending focus復元を追加する。既存hover / touch mode lifecycleとrowspan制約算出は維持する。 |
 | `table-context.ts` | iframe / non-iframeのowning document / window解決をそのまま再利用する。追加が必要でもcontext解決の範囲に限定する。 |
@@ -278,7 +278,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - `with-table-reorder.tsx` / `use-table-reorder.ts` にToolbar focus bridgeを追加する。
   - controllerで最後に操作していたtbody行を追跡し、基本設計のfocus優先順位を実現する。
   - 新規 `editor.scss` でfocus表示と最低target sizeを実装する。
-  - `yamabiko-editor-tools.php` で生成された `build/editor-extensions/table-reorder/index.css` をTable Reorderのeditor styleとしてenqueueする。CSSが未生成の場合は既存script経路を壊さないよう独立して存在確認する。
+  - `yamabiko-editor-tools.php` ではTable ReorderのJS / runtime configを既存 `enqueue_block_editor_assets` に残し、生成された `build/editor-extensions/table-reorder/index.css` は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueする。CSSが未生成の場合は既存script経路を壊さないよう独立して存在確認する。
 - Validation:
   - Toolbarを実行しただけでは並べ替えsessionを開始しない。
   - 現在行が移動不能ならToolbarへfocusを維持し、理由を通知できる。
@@ -363,7 +363,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - 移動可否と移動後配列の計算は `row-order.ts` / `rowspan.ts` を正本とし、入力方式別に複製しない。
 - Gutenberg再描画をまたぐfocus復元requestだけを `use-table-reorder.ts` がrefで保持する。
 - 行control / target /案内 / live statusは新規 `reorder-ui.ts` に集約し、drag専用UIは `drag-ui.ts` に残す。
-- persistentなaccessibility UIの見た目は新規 `editor.scss` に置き、生成された `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` からeditorへenqueueする。汎用style基盤は追加しない。
+- persistentなaccessibility UIの見た目は新規 `editor.scss` に置く。Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持し、生成された `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` の `enqueue_block_assets` + `is_admin()` でeditor contentへ配信する。汎用style基盤は追加しない。
 - single-pointer sessionのpointer-onlyなcancelは、選択中のrow controlを再click / tapして終了する。touch reorder modeをOFFにする場合もactive sessionをcancelしてからcleanupし、専用cancel buttonは追加しない。
 - 支援技術向けstatusはowning document内へTable Reorder自身が一つだけ生成し、新規npm dependencyを追加しない。
 - 初回コーチマークは本実装の完了条件に含めず、閉じた後も使える短い案内を必須経路とする。
@@ -465,7 +465,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - `A11Y-FR-01` ～ `A11Y-FR-12` の各要件が上記module境界のいずれかへ対応付いている。
 - keyboard、single pointer、既存SortableJS DnDが `row-order.ts` / `rowspan.ts` の共通移動可否を利用する計画になっている。
 - 既存の `use-table-reorder.ts`、`with-table-reorder.tsx`、`table-context.ts`、`rowspan.ts`、controller各moduleの再利用範囲が明確である。
-- 新規責務が `reorder-ui.ts` と `editor.scss` を中心に限定され、生成CSSのeditor配信だけを `yamabiko-editor-tools.php` に追加し、汎用基盤や入力方式別の重複ロジックを作らない。
+- 新規責務が `reorder-ui.ts` と `editor.scss` を中心に限定され、生成CSSのeditor content配信だけを `yamabiko-editor-tools.php` の `enqueue_block_assets` + `is_admin()` に追加し、JS / runtime configは既存 `enqueue_block_editor_assets` を維持する。汎用基盤や入力方式別の重複ロジックを作らない。
 - Gutenberg commitをまたぐfocus復元と、drag時には不要なfocus変更を行わない境界が明確である。
 - PC drag / click、touch short tap / long press / control tapの競合と、single-pointerの確定しないcancel経路を実装・検証する順序が明確である。
 - touch reorder mode中に必要な操作案内を実装・確認する計画がある。
@@ -478,4 +478,3 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - 旧dnd-kit版アクセシビリティplanは過去資料としてのみ扱う。Portal handle、旧mode、旧state構成を現行実装へ戻す根拠にはしない。
 - `sortable-runtime.ts` と `table-context.ts` は現行のowning window / document境界がすでにiframe / non-iframe共通化の土台になっているため、アクセシビリティ専用のeditor mode分岐を上位へ増やさない。
 - 現在の `drag-ui.ts` は多くのinline styleを持つが、本Issueを既存drag UI全体のstyle refactorへ広げない。新しく追加するpersistent accessibility UIだけを `editor.scss` へ置く。
-- 実装中にcontrollerが過大化する兆候が出ても、先に汎用層を追加しない。keyboard / pointer sessionの純粋計算として独立できる責務が実際に生じた場合だけ、feature内のfocused moduleへ分離する。
