@@ -129,6 +129,13 @@ export const createSortableController = (
 		: createTouchDragUi( document, tbody, nonMovableRowIndices );
 	const entries = hoverHandles?.entries ?? [];
 	const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
+	const entryByRow = new Map< HTMLTableRowElement, HoverHandleEntry >();
+	for ( const entry of entries ) {
+		const row = entry.zone.closest< HTMLTableRowElement >( 'tr' );
+		if ( row ) {
+			entryByRow.set( row, entry );
+		}
+	}
 	const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
 
 	let destroyed = false;
@@ -205,22 +212,22 @@ export const createSortableController = (
 		activeEntry = null;
 		restoreBlockDrag();
 	};
-	const onZonePointerEnter = ( event: PointerEvent ) => {
+	const onRowPointerEnter = ( event: PointerEvent ) => {
 		if ( event.pointerType !== 'mouse' || isDragging ) {
 			return;
 		}
 
-		const entry = entryByZone.get( event.currentTarget as HTMLElement );
+		const entry = entryByRow.get( event.currentTarget as HTMLTableRowElement );
 		if ( entry ) {
 			activateEntry( entry );
 		}
 	};
-	const onZonePointerLeave = ( event: PointerEvent ) => {
+	const onRowPointerLeave = ( event: PointerEvent ) => {
 		if ( event.pointerType !== 'mouse' ) {
 			return;
 		}
 
-		const entry = entryByZone.get( event.currentTarget as HTMLElement );
+		const entry = entryByRow.get( event.currentTarget as HTMLTableRowElement );
 		if ( entry ) {
 			deactivateEntry( entry );
 		}
@@ -240,13 +247,15 @@ export const createSortableController = (
 		tbody.addEventListener( eventName, stopHoverHandleInteractionPropagation );
 	}
 	if ( useHoverMode ) {
-		for ( const { zone } of entries ) {
-			zone.addEventListener( 'pointerenter', onZonePointerEnter );
-			zone.addEventListener( 'pointerleave', onZonePointerLeave );
-			zone.addEventListener( 'pointerdown', onZonePointerDown );
+		for ( const [ row, entry ] of entryByRow ) {
+			row.addEventListener( 'pointerenter', onRowPointerEnter );
+			row.addEventListener( 'pointerleave', onRowPointerLeave );
+			entry.zone.addEventListener( 'pointerdown', onZonePointerDown );
 		}
 
-		const hoveredEntry = entries.find( ( entry ) => entry.zone.matches( ':hover' ) );
+		const hoveredEntry = entries.find( ( entry ) =>
+			entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
+		);
 		if ( hoveredEntry ) {
 			activateEntry( hoveredEntry );
 		}
@@ -325,7 +334,9 @@ export const createSortableController = (
 				restoreDragRows();
 
 				if ( useHoverMode ) {
-					const hoveredAfterDrag = entries.find( ( entry ) => entry.zone.matches( ':hover' ) );
+					const hoveredAfterDrag = entries.find( ( entry ) =>
+						entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
+					);
 					if ( hoveredAfterDrag ) {
 						activateEntry( hoveredAfterDrag );
 					} else {
@@ -394,10 +405,10 @@ export const createSortableController = (
 			touchPressTracker?.destroy();
 			restoreFallbackWidths();
 			if ( useHoverMode ) {
-				for ( const { zone } of entries ) {
-					zone.removeEventListener( 'pointerenter', onZonePointerEnter );
-					zone.removeEventListener( 'pointerleave', onZonePointerLeave );
-					zone.removeEventListener( 'pointerdown', onZonePointerDown );
+				for ( const [ row, entry ] of entryByRow ) {
+					row.removeEventListener( 'pointerenter', onRowPointerEnter );
+					row.removeEventListener( 'pointerleave', onRowPointerLeave );
+					entry.zone.removeEventListener( 'pointerdown', onZonePointerDown );
 				}
 			}
 			for ( const eventName of blockSelectionEvents ) {
