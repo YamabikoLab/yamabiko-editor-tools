@@ -75,6 +75,17 @@ const dispatchMousePointerEvent = ( target: Element, type: string ) => {
 	target.dispatchEvent( event );
 };
 
+const dispatchKey = ( target: Element, key: string, repeat = false ) => {
+	const event = new KeyboardEvent( 'keydown', {
+		bubbles: true,
+		cancelable: true,
+		key,
+		repeat,
+	} );
+	target.dispatchEvent( event );
+	return event;
+};
+
 const flushPromises = async () => {
 	await Promise.resolve();
 	await Promise.resolve();
@@ -224,6 +235,94 @@ describe( 'createSortableController', () => {
 			tbody.rows.item( 1 )?.querySelector( '.yamabiko-table-reorder-handle-zone' )
 		);
 		expect( onCommit ).not.toHaveBeenCalled();
+		controller.destroy();
+	} );
+
+	it( 'releases block drag suppression when a keyboard session ends without a move', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context, tbody } = createContext();
+		context.blockElement.setAttribute( 'draggable', 'true' );
+		const onCommit = jest.fn();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit,
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		const firstControl = tbody.rows
+			.item( 0 )
+			?.querySelector< HTMLButtonElement >( '.yamabiko-table-reorder-handle-zone' );
+		if ( ! firstControl ) {
+			throw new Error( 'Expected first row control' );
+		}
+		firstControl.focus();
+
+		dispatchKey( firstControl, 'Enter' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
+		expect( firstControl.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		dispatchKey( firstControl, 'Escape' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
+		expect( firstControl.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( tbody.ownerDocument.activeElement ).toBe( firstControl );
+
+		dispatchKey( firstControl, 'Enter' );
+		dispatchKey( firstControl, 'Enter' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
+		expect( firstControl.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( onCommit ).not.toHaveBeenCalled();
+		controller.destroy();
+	} );
+
+	it( 'ignores repeated activation keys while keeping arrow key repeat available', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context, tbody } = createContext();
+		context.blockElement.setAttribute( 'draggable', 'true' );
+		const onCommit = jest.fn();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit,
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		const firstControl = tbody.rows
+			.item( 0 )
+			?.querySelector< HTMLButtonElement >( '.yamabiko-table-reorder-handle-zone' );
+		if ( ! firstControl ) {
+			throw new Error( 'Expected first row control' );
+		}
+		firstControl.focus();
+
+		dispatchKey( firstControl, 'Enter' );
+		dispatchKey( firstControl, 'Enter', true );
+		expect( firstControl.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
+		expect( onCommit ).not.toHaveBeenCalled();
+
+		dispatchKey( firstControl, 'ArrowDown', true );
+		dispatchKey( firstControl, 'Enter', true );
+		expect( firstControl.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( onCommit ).not.toHaveBeenCalled();
+
+		dispatchKey( firstControl, 'Enter' );
+		expect( firstControl.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
+		expect( onCommit ).toHaveBeenCalledWith( [ 'b', 'a', 'c' ], 1 );
 		controller.destroy();
 	} );
 
