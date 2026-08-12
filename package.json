@@ -5,6 +5,7 @@
 	"files": [
 		"build/",
 		"languages/",
+		"THIRD_PARTY_NOTICES.md",
 		"yamabiko-editor-tools.php"
 	],
 	"scripts": {
