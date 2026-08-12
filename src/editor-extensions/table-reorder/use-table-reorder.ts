@@ -8,7 +8,6 @@
 
 import { useDispatch } from '@wordpress/data';
 import { useEffect, useRef, useState, type RefObject } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import {
@@ -145,11 +144,9 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 				setAttributesRef.current( { body: reorderedBody } );
 			},
 			onNonMovableRowLongPress: () => {
-				void createNoticeRef.current(
-					'warning',
-					__( '縦結合を含む行は並び替えできません。', 'yamabiko-editor-tools' ),
-					{ type: 'snackbar' }
-				);
+				void createNoticeRef.current( 'warning', getRowspanErrorMessage(), {
+					type: 'snackbar',
+				} );
 			},
 			onRequestTouchModeExit: () => {
 				setIsTouchReorderMode( false );
