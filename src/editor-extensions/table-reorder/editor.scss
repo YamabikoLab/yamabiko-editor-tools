@@ -36,37 +36,22 @@
 }
 
 .yamabiko-table-reorder-handle {
-	position: relative;
-	box-sizing: border-box;
-	display: block;
-	width: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
 	height: 24px;
 	padding: 0;
-	font-size: 0;
 	line-height: 1;
 	pointer-events: none;
 	background: var(--wp--preset--color--base, #fff);
 	border: 1px solid currentcolor;
 	border-radius: 2px;
 
-	&::before,
-	&::after {
-		position: absolute;
-		top: 6px;
-		width: 2px;
-		height: 2px;
-		content: '';
-		background: currentcolor;
-		border-radius: 50%;
-		box-shadow: 0 5px currentcolor, 0 10px currentcolor;
-	}
-
-	&::before {
-		left: 6px;
-	}
-
-	&::after {
-		right: 6px;
+	svg {
+		display: block;
+		width: 20px;
+		height: 20px;
 	}
 }
 
