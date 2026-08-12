@@ -250,6 +250,13 @@ export const createRowControls = (
 	return {
 		entries,
 		setVisible: ( entry, isVisible ) => {
+			if ( isVisible && ! options.showAll ) {
+				for ( const otherEntry of entries ) {
+					if ( otherEntry !== entry ) {
+						otherEntry.control.dataset.visible = 'false';
+					}
+				}
+			}
 			entry.control.dataset.visible = isVisible ? 'true' : 'false';
 		},
 		cleanup: () => {
