@@ -12,13 +12,17 @@
 	min-height: 24px;
 	padding: 0;
 	color: inherit;
-	cursor: grab;
+	cursor: grab !important;
 	user-select: none;
 	background: transparent;
 	border: 0;
 	opacity: 0;
 	transform: translateY(-50%);
 	transition: opacity 0.2s ease;
+
+	&:active {
+		cursor: grabbing !important;
+	}
 
 	&[data-visible='true'],
 	&:focus-visible {
@@ -32,12 +36,38 @@
 }
 
 .yamabiko-table-reorder-handle {
-	padding: 2px 4px;
+	position: relative;
+	box-sizing: border-box;
+	display: block;
+	width: 20px;
+	height: 24px;
+	padding: 0;
+	font-size: 0;
 	line-height: 1;
 	pointer-events: none;
 	background: var(--wp--preset--color--base, #fff);
 	border: 1px solid currentcolor;
 	border-radius: 2px;
+
+	&::before,
+	&::after {
+		position: absolute;
+		top: 6px;
+		width: 2px;
+		height: 2px;
+		content: '';
+		background: currentcolor;
+		border-radius: 50%;
+		box-shadow: 0 5px currentcolor, 0 10px currentcolor;
+	}
+
+	&::before {
+		left: 6px;
+	}
+
+	&::after {
+		right: 6px;
+	}
 }
 
 .yamabiko-table-reorder-description {
