@@ -43,9 +43,10 @@ export type RowControlEntry = {
 	row: HTMLTableRowElement;
 };
 
-/** 行control群と、その表示・cleanupをまとめたUI。 */
+/** 行control群と、その表示・状態・cleanupをまとめたUI。 */
 export type RowControls = {
 	entries: RowControlEntry[];
+	setPressed: ( entry: RowControlEntry, isPressed: boolean ) => void;
 	setVisible: ( entry: RowControlEntry, isVisible: boolean ) => void;
 	cleanup: () => void;
 };
@@ -104,6 +105,7 @@ export const createRowControls = (
 ): RowControls => {
 	const entries: RowControlEntry[] = [];
 	const cleanupControlRoots: Array< () => void > = [];
+	const setPressedByEntry = new Map< RowControlEntry, ( isPressed: boolean ) => void >();
 	const changedCells: Array< {
 		cell: HTMLTableCellElement;
 		paddingInlineStart: string;
@@ -150,6 +152,7 @@ export const createRowControls = (
 		mount.style.display = 'contents';
 		firstCell.prepend( mount );
 		const root = createRoot( mount );
+		let isPressed = false;
 		let tooltipText: string | undefined = usePointerDescription
 			? getPointerHandleTooltip()
 			: undefined;
@@ -161,8 +164,9 @@ export const createRowControls = (
 			const anchor = createElement(
 				'button',
 				{
-					'aria-describedby': descriptionId,
+					'aria-describedby': isPressed ? undefined : descriptionId,
 					'aria-label': rowControlName,
+					'aria-pressed': isPressed,
 					className: HANDLE_ZONE_CLASS,
 					contentEditable: false,
 					type: 'button',
@@ -198,7 +202,7 @@ export const createRowControls = (
 			root.render(
 				createElement( Tooltip, {
 					children: anchor,
-					text: tooltipText,
+					text: isPressed ? undefined : tooltipText,
 				} )
 			);
 		};
@@ -238,17 +242,29 @@ export const createRowControls = (
 		renderedControl.addEventListener( 'focus', onFocus );
 		renderedControl.addEventListener( 'blur', onBlur );
 
+		const entry = { control: renderedControl, handle, row };
+		setPressedByEntry.set( entry, ( nextIsPressed ) => {
+			if ( isPressed === nextIsPressed ) {
+				return;
+			}
+			isPressed = nextIsPressed;
+			flushSync( renderControl );
+		} );
 		cleanupControlRoots.push( () => {
 			renderedControl.removeEventListener( 'focus', onFocus );
 			renderedControl.removeEventListener( 'blur', onBlur );
+			setPressedByEntry.delete( entry );
 			root.unmount();
 			mount.remove();
 		} );
-		entries.push( { control: renderedControl, handle, row } );
+		entries.push( entry );
 	}
 
 	return {
 		entries,
+		setPressed: ( entry, isPressed ) => {
+			setPressedByEntry.get( entry )?.( isPressed );
+		},
 		setVisible: ( entry, isVisible ) => {
 			if ( isVisible && ! options.showAll ) {
 				for ( const otherEntry of entries ) {
