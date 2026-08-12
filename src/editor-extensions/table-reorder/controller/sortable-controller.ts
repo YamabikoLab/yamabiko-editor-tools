@@ -137,12 +137,23 @@ export const createSortableController = (
 	);
 	const nonMovableRows = new Set( nonMovableRowIndices );
 	const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
+	const getRowIndexFromElement = ( element: Element | null ): number | null => {
+		const row = element?.closest< HTMLTableRowElement >( 'tr' ) ?? null;
+		if ( ! row || row.parentElement !== tbody ) {
+			return null;
+		}
+
+		const rowIndex = Array.from( tbody.rows ).indexOf( row );
+		return rowIndex >= 0 ? rowIndex : null;
+	};
 
 	let destroyed = false;
 	let sortable: SortableInstance | null = null;
 	let dragRows: HTMLTableRowElement[] | null = null;
 	let activeEntry: RowControlEntry | null = null;
-	let lastActiveRowIndex: number | null = null;
+	let lastActiveRowIndex: number | null = getRowIndexFromElement(
+		tbody.ownerDocument.activeElement
+	);
 	let isDragging = false;
 	let blockDragSuppressed = false;
 	let originalDraggable: string | null = null;
@@ -212,14 +223,8 @@ export const createSortableController = (
 		restoreBlockDrag();
 	};
 	const rememberRowFromEvent = ( event: Event ) => {
-		const target = event.target as Element | null;
-		const row = target?.closest< HTMLTableRowElement >( 'tr' ) ?? null;
-		if ( ! row || row.parentElement !== tbody ) {
-			return;
-		}
-
-		const rowIndex = Array.from( tbody.rows ).indexOf( row );
-		if ( rowIndex >= 0 ) {
+		const rowIndex = getRowIndexFromElement( event.target as Element | null );
+		if ( rowIndex !== null ) {
 			lastActiveRowIndex = rowIndex;
 		}
 	};
@@ -430,6 +435,11 @@ export const createSortableController = (
 		focusRowControl: () => {
 			if ( entries.length === 0 ) {
 				return 'no-movable-rows';
+			}
+
+			const activeRowIndex = getRowIndexFromElement( tbody.ownerDocument.activeElement );
+			if ( activeRowIndex !== null ) {
+				lastActiveRowIndex = activeRowIndex;
 			}
 
 			if ( lastActiveRowIndex !== null ) {
