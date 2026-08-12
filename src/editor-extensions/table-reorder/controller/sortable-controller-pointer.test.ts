@@ -220,18 +220,22 @@ describe( 'createSortableController single-pointer reorder', () => {
 	} );
 
 	it( 'suppresses the click emitted immediately after a PC drag', async () => {
-		let runtimeOptions: RuntimeOptions | null = null;
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
 			createRuntime( ( options ) => {
-				runtimeOptions = options;
+				runtimeOptionsRef.current = options;
 			} )
 		);
 		const { controller, tbody } = createController( 'hover' );
 		await Promise.resolve();
 		const control = getControl( tbody, 1 );
+		const runtimeOptions = runtimeOptionsRef.current;
+		if ( ! runtimeOptions ) {
+			throw new Error( 'Expected Sortable runtime options' );
+		}
 
-		runtimeOptions?.onStart();
-		runtimeOptions?.onEnd( { oldIndex: 1, newIndex: 1 } );
+		runtimeOptions.onStart();
+		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
 		clickPointerControl( control );
 
 		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
