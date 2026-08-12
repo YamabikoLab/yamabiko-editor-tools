@@ -7,6 +7,7 @@
 
 import { Tooltip } from '@wordpress/components';
 import { createElement, createRoot, flushSync } from '@wordpress/element';
+import { dragHandle, Icon } from '@wordpress/icons';
 
 import {
 	getEmptyRowLabel,
@@ -172,7 +173,10 @@ export const createRowControls = (
 						'aria-hidden': true,
 						className: HANDLE_CLASS,
 					},
-					'⋮⋮'
+					createElement( Icon, {
+						icon: dragHandle,
+						size: 20,
+					} )
 				),
 				createElement(
 					'span',
