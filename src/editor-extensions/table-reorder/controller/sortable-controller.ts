@@ -452,27 +452,27 @@ export const createSortableController = (
 			destroyed = true;
 			sortable?.destroy();
 			sortable = null;
-		insertionLine.cleanup();
-		touchPressTracker?.destroy();
-		restoreFallbackWidths();
-		for ( const entry of entries ) {
-			entry.control.removeEventListener( 'focus', onControlFocus );
-			entry.control.removeEventListener( 'blur', onControlBlur );
-			entry.control.removeEventListener( 'pointerdown', onControlPointerDown );
-			if ( useHoverMode ) {
-				entry.row.removeEventListener( 'pointerenter', onRowPointerEnter );
-				entry.row.removeEventListener( 'pointerleave', onRowPointerLeave );
+			insertionLine.cleanup();
+			touchPressTracker?.destroy();
+			restoreFallbackWidths();
+			for ( const entry of entries ) {
+				entry.control.removeEventListener( 'focus', onControlFocus );
+				entry.control.removeEventListener( 'blur', onControlBlur );
+				entry.control.removeEventListener( 'pointerdown', onControlPointerDown );
+				if ( useHoverMode ) {
+					entry.row.removeEventListener( 'pointerenter', onRowPointerEnter );
+					entry.row.removeEventListener( 'pointerleave', onRowPointerLeave );
+				}
 			}
-		}
-		for ( const eventName of blockSelectionEvents ) {
-			tbody.removeEventListener( eventName, stopRowControlInteractionPropagation );
-		}
-		tbody.removeEventListener( 'focusin', rememberRowFromEvent );
-		tbody.removeEventListener( 'pointerdown', rememberRowFromEvent );
-		restoreDragRows();
-		releaseEntry();
-		rowControls.cleanup();
-		touchDragUi?.cleanup();
+			for ( const eventName of blockSelectionEvents ) {
+				tbody.removeEventListener( eventName, stopRowControlInteractionPropagation );
+			}
+			tbody.removeEventListener( 'focusin', rememberRowFromEvent );
+			tbody.removeEventListener( 'pointerdown', rememberRowFromEvent );
+			restoreDragRows();
+			releaseEntry();
+			rowControls.cleanup();
+			touchDragUi?.cleanup();
 		},
 	};
 };
