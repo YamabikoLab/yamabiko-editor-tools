@@ -33,6 +33,8 @@ export type TouchDragUi = {
 /**
  * drag先を示すinsertion lineをdocument bodyへ追加する。
  *
+ * 表示中は対象行を保持し、editor内の縦スクロールやwindow resizeに合わせて位置を再計測する。
+ *
  * @param document insertion lineを追加するeditor document。
  * @return insertion lineの表示制御とcleanup境界。
  */
@@ -49,19 +51,46 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 	line.style.transform = 'translateY(-50%)';
 	document.body.append( line );
 
+	let activeTarget: {
+		row: HTMLTableRowElement;
+		willInsertAfter: boolean;
+	} | null = null;
+	const updatePosition = () => {
+		if ( ! activeTarget ) {
+			return;
+		}
+
+		if ( ! activeTarget.row.isConnected ) {
+			line.style.display = 'none';
+			return;
+		}
+
+		const rect = activeTarget.row.getBoundingClientRect();
+		line.style.left = `${ rect.left }px`;
+		line.style.top = `${ activeTarget.willInsertAfter ? rect.bottom : rect.top }px`;
+		line.style.width = `${ rect.width }px`;
+		line.style.display = 'block';
+	};
+	const onViewportChange = () => {
+		updatePosition();
+	};
+	document.addEventListener( 'scroll', onViewportChange, true );
+	document.defaultView?.addEventListener( 'resize', onViewportChange );
+
 	return {
 		element: line,
 		hide: () => {
+			activeTarget = null;
 			line.style.display = 'none';
 		},
 		show: ( row, willInsertAfter ) => {
-			const rect = row.getBoundingClientRect();
-			line.style.left = `${ rect.left }px`;
-			line.style.top = `${ willInsertAfter ? rect.bottom : rect.top }px`;
-			line.style.width = `${ rect.width }px`;
-			line.style.display = 'block';
+			activeTarget = { row, willInsertAfter };
+			updatePosition();
 		},
 		cleanup: () => {
+			activeTarget = null;
+			document.removeEventListener( 'scroll', onViewportChange, true );
+			document.defaultView?.removeEventListener( 'resize', onViewportChange );
 			line.remove();
 		},
 	};
