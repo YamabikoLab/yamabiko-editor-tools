@@ -76,6 +76,21 @@ const clickPointerControl = ( control: HTMLButtonElement ) => {
 	);
 };
 
+const dispatchTouchPointer = (
+	target: Element,
+	type: string,
+	{ x, y }: { x: number; y: number }
+) => {
+	const event = new Event( type, { bubbles: true, cancelable: true } );
+	Object.defineProperties( event, {
+		clientX: { value: x },
+		clientY: { value: y },
+		pointerId: { value: 1 },
+		pointerType: { value: 'touch' },
+	} );
+	target.dispatchEvent( event );
+};
+
 const createController = (
 	interactionMode: 'hover' | 'touch',
 	options: {
@@ -155,6 +170,37 @@ describe( 'createSortableController single-pointer reorder', () => {
 		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
 		expect( getControl( tbody, 0 ) ).not.toBeNull();
 		controller.destroy();
+	} );
+
+	it( 'does not commit when a touch destination is swiped for scrolling', () => {
+		const { controller, onCommit, tbody } = createController( 'touch' );
+		clickPointerControl( getControl( tbody, 1 ) );
+		const destination = document.querySelector< HTMLButtonElement >(
+			'.yamabiko-table-reorder-destination[data-new-index="2"]'
+		);
+		if ( ! destination ) {
+			throw new Error( 'Expected destination button' );
+		}
+
+		dispatchTouchPointer( destination, 'pointerdown', { x: 10, y: 10 } );
+		dispatchTouchPointer( destination, 'pointermove', { x: 10, y: 30 } );
+		dispatchTouchPointer( destination, 'pointerup', { x: 10, y: 30 } );
+		destination.click();
+
+		expect( onCommit ).not.toHaveBeenCalled();
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).not.toBeNull();
+		controller.destroy();
+	} );
+
+	it( 'cancels an active touch session when reorder mode is torn down', () => {
+		const { controller, onCommit, tbody } = createController( 'touch' );
+		clickPointerControl( getControl( tbody, 1 ) );
+
+		controller.destroy();
+
+		expect( onCommit ).not.toHaveBeenCalled();
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
+		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
 	} );
 
 	it( 'renders only destinations allowed by rowspan constraints', () => {
