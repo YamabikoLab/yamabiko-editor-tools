@@ -31,7 +31,9 @@ const createContext = () => {
 	for ( let index = 0; index < 3; index++ ) {
 		const row = document.createElement( 'tr' );
 		row.dataset.index = String( index );
-		row.append( document.createElement( 'td' ) );
+		const cell = document.createElement( 'td' );
+		cell.textContent = `row-${ index }`;
+		row.append( cell );
 		tbody.append( row );
 	}
 
@@ -109,7 +111,7 @@ describe( 'createSortableController', () => {
 		expect( runtime.create ).not.toHaveBeenCalled();
 	} );
 
-	it( 'shows the handle when the row is hovered while keeping drag start on the handle zone', async () => {
+	it( 'shows the shared row control on hover while keeping drag start on the control', async () => {
 		const runtime = createRuntime();
 		ensureSortableRuntimeMock.mockResolvedValue( runtime );
 		const { context, tbody } = createContext();
@@ -128,14 +130,16 @@ describe( 'createSortableController', () => {
 		await flushPromises();
 
 		const firstRow = tbody.rows.item( 0 );
-		const firstHandle = firstRow?.querySelector< HTMLElement >( '.yamabiko-table-reorder-handle' );
-		expect( firstHandle?.style.opacity ).toBe( '0' );
+		const firstControl = firstRow?.querySelector< HTMLButtonElement >(
+			'.yamabiko-table-reorder-handle-zone'
+		);
+		expect( firstControl?.dataset.visible ).toBe( 'false' );
 
 		dispatchMousePointerEvent( firstRow!, 'pointerenter' );
-		expect( firstHandle?.style.opacity ).toBe( '1' );
+		expect( firstControl?.dataset.visible ).toBe( 'true' );
 		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
 		dispatchMousePointerEvent( firstRow!, 'pointerleave' );
-		expect( firstHandle?.style.opacity ).toBe( '0' );
+		expect( firstControl?.dataset.visible ).toBe( 'false' );
 		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
 
 		expect( getCreatedOptions( runtime ).handle ).toBe( '.yamabiko-table-reorder-handle-zone' );
@@ -144,6 +148,83 @@ describe( 'createSortableController', () => {
 		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
 		controller.destroy();
 		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
+	} );
+
+	it( 'focuses the last active movable row without starting a reorder session', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context, tbody } = createContext();
+		const onCommit = jest.fn();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit,
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		const secondCell = tbody.rows.item( 1 )?.cells.item( 0 );
+		secondCell?.dispatchEvent( new FocusEvent( 'focusin', { bubbles: true } ) );
+
+		expect( controller.focusRowControl() ).toBe( 'focused' );
+		expect( document.activeElement ).toBe(
+			tbody.rows.item( 1 )?.querySelector( '.yamabiko-table-reorder-handle-zone' )
+		);
+		expect( onCommit ).not.toHaveBeenCalled();
+		controller.destroy();
+	} );
+
+	it( 'does not fall back to another row when the current row is non-movable', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context, tbody } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [ 1 ],
+			onCommit: jest.fn(),
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		const secondCell = tbody.rows.item( 1 )?.cells.item( 0 );
+		secondCell?.dispatchEvent( new FocusEvent( 'focusin', { bubbles: true } ) );
+
+		expect( controller.focusRowControl() ).toBe( 'current-row-not-movable' );
+		expect( document.activeElement?.classList.contains( 'yamabiko-table-reorder-handle-zone' ) ).toBe(
+			false
+		);
+		controller.destroy();
+	} );
+
+	it( 'reports when no movable row controls exist', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [ 0, 1, 2 ],
+			onCommit: jest.fn(),
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		expect( controller.focusRowControl() ).toBe( 'no-movable-rows' );
+		controller.destroy();
 	} );
 
 	it( 'restores the original DOM order before committing reordered rows', async () => {
