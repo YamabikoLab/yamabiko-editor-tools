@@ -5,6 +5,8 @@
  * 結果は狭いcallbackで呼び出し元へ通知し、listenerとtimerのcleanupまでこのモジュールで完結させる。
  */
 
+import { HANDLE_ZONE_CLASS } from './reorder-ui';
+
 /** touch modeでdrag開始と長押し通知に使う待機時間。 */
 export const TOUCH_DRAG_DELAY_MS = 300;
 
@@ -40,11 +42,10 @@ type TouchPress = {
 /**
  * tbody上のtouch pressを追跡し、長押し警告と短いtapをcallbackへ変換する。
  *
- * trackerはpointer listenerと長押しtimerを所有し、`destroy()`で必ず解除する。
- * 移動不可行の長押しでは警告callbackを呼び、dragが始まらない短いtapでは
- * touch並び替えモード終了callbackを呼ぶ。
+ * 行control上の操作は行tap / 長押しDnDとは別経路なので追跡対象から除外する。
  *
  * @param options touch press追跡に必要なDOM、状態参照、callback。
+ * @return touch press trackerのcleanup境界。
  */
 export const createTouchPressTracker = ( options: TouchPressTrackerOptions ): TouchPressTracker => {
 	const {
@@ -74,6 +75,10 @@ export const createTouchPressTracker = ( options: TouchPressTrackerOptions ): To
 		}
 
 		const target = event.target as Element | null;
+		if ( target?.closest( `.${ HANDLE_ZONE_CLASS }` ) ) {
+			return;
+		}
+
 		const row = target?.closest< HTMLTableRowElement >( 'tr' ) ?? null;
 		if ( ! row || row.parentElement !== tbody ) {
 			return;
