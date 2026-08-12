@@ -190,7 +190,7 @@ describe( 'createSortableController', () => {
 
 		expect( mouseDownEvent.defaultPrevented ).toBe( true );
 		expect( toolbarButton.ownerDocument.activeElement ).toBe( toolbarButton );
-		expect( firstControl.title ).toBe( 'Drag to move this row, or click to choose a destination.' );
+		expect( firstControl.hasAttribute( 'title' ) ).toBe( false );
 		controller.destroy();
 	} );
 
@@ -220,6 +220,37 @@ describe( 'createSortableController', () => {
 			tbody.rows.item( 1 )?.querySelector( '.yamabiko-table-reorder-handle-zone' )
 		);
 		expect( onCommit ).not.toHaveBeenCalled();
+		controller.destroy();
+	} );
+
+	it( 'focuses an already-focused cell row when the controller is created', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context, tbody } = createContext();
+		const secondCell = tbody.rows.item( 1 )?.cells.item( 0 );
+		if ( ! secondCell ) {
+			throw new Error( 'Expected second row cell' );
+		}
+		secondCell.tabIndex = -1;
+		secondCell.focus();
+
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit: jest.fn(),
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		expect( controller.focusRowControl() ).toBe( 'focused' );
+		expect( tbody.ownerDocument.activeElement ).toBe(
+			tbody.rows.item( 1 )?.querySelector( '.yamabiko-table-reorder-handle-zone' )
+		);
 		controller.destroy();
 	} );
 
