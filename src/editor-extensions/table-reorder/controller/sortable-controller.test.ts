@@ -189,7 +189,7 @@ describe( 'createSortableController', () => {
 		}
 
 		expect( mouseDownEvent.defaultPrevented ).toBe( true );
-		expect( document.activeElement ).toBe( toolbarButton );
+		expect( toolbarButton.ownerDocument.activeElement ).toBe( toolbarButton );
 		expect( firstControl.title ).toBe( 'Drag to move this row, or click to choose a destination.' );
 		controller.destroy();
 	} );
