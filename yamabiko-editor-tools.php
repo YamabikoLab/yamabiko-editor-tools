@@ -92,7 +92,7 @@ final class Plugin {
 		wp_enqueue_style(
 			'yamabiko-editor-tools-table-reorder-style',
 			plugins_url( 'build/editor-extensions/table-reorder/index.css', __FILE__ ),
-			array(),
+			array( 'wp-components' ),
 			(string) filemtime( $file_path )
 		);
 	}
