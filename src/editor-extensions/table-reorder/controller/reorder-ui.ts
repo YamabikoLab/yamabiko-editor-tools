@@ -190,7 +190,6 @@ export const createRowControls = (
 		let hydrated = false;
 		let renderPending = false;
 		let cleanedUp = false;
-		let root: ReturnType< typeof hydrateRoot >;
 
 		const createControlTree = () => {
 			const anchor = createElement(
@@ -249,6 +248,7 @@ export const createRowControls = (
 				text: tooltipText,
 			} );
 		};
+		const root = hydrateRoot( mount, createControlTree() );
 		const requestTooltipRender = () => {
 			if ( ! hydrated ) {
 				renderPending = true;
@@ -284,7 +284,6 @@ export const createRowControls = (
 
 		control.addEventListener( 'focus', onFocus );
 		control.addEventListener( 'blur', onBlur );
-		root = hydrateRoot( mount, createControlTree() );
 
 		cleanupControlRoots.push( () => {
 			cleanedUp = true;
