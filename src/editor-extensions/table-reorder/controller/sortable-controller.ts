@@ -18,8 +18,9 @@ import {
 	TOUCH_CHOSEN_CLASS,
 } from './drag-ui';
 import {
-	getEndInsertionIndex,
 	getMoveInsertionIndex,
+	isNoopRowMove,
+	isRowMoveAllowed,
 	reorderRows,
 	restoreOriginalRowOrder,
 } from './row-order';
@@ -348,17 +349,18 @@ export const createSortableController = (
 				}
 
 				const { oldIndex, newIndex } = event;
-				if ( oldIndex === undefined || newIndex === undefined || oldIndex === newIndex ) {
-					return;
-				}
-				if ( ! rows ) {
+				if ( oldIndex === undefined || newIndex === undefined || ! rows ) {
 					return;
 				}
 
-				const insertionIndex = getEndInsertionIndex( oldIndex, newIndex );
+				const constraints = {
+					forbiddenInsertionIndices,
+					nonMovableRowIndices,
+					rowCount: rows.length,
+				};
 				if (
-					nonMovableRowIndices.includes( oldIndex ) ||
-					forbiddenInsertionIndices.includes( insertionIndex )
+					isNoopRowMove( oldIndex, newIndex ) ||
+					! isRowMoveAllowed( oldIndex, newIndex, constraints )
 				) {
 					return;
 				}

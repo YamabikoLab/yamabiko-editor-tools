@@ -12,6 +12,22 @@ type MoveInsertionTarget = {
 	insertAfter: boolean;
 };
 
+/** 入力方式に依存しない行移動可否判定に必要な制約。 */
+export type RowMoveConstraints = {
+	forbiddenInsertionIndices: readonly number[];
+	nonMovableRowIndices: readonly number[];
+	rowCount: number;
+};
+
+/** 単一ポインター操作で表示できる移動先。 */
+export type RowMoveTarget = {
+	insertionIndex: number;
+	newIndex: number;
+};
+
+/** 行移動方向。 */
+export type RowMoveDirection = 'up' | 'down';
+
 /**
  * 行配列の要素をoldIndexからnewIndexへ移動した新しい配列を返す。
  *
@@ -67,16 +83,138 @@ export const getMoveInsertionIndex = (
 };
 
 /**
- * SortableJSの移動完了indexを、移動前のDOM行順序に対する挿入位置へ変換する。
+ * 移動元indexと移動後indexから、移動前のDOM行順序に対する挿入位置を求める。
  *
  * 下方向へ移動した場合は、移動対象行を元の位置へ戻してからcommitする処理に合わせて
- * 1行分を補正する。上方向への移動ではnewIndexをそのまま使用する。
+ * 1行分を補正する。上方向への移動と同位置ではnewIndexをそのまま使用する。
  *
- * @param oldIndex drag開始前の行index。
- * @param newIndex SortableJSが返した移動後index。
+ * @param oldIndex 移動前の行index。
+ * @param newIndex 移動後の行index。
  */
-export const getEndInsertionIndex = ( oldIndex: number, newIndex: number ): number =>
+export const getRowMoveInsertionIndex = ( oldIndex: number, newIndex: number ): number =>
 	newIndex > oldIndex ? newIndex + 1 : newIndex;
+
+/**
+ * 移動前後のindexが同じか判定する。
+ *
+ * @param oldIndex 移動前の行index。
+ * @param newIndex 移動後の行index。
+ */
+export const isNoopRowMove = ( oldIndex: number, newIndex: number ): boolean =>
+	oldIndex === newIndex;
+
+/**
+ * 行移動がindex範囲とrowspan制約を満たすか判定する。
+ *
+ * 同位置への移動は有効なno-opとして扱う。実際にcommitするかどうかは呼び出し側が
+ * `isNoopRowMove()`で判定する。
+ *
+ * @param oldIndex    移動元の行index。
+ * @param newIndex    移動後の行index。
+ * @param constraints 行数とrowspan由来の制約。
+ */
+export const isRowMoveAllowed = (
+	oldIndex: number,
+	newIndex: number,
+	constraints: RowMoveConstraints
+): boolean => {
+	const { forbiddenInsertionIndices, nonMovableRowIndices, rowCount } = constraints;
+	if (
+		! Number.isInteger( rowCount ) ||
+		rowCount < 1 ||
+		! Number.isInteger( oldIndex ) ||
+		! Number.isInteger( newIndex ) ||
+		oldIndex < 0 ||
+		newIndex < 0 ||
+		oldIndex >= rowCount ||
+		newIndex >= rowCount ||
+		nonMovableRowIndices.includes( oldIndex )
+	) {
+		return false;
+	}
+
+	return ! forbiddenInsertionIndices.includes( getRowMoveInsertionIndex( oldIndex, newIndex ) );
+};
+
+/**
+ * 現在の候補から指定方向にある次の有効な移動先indexを返す。
+ *
+ * rowspan途中など無効な候補は飛ばし、範囲内に有効候補がなければnullを返す。
+ *
+ * @param oldIndex     移動元の行index。
+ * @param currentIndex 現在の移動先候補index。
+ * @param direction    探索方向。
+ * @param constraints  行数とrowspan由来の制約。
+ */
+export const getNextValidRowMoveIndex = (
+	oldIndex: number,
+	currentIndex: number,
+	direction: RowMoveDirection,
+	constraints: RowMoveConstraints
+): number | null => {
+	if (
+		! Number.isInteger( currentIndex ) ||
+		currentIndex < 0 ||
+		currentIndex >= constraints.rowCount ||
+		constraints.nonMovableRowIndices.includes( oldIndex )
+	) {
+		return null;
+	}
+
+	const step = direction === 'up' ? -1 : 1;
+	for (
+		let candidate = currentIndex + step;
+		candidate >= 0 && candidate < constraints.rowCount;
+		candidate += step
+	) {
+		if ( isRowMoveAllowed( oldIndex, candidate, constraints ) ) {
+			return candidate;
+		}
+	}
+
+	return null;
+};
+
+/**
+ * 単一ポインター操作で表示できる有効な移動先一覧を返す。
+ *
+ * 同位置のno-opとrowspan途中などの無効位置は除外し、移動後index順で返す。
+ *
+ * @param oldIndex    移動元の行index。
+ * @param constraints 行数とrowspan由来の制約。
+ */
+export const getValidRowMoveTargets = (
+	oldIndex: number,
+	constraints: RowMoveConstraints
+): RowMoveTarget[] => {
+	if (
+		! Number.isInteger( constraints.rowCount ) ||
+		constraints.rowCount < 1 ||
+		! Number.isInteger( oldIndex ) ||
+		oldIndex < 0 ||
+		oldIndex >= constraints.rowCount ||
+		constraints.nonMovableRowIndices.includes( oldIndex )
+	) {
+		return [];
+	}
+
+	const targets: RowMoveTarget[] = [];
+	for ( let newIndex = 0; newIndex < constraints.rowCount; newIndex++ ) {
+		if (
+			isNoopRowMove( oldIndex, newIndex ) ||
+			! isRowMoveAllowed( oldIndex, newIndex, constraints )
+		) {
+			continue;
+		}
+
+		targets.push( {
+			insertionIndex: getRowMoveInsertionIndex( oldIndex, newIndex ),
+			newIndex,
+		} );
+	}
+
+	return targets;
+};
 
 /**
  * SortableJSが一時的に変更したtbodyの行DOMをdrag開始時の順序へ戻す。
