@@ -57,6 +57,22 @@ describe( 'reorder-ui', () => {
 		expect( firstCell.style.paddingInlineStart ).toBe( '7px' );
 	} );
 
+	it( 'keeps only one row control visible in hover mode', () => {
+		const { tbody } = createTable( [ 'Alpha', 'Beta' ] );
+		const controls = createRowControls( document, tbody, [], { showAll: false } );
+		const [ firstEntry, secondEntry ] = controls.entries;
+
+		controls.setVisible( firstEntry, true );
+		expect( firstEntry.control.dataset.visible ).toBe( 'true' );
+		expect( secondEntry.control.dataset.visible ).toBe( 'false' );
+
+		controls.setVisible( secondEntry, true );
+		expect( firstEntry.control.dataset.visible ).toBe( 'false' );
+		expect( secondEntry.control.dataset.visible ).toBe( 'true' );
+
+		controls.cleanup();
+	} );
+
 	it( 'uses WordPress Tooltip instead of a native title and switches the accessible description', () => {
 		const { tbody } = createTable( [ 'Alpha' ] );
 		const controls = createRowControls( document, tbody, [], { showAll: false } );
