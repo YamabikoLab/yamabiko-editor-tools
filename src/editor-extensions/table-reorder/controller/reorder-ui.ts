@@ -149,7 +149,6 @@ export const createRowControls = (
 		mount.style.display = 'contents';
 		firstCell.prepend( mount );
 		const root = createRoot( mount );
-		let control: HTMLButtonElement | null = null;
 		let tooltipText: string | undefined = usePointerDescription
 			? getPointerHandleTooltip()
 			: undefined;
@@ -165,9 +164,6 @@ export const createRowControls = (
 					'aria-label': rowControlName,
 					className: HANDLE_ZONE_CLASS,
 					contentEditable: false,
-					ref: ( element: HTMLButtonElement | null ) => {
-						control = element;
-					},
 					type: 'button',
 				},
 				createElement(
@@ -195,17 +191,24 @@ export const createRowControls = (
 					keyboardDescription
 				)
 			);
-			root.render( createElement( Tooltip, { text: tooltipText }, anchor ) );
+			root.render(
+				createElement( Tooltip, {
+					children: anchor,
+					text: tooltipText,
+				} )
+			);
 		};
 
 		flushSync( renderControl );
-		if ( ! control ) {
+		const renderedControl = mount.querySelector< HTMLButtonElement >(
+			`.${ HANDLE_ZONE_CLASS }`
+		);
+		if ( ! renderedControl ) {
 			root.unmount();
 			mount.remove();
 			continue;
 		}
 
-		const renderedControl = control;
 		const handle = renderedControl.querySelector< HTMLSpanElement >( `.${ HANDLE_CLASS }` );
 		if ( ! handle ) {
 			root.unmount();
