@@ -31,7 +31,9 @@
 - 既存のセル短タップ編集、行長押しDnD、PCポインターDnDとの競合防止
 - rowspan制約を共有する移動先計算とcommit境界
 - 行の並べ替えUIと移動先UIの名前・役割・状態、フォーカス表示、Target Size
-- 操作案内、状態・結果・移動不能理由の支援技術向け通知
+- 基本設計8章を正本とする操作案内、状態・結果・移動不能理由の支援技術向け通知、操作UIの名前・説明
+- タッチ端末での初回コーチマークと、閉じた後の自動再表示抑制
+- 利用者向け文言を一元管理するメッセージモジュールとWordPress標準i18n
 - 確定・キャンセル後のフォーカス維持 / 復元
 - キーボード・単一ポインター操作時の縦スクロール追従と Focus Not Obscured
 - iframe / non-iframeで同じ意味の操作を成立させるためのDOM / window境界
@@ -47,19 +49,19 @@
 - 列の並べ替え
 - 汎用アクセシビリティフレームワークや汎用state machineの新設
 - Table Reorder以外で再利用することを目的としたshared utilityの抽出
-- 初回コーチマークの新規実装。基本設計で必須となる再確認可能な短い操作案内を先に実装し、コーチマークは別Issueで必要性を判断する
 
 ## Approach
 
 ### 1. React / Gutenberg境界は薄いまま維持する
 
-`with-table-reorder.tsx` は引き続き Gutenberg の描画境界とToolbar描画を担当し、行DOMやイベント処理を直接所有しない。
+`with-table-reorder.tsx` は引き続き Gutenberg の描画境界とToolbar描画を担当し、行DOMやイベント処理を直接所有しない。タッチ初回コーチマークはToolbar入口に紐づくReact / Gutenberg側のUIとしてここで描画し、行DOM側へ責務を持ち込まない。
 
 `use-table-reorder.ts` は現在の hover capability、タッチ並べ替えモード、Table context解決、controller lifecycleを維持しつつ、次の橋渡しだけを追加する。
 
 - Toolbarからcontrollerへ「行の並べ替えUIへフォーカスする」要求を渡す
 - controller instanceをrefで保持する
 - `setAttributes()` による再描画をまたぐフォーカス復元要求を一時保持する
+- タッチ初回コーチマークのdismiss済み状態をWordPress側で永続化する境界を提供する
 - WordPress notice APIやGutenberg callbackは現在と同様に狭いcallbackとして下位へ渡す
 
 キーボード並べ替え中・単一ポインター移動先選択中という命令的なDOM操作状態はReact stateへ持ち上げない。controller内の一時sessionとして保持し、body更新でcontrollerが再生成される境界だけhookが橋渡しする。
@@ -97,15 +99,16 @@ controllerには必要最小限の一時sessionだけを追加する。
 
 - 移動可能行へ対応する行の並べ替えcontrolの生成・cleanup
 - controlの表示、フォーカス、選択中状態の反映
-- PC hover時とキーボードfocus時の短い操作案内
-- touch reorder mode中の短い操作案内
-- 単一ポインター操作時の有効な行間target UIの生成・位置更新・cleanup
+- 基本設計8章の優先関係に従うTooltip / インライン案内の表示・置換・cleanup
+- 単一ポインター操作時の有効な行間target UIと、タッチ時の明示的なキャンセル操作の生成・位置更新・cleanup
 - owning `document` 内の支援技術向けstatus nodeの生成・cleanup
 - 行control / target UIの位置計測と、必要な範囲のスクロール補助
 
 行の並べ替えcontrolと移動先targetには原則としてnative `button`を使い、`contenteditable="false"` とTable Reorder固有classを付ける。役割をARIAで再実装せず、名前・状態・説明に必要な属性だけを追加する。Gutenbergのcontenteditable内へ一時DOMを挿入する互換性は実装時に検証する。
 
 `drag-ui.ts` から既存hover handle生成部分を `reorder-ui.ts` へ移し、同じcontrolをPCのSortableJS handle、クリック入口、キーボード入口として共用する。insertion line、touch drag UI、fallback row widthは `drag-ui.ts` に残す。
+
+`reorder-ui.ts` 自身は利用者向け文言を定義せず、`messages.ts` から基本設計8章に対応する文言を受け取って表示する。controllerも利用者向け文字列を直接持たず、状態・イベントと可変値だけをUI / message境界へ渡す。
 
 永続的なfocus表示、Target Size、選択状態、target UIのhit areaはinline styleを増やし続けず、新規 `editor.scss` に置く。`index.tsx` はこのeditor styleをimportし、`@wordpress/scripts` が生成する `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` の `enqueue_block_assets` から `is_admin()` でeditorに限定してenqueueする。Table ReorderのJS / runtime configは既存どおり `enqueue_block_editor_assets` を維持する。JS entryのimportだけでCSS配信済みとみなさず、生成CSSのWordPress側配信までを実装境界に含める。
 
@@ -119,20 +122,15 @@ controllerには必要最小限の一時sessionだけを追加する。
 
 キャンセルではbodyを更新しないため、controller内で開始時の行controlへ直接focusを戻す。
 
-### 6. 通知・案内はowning documentで完結させる
+### 6. 利用者向け文言を一元管理し、案内・通知はowning documentで完結させる
 
-iframe / non-iframeの差を上位へ漏らさないため、行control、target UI、案内、status nodeは `TableContext.document` / `window` を使って生成する。
+新規 `messages.ts` をTable Reorder feature内に置き、基本設計8章で確定した画面表示メッセージ、支援技術向け動的通知、操作UIのアクセシブルな名前・説明を一元管理する。英語を翻訳元として `@wordpress/i18n` と `sprintf()` を使用し、controller、UI処理、React描画へ利用者向け文字列を直接記述しない。
 
-支援技術向け通知は新しいnpm依存を追加せず、`reorder-ui.ts` がowning documentへ一つのlive status nodeを作成し、controllerが次のイベントで必要な文だけ更新する方向とする。
+`messages.ts` は基本設計のメッセージIDと実装上の定義を対応付け、固定文言と可変値を含む文の組み立てだけを担当する。表示優先度、DOM構造、WordPress UI componentの選択、ARIA属性、通知更新方法は各表示責務が担い、文言仕様そのものを実装側で再定義しない。
 
-- 開始
-- 単一ポインターの移動先選択待ち
-- キーボード移動先変更
-- 確定
-- キャンセル
-- 先頭 / 末尾またはrowspan制約による移動不能
+iframe / non-iframeの差を上位へ漏らさないため、行control、target UI、インライン案内、status nodeは `TableContext.document` / `window` を使って生成する。Toolbarに紐づく一時通知とタッチ初回コーチマークはReact / Gutenberg側で表示し、同じ `messages.ts` の定義を利用する。
 
-直前と同じ通知はcontroller側で抑制する。ARIAの最終属性、politeness、行名の組み立ては実装時にDOM / screen readerで検証し、基本設計の意味を変えない範囲で確定する。
+支援技術向け通知は新しいnpm依存を追加せず、`reorder-ui.ts` がowning documentへ一つのlive status nodeを作成し、controllerが基本設計8章で定義された状態変化・操作結果に対応するイベントと可変値だけを渡す。直前と同じ通知の抑制も基本設計のルールに従ってcontroller / UI境界で行う。
 
 ## Architecture
 
@@ -142,16 +140,17 @@ iframe / non-iframeの差を上位へ漏らさないため、行control、target
 |---|---|
 | `index.tsx` | `editor.scss` のimportだけを追加する。登録責務は変更しない。 |
 | `yamabiko-editor-tools.php` | Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持し、生成された `build/editor-extensions/table-reorder/index.css` が存在する場合は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueする。 |
-| `with-table-reorder.tsx` | PC / タッチのToolbar入口を基本設計に合わせて描画し、controllerへのfocus要求をhook経由で呼ぶ。PCではモードを新設しない。 |
-| `use-table-reorder.ts` | controller ref、Toolbar focus bridge、commit後のpending focus復元を追加する。既存hover / touch mode lifecycleとrowspan制約算出は維持する。 |
+| `with-table-reorder.tsx` | PC / タッチのToolbar入口を基本設計に合わせて描画し、controllerへのfocus要求をhook経由で呼ぶ。PCではモードを新設しない。タッチ初回コーチマークをToolbar入口に紐づけて表示する。 |
+| `use-table-reorder.ts` | controller ref、Toolbar focus bridge、commit後のpending focus復元、タッチ初回コーチマークのdismiss済み状態の永続化境界を追加する。既存hover / touch mode lifecycleとrowspan制約算出は維持する。 |
+| `messages.ts` | 新規。基本設計8章のメッセージIDと実装定義を対応付け、WordPress i18n / `sprintf()` による画面表示・動的通知・アクセシブルな名前 / 説明の文言生成を一元管理する。表示状態やDOMは所有しない。 |
 | `table-context.ts` | iframe / non-iframeのowning document / window解決をそのまま再利用する。追加が必要でもcontext解決の範囲に限定する。 |
 | `rowspan.ts` | rowspan range、移動不能行、禁止挿入位置の正本としてそのまま再利用する。入力方式別ロジックを追加しない。 |
-| `controller/sortable-controller.ts` | SortableJSに加え、keyboard / single-pointer session、drag-click競合防止、focus入口、共通commit呼び出しを調停する。 |
+| `controller/sortable-controller.ts` | SortableJSに加え、keyboard / single-pointer session、drag-click競合防止、focus入口、共通commit呼び出しを調停する。利用者向け文字列は保持しない。 |
 | `controller/sortable-runtime.ts` | 変更不要を基本とする。owning windowごとのruntime再利用を回帰確認する。 |
 | `controller/drag-ui.ts` | insertion line、touch drag装飾、fallback幅固定を維持する。行control生成は新しい `reorder-ui.ts` へ移す。 |
 | `controller/row-order.ts` | 入力方式共通の移動可否、次の有効な移動先、target一覧、no-op判定を追加する。行順計算の正本とする。 |
 | `controller/touch-press.ts` | 行controlの短いtapを「セル編集へ戻るtap」と誤判定しない除外境界を追加する。既存長押しthreshold / cleanupは維持する。 |
-| `controller/reorder-ui.ts` | 新規。行control、pointer target、PC / touch向けの短い案内、live status、focus / position / scroll補助を所有する。 |
+| `controller/reorder-ui.ts` | 新規。行control、pointer target、基本設計8章の優先関係に従う案内表示、タッチのキャンセル操作、live status、focus / position / scroll補助を所有する。利用者向け文言は `messages.ts` から取得する。 |
 | `editor.scss` | 新規。focus可視性、選択状態、Target Size、target UI、案内の見た目を所有する。 |
 | `README.md` | 実装後の責務・操作フロー・新規fileを反映する。 |
 
@@ -166,9 +165,9 @@ iframe / non-iframeの差を上位へ漏らさないため、行control、target
 | `A11Y-FR-05` 操作文脈 | `use-table-reorder.ts`、`sortable-controller.ts`、`reorder-ui.ts` |
 | `A11Y-FR-06` フォーカス可視性 | `reorder-ui.ts`、`editor.scss` |
 | `A11Y-FR-07` フォーカス遮蔽 | `sortable-controller.ts`、`reorder-ui.ts`、`editor.scss` |
-| `A11Y-FR-08` 操作案内 | `reorder-ui.ts`、`with-table-reorder.tsx` |
-| `A11Y-FR-09` 支援技術への情報提供 | `sortable-controller.ts`、`reorder-ui.ts` |
-| `A11Y-FR-10` 名前・役割・状態 | `reorder-ui.ts`、`sortable-controller.ts` |
+| `A11Y-FR-08` 操作案内 | `messages.ts`、`reorder-ui.ts`、`with-table-reorder.tsx`、`use-table-reorder.ts` |
+| `A11Y-FR-09` 支援技術への情報提供 | `messages.ts`、`sortable-controller.ts`、`reorder-ui.ts` |
+| `A11Y-FR-10` 名前・役割・状態 | `messages.ts`、`reorder-ui.ts`、`sortable-controller.ts` |
 | `A11Y-FR-11` 基本要件の共有 | `rowspan.ts`、`row-order.ts`、`sortable-controller.ts` |
 | `A11Y-FR-12` 編集環境 | `table-context.ts`、`sortable-runtime.ts`、`sortable-controller.ts`、`reorder-ui.ts`、`yamabiko-editor-tools.php` |
 
@@ -243,7 +242,13 @@ reorder-ui.tsで行間targetを表示
         │       ↓
         │  再生成controllerが移動後の同じ行controlへfocus
         │
-        └─ 選択中のrow controlを再click / tap
+        ├─ PC: Escape
+        │       ↓
+        │  sessionをcancel
+        │       ↓
+        │  bodyは変更せず開始行controlへfocus
+        │
+        └─ Touch: 案内に併設した「キャンセル」操作をtap
                 ↓
            sessionをcancel
                 ↓
@@ -271,6 +276,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - Outcome: 移動可能な行ごとに、PCのdrag handle、click入口、keyboard入口を兼ねる一つのアクセシブルなcontrolが存在し、Toolbarから現在行または先頭の移動可能行へfocusできる。
 - Tasks:
   - `reorder-ui.ts` とfocused unit testを追加する。
+  - 基本設計8章の文言を一元管理する `messages.ts` を追加し、このPhaseで必要な行controlの名前・説明とTooltipも同moduleから取得する。
   - 既存hover handle生成を `drag-ui.ts` から移し、native buttonを基礎に再構成する。
   - PCはhover / focusで視認でき、touch reorder modeでは操作可能な行controlを表示する。
   - non-movable rowには同じcontrolを作らない。
@@ -281,9 +287,10 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - `yamabiko-editor-tools.php` ではTable ReorderのJS / runtime configを既存 `enqueue_block_editor_assets` に残し、生成された `build/editor-extensions/table-reorder/index.css` は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueする。CSSが未生成の場合は既存script経路を壊さないよう独立して存在確認する。
 - Validation:
   - Toolbarを実行しただけでは並べ替えsessionを開始しない。
-  - 現在行が移動不能ならToolbarへfocusを維持し、理由を通知できる。
+  - 現在行が移動不能ならToolbarへfocusを維持し、基本設計8章の通知を表示・通知できる。
   - `Tab` / `Shift + Tab` は独自循環を作らず通常のfocus順で行control間と外部へ移動する。
   - hoverによるPCの既存drag開始が維持される。
+  - 行controlの利用者向け文言がcontroller / UIへ直書きされず `messages.ts` から提供される。
   - iframe / non-iframeの両方で、生成CSSがeditorへ配信され、row controlのfocus表示とTarget Sizeが実際に適用される。
 
 ### Phase 3: キーボード並べ替えを接続する
@@ -294,7 +301,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - `Enter` / `Space` で開始・確定、`ArrowUp` / `ArrowDown` で `row-order.ts` が返す次の有効な移動先へ進み、`Escape` でキャンセルする。
   - session中は対象行controlへfocusを維持し、`Tab` / `Shift + Tab` による離脱を抑止する。
   - insertion lineまたは同等の軽量表示を再利用して現在候補を示す。
-  - 先頭 / 末尾、rowspan制約、no-opを通知する。
+  - 先頭 / 末尾、rowspan制約、no-opを基本設計8章の動的通知として扱う。
   - 確定時だけpending focus付きでcommitし、キャンセルではbodyを変更しない。
 - Validation:
   - rowspan範囲の途中を候補にせず、範囲全体を越えた次の有効位置へ進む。
@@ -310,31 +317,38 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - `reorder-ui.ts` でrowspan途中を除いた行間target buttonをowning document上へ表示し、scroll / resizeに追従させる。
   - PCではSortableJS drag後のclickを抑制し、dragをsingle-pointer開始として二重処理しない。
   - `touch-press.ts` でrow controlの短いtapをセル編集tap扱いから除外し、通常セルの短tapは従来どおりtouch reorder modeを終了して編集へ戻す。
-  - 選択中のrow controlをもう一度click / tapした場合はsingle-pointer sessionをcancelし、target UIをcleanupして開始行controlへfocusを戻す。専用cancel buttonは追加しない。
+  - PCではsingle-pointer session中の `Escape` を明示的なcancel手段として扱い、target UIをcleanupして開始行controlへfocusを戻す。
+  - touchでは `reorder-ui.ts` の案内に明示的なキャンセル操作を併設し、縦スクロール中も確認・操作できる状態を保つ。キャンセル時はtarget UIをcleanupして開始行controlへfocusを戻す。
   - touch reorder modeをOFFにする既存Toolbar操作では、activeなsingle-pointer sessionをcommitせずcancelしてからmode cleanupする。
   - target選択時はtargetへfocusされた後、commit再描画を経て移動後の同じ行controlへfocusする。
 - Validation:
   - PCで「drag」と「click」が同じcontrol上で共存する。
   - タッチで「セル短tap」「行長押しDnD」「row control tap」が三つの別経路として成立する。
-  - PC / タッチとも選択中のrow controlを再操作すれば確定せず終了でき、データを変更しない。
+  - PCでは `Escape`、touchでは案内に併設したキャンセル操作で確定せず終了でき、データを変更しない。
+  - touchで移動先を探して縦スクロールしても案内とキャンセル操作を確認・操作でき、target UI上のスワイプだけでは移動を確定しない。
   - touch reorder modeをOFFにした場合もactive sessionが残らず、データを変更しない。
   - target UIがrowspan途中を表示せず、キャンセルではデータを変更しない。
 
 ### Phase 5: 案内、通知、focus / scrollを完成させる
 
-- Outcome: `A11Y-FR-05` ～ `A11Y-FR-10` を満たす操作文脈、短い案内、支援技術向け通知、focus可視性、Focus Not Obscuredが揃う。
+- Outcome: `A11Y-FR-05` ～ `A11Y-FR-10` を満たす操作文脈、基本設計8章の画面表示・支援技術向け通知・操作UIの名前 / 説明、focus可視性、Focus Not Obscuredが揃う。
 - Tasks:
-  - PC hover / focus時の「ドラッグして移動 / クリックして移動先を選択」を再確認可能な案内として実装する。
-  - touch reorder mode中に、少なくとも「行を並び替えモードから操作する」「セル短tapは通常編集」「行長押しは既存DnD」「row control tapはドラッグ不要の移動先選択」を確認できる短い案内を実装する。
-  - single-pointer session開始後とkeyboard session中の短い操作案内を実装する。single-pointerでは選択中のrow controlを再操作するとcancelできることも案内する。
-  - owning document内のlive status nodeと重複通知抑制を実装する。
+  - 基本設計8章のメッセージIDと `messages.ts` の定義を対応付け、英語を翻訳元とするWordPress i18n / `sprintf()` で固定文言・可変文言を提供する。
+  - controller、`reorder-ui.ts`、React側のToolbar / coachmark描画から利用者向け文字列の直書きを除き、すべて `messages.ts` を利用する。
+  - 基本設計8章で定義された表示形式・表示契機・消える契機・競合時の優先関係に従って、Tooltip、インライン案内、WordPress一時通知を実装する。
+  - タッチ端末の初回コーチマークをToolbar入口に紐づけて実装し、閉じた後はページ再読み込みや投稿を開き直しても自動再表示しない状態をWordPress側で永続化する。PCには追加しない。
+  - single-pointer session中は、PCでは `Escape`、touchでは案内に併設するキャンセル操作という基本設計のキャンセル経路を案内とUIへ反映する。
+  - owning document内のlive status nodeと基本設計8章の重複通知抑制を実装する。
   - row controlに現在の操作対象であることを表す状態を付与し、focus表示とは区別する。
   - keyboard候補変更時に現在候補と移動方向側の次の有効位置を可能な範囲で見えるようscrollを補助する。
   - pointer target表示中も元のrow controlをTable Reorder自身のUIで完全に隠さない。
 - Validation:
-  - 開始、候補変更、確定、キャンセル、移動不能が必要な情報だけ通知される。
+  - 基本設計8章で定義された開始、候補変更、確定、キャンセル、移動不能等の画面表示 / 動的通知が、定義された契機と優先関係で一つだけ提示される。
+  - タッチの初回コーチマークが初回利用時だけ表示され、閉じた後は自動再表示されず、モード開始後は通常案内へ置き換わる。
   - touch reorder mode中に、セル短tap / 行長押し / row control tapの違いとモード経由の操作であることを画面上から再確認できる。
+  - single-pointer session中に、PC / touchそれぞれのキャンセル経路を画面上または操作UIから確認できる。
   - key repeatや同じ無効操作で同一通知を連続発火しない。
+  - 利用者向け文言が一つの `messages.ts` に集約され、controller / UI処理へ直書きされていない。
   - row control / targetのhit areaがWCAG 2.2 2.5.8の最低要件を満たす。
   - focusされたcontrolがTable Reorderの案内 / target UIによって完全に隠れない。
 
@@ -342,11 +356,12 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 
 - Outcome: iframe / non-iframe、PC / タッチ、rowspanあり / なしで同じ利用者向け意味を確認し、実装責務をREADMEへ反映できている。
 - Tasks:
-  - controller / reorder UI / touch pressのfocused unit testを追加・更新する。
-  - Playwrightで安定して再現できるkeyboard / pointer経路を追加する。支援技術固有挙動は手動確認へ残す。
+  - controller / reorder UI / message / touch pressのfocused unit testを追加・更新する。
+  - Playwrightで安定して再現できるkeyboard / pointer / coachmark経路を追加する。支援技術固有挙動は手動確認へ残す。
   - iframe / non-iframeの両環境でfocus、target位置、live statusがowning document内にあることを確認する。
   - iframe / non-iframeの両環境で `index.css` がeditorへ配信され、row control / target / 案内のstyleが適用されることを確認する。
   - 既存PC drag、touch long-press drag、rowspan warning、DOM restore before commit、Undo、セル編集を回帰確認する。
+  - WordPress i18n用の翻訳データを既存のリポジトリ手順に従って更新し、英語原文と日本語翻訳が実装へ反映されることを確認する。
   - `src/editor-extensions/table-reorder/README.md` のfile責務とcontrol flowを更新する。
 - Validation:
   - Node品質gate、production build、repository diff checkを通す。
@@ -364,9 +379,10 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - Gutenberg再描画をまたぐfocus復元requestだけを `use-table-reorder.ts` がrefで保持する。
 - 行control / target /案内 / live statusは新規 `reorder-ui.ts` に集約し、drag専用UIは `drag-ui.ts` に残す。
 - persistentなaccessibility UIの見た目は新規 `editor.scss` に置く。Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持し、生成された `build/editor-extensions/table-reorder/index.css` は `yamabiko-editor-tools.php` の `enqueue_block_assets` + `is_admin()` でeditor contentへ配信する。汎用style基盤は追加しない。
-- single-pointer sessionのpointer-onlyなcancelは、選択中のrow controlを再click / tapして終了する。touch reorder modeをOFFにする場合もactive sessionをcancelしてからcleanupし、専用cancel buttonは追加しない。
+- single-pointer sessionのcancelは、PCでは `Escape`、touchでは案内に併設する明示的なキャンセル操作を主経路とする。touch reorder modeをOFFにする場合もactive sessionをcancelしてからcleanupする。
+- タッチ初回コーチマークは本実装に含め、Toolbar入口に紐づけて初回利用時だけ表示し、閉じた後の自動再表示を永続的に抑制する。PCには追加しない。
+- 基本設計8章の画面表示・動的通知・アクセシブルな名前 / 説明は新規 `messages.ts` に集約し、WordPress i18n / `sprintf()` を使用する。controllerやUIへ利用者向け文字列を直書きしない。
 - 支援技術向けstatusはowning document内へTable Reorder自身が一つだけ生成し、新規npm dependencyを追加しない。
-- 初回コーチマークは本実装の完了条件に含めず、閉じた後も使える短い案内を必須経路とする。
 
 ### Validate during implementation
 
@@ -380,6 +396,8 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - keyboard scroll追従を `scrollIntoView()` 中心で満たせるか、次の有効位置を見せるための追加 `scrollBy()` が必要か。
 - row accessible nameに採用する代表的内容の長さ、空行fallback、重複行の区別が支援技術で実用的か。
 - live statusの `role` / `aria-live` / `aria-atomic` の組み合わせと、重複抑制がChrome + 主要screen readerで過不足ないか。
+- タッチ初回コーチマークのdismiss済み状態を、追加依存を最小にしつつWordPress内で確実に永続化できる保存境界。
+- 基本設計8章の表示形式をWordPress標準component / UI patternで実現したとき、iframe / non-iframeとToolbar / editor contentの境界をまたいでも表示優先度と関連付けを保てるか。
 
 検証で実装差が必要になっても、要件・基本設計で確定した利用者向け意味は変更しない。意味の変更が必要と判明した場合は実装側だけで調整せず、#189 / #213の正本へ戻して判断する。
 
@@ -410,14 +428,17 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - whitespace errorがない。
 - focused Jest
   - `row-order.test.ts`: 共通移動可否、次の有効移動先、rowspan越え、no-op
-  - `reorder-ui.test.ts`: control / target / accessible name / cleanup / live status
-  - `sortable-controller.test.ts`: keyboard / pointer session、共通commit、drag-click抑制、focus request
+  - `messages.test.ts`: 基本設計8章のmessage ID対応、可変文言、WordPress i18n / `sprintf()` 境界
+  - `reorder-ui.test.ts`: control / target / accessible name / cancel UI / cleanup / live status / message優先表示
+  - `sortable-controller.test.ts`: keyboard / pointer session、共通commit、drag-click抑制、focus request、PC Escape cancel
   - `touch-press.test.ts`: row control tap除外と既存短tap / 長押し挙動
   - 既存 `table-context.test.ts` / `sortable-runtime.test.ts` / `drag-ui.test.ts` / `rowspan.test.ts` の回帰
 - Playwright
   - PC Toolbar → keyboard row control → move → confirm / cancel
   - PC handle dragとhandle clickの共存
-  - PC / touchのsingle-pointer開始 → row control再操作によるcancel
+  - PC single-pointer開始 → `Escape` cancel
+  - touch single-pointer開始 → 案内に併設したキャンセル操作によるcancel
+  - タッチ初回コーチマークの初回表示、終了、再表示抑制
   - stableに自動化できる範囲のtouch mode / single-pointer経路
   - iframe環境を基準にし、non-iframeは対応するwp-dev環境でも確認する
 
@@ -429,13 +450,16 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - `Tab` / `Shift + Tab` が論理順で動き、端でTable Reorder外へ出られる。
   - keyboard開始 / 上下移動 / 確定 / cancelが仕様どおり。
   - handleをdragすれば既存DnD、clickすればsingle-pointer選択になる。
-  - single-pointer選択中に同じrow controlを再clickするとcancelでき、行順を変更しない。
+  - single-pointer選択中に `Escape` を押すとcancelでき、行順を変更しない。
   - cell clickは従来どおり編集になる。
+  - PCでは初回コーチマークを表示しない。
 - Touch環境
+  - 初回利用時にToolbar入口へコーチマークが表示され、閉じた後はページ再読み込みや投稿を開き直しても自動再表示されない。
   - reorder mode開始だけでは特定行を自動選択しない。
   - reorder mode中に、セル短tapは通常編集、行長押しは既存DnD、row control tapはドラッグ不要の移動先選択であることを画面上から確認できる。
   - cell短tapは編集、row長押しはDnD、row control tapはsingle-pointer選択になる。
-  - single-pointer選択中に同じrow controlを再tapするとcancelでき、行順を変更しない。
+  - single-pointer選択中に案内へ併設されたキャンセル操作をtapするとcancelでき、行順を変更しない。
+  - 移動先を探して縦スクロールしても案内とキャンセル操作が画面内で確認・操作でき、target UI上のスワイプだけでは確定しない。
   - single-pointer選択中にToolbarからreorder modeをOFFにしてもsessionが残らず、行順を変更しない。
   - non-movable row長押しwarningが維持される。
   - 外付けkeyboard相当の操作でkeyboard経路を完了できる。
@@ -451,6 +475,10 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - Editor asset delivery
   - iframe / non-iframeの両環境で `build/editor-extensions/table-reorder/index.css` がeditorへ読み込まれる。
   - row controlのfocus ring、Target Size、選択状態、pointer target、操作案内に `editor.scss` のstyleが実際に適用される。
+- Messages / i18n
+  - 基本設計8章の画面表示・動的通知・アクセシブルな名前 / 説明が `messages.ts` を経由し、controller / UIへ利用者向け文字列が直書きされていない。
+  - 英語を翻訳元として日本語翻訳がWordPress標準i18n経路で適用される。
+  - 同じTableで複数の案内が競合する場合、基本設計8章の優先関係に従って必要な案内だけが表示される。
 - Support technology
   - 少なくとも一つの主要screen reader + Chrome系browserで、row名、開始、移動先変更、確定、cancel、移動不能理由を確認する。
   - 同じ無効操作やkey repeatで不要な同一通知が連続しない。
@@ -465,9 +493,11 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - `A11Y-FR-01` ～ `A11Y-FR-12` の各要件が上記module境界のいずれかへ対応付いている。
 - keyboard、single pointer、既存SortableJS DnDが `row-order.ts` / `rowspan.ts` の共通移動可否を利用する計画になっている。
 - 既存の `use-table-reorder.ts`、`with-table-reorder.tsx`、`table-context.ts`、`rowspan.ts`、controller各moduleの再利用範囲が明確である。
-- 新規責務が `reorder-ui.ts` と `editor.scss` を中心に限定され、生成CSSのeditor content配信だけを `yamabiko-editor-tools.php` の `enqueue_block_assets` + `is_admin()` に追加し、JS / runtime configは既存 `enqueue_block_editor_assets` を維持する。汎用基盤や入力方式別の重複ロジックを作らない。
+- 新規責務が `messages.ts`、`reorder-ui.ts`、`editor.scss` を中心に限定され、生成CSSのeditor content配信だけを `yamabiko-editor-tools.php` の `enqueue_block_assets` + `is_admin()` に追加し、JS / runtime configは既存 `enqueue_block_editor_assets` を維持する。汎用基盤や入力方式別の重複ロジックを作らない。
 - Gutenberg commitをまたぐfocus復元と、drag時には不要なfocus変更を行わない境界が明確である。
-- PC drag / click、touch short tap / long press / control tapの競合と、single-pointerの確定しないcancel経路を実装・検証する順序が明確である。
+- PC drag / click、touch short tap / long press / control tapの競合と、PC `Escape` / touch明示的cancelによるsingle-pointerの確定しないcancel経路を実装・検証する順序が明確である。
+- タッチ初回コーチマークを初回だけ表示し、閉じた後の自動再表示を抑制する実装・検証計画がある。
+- 基本設計8章の利用者向け文言を `messages.ts` に一元管理し、WordPress標準i18nを利用する実装・検証計画がある。
 - touch reorder mode中に必要な操作案内を実装・確認する計画がある。
 - iframe / non-iframeの両方でTable Reorderの生成CSS配信を検証する計画がある。
 - unit test、Playwright、手動accessibility確認、iframe / non-iframe回帰の役割分担が明確である。
