@@ -198,8 +198,8 @@ export const createRowControls = (
 				{
 					'aria-describedby': descriptionId,
 					'aria-label': rowControlName,
-					'className': HANDLE_ZONE_CLASS,
-					'contentEditable': false,
+					className: HANDLE_ZONE_CLASS,
+					contentEditable: false,
 					'data-visible': control.dataset.visible,
 					ref: ( element: HTMLButtonElement | null ) => {
 						if ( ! element ) {
