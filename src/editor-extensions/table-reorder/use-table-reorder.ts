@@ -11,7 +11,10 @@ import { useEffect, useRef, useState, type RefObject } from '@wordpress/element'
 import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
-import { createSortableController } from './controller/sortable-controller';
+import {
+	createSortableController,
+	type ReorderInteractionMode,
+} from './controller/sortable-controller';
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { resolveTableContext } from './table-context';
 
@@ -61,11 +64,12 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		() => window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
 	);
 	const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
-	const interactionMode = isHoverCapable
-		? 'hover'
-		: isSelected && isTouchReorderMode
-		? 'touch'
-		: null;
+	let interactionMode: ReorderInteractionMode | null = null;
+	if ( isHoverCapable ) {
+		interactionMode = 'hover';
+	} else if ( isSelected && isTouchReorderMode ) {
+		interactionMode = 'touch';
+	}
 
 	useEffect( () => {
 		createNoticeRef.current = createNotice;
