@@ -150,6 +150,50 @@ describe( 'createSortableController', () => {
 		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
 	} );
 
+	it( 'keeps focus unchanged when a mouse drag starts from the hover row control', async () => {
+		const runtime = createRuntime();
+		ensureSortableRuntimeMock.mockResolvedValue( runtime );
+		const { context, tbody } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit: jest.fn(),
+			onNonMovableRowLongPress: jest.fn(),
+			onRequestTouchModeExit: jest.fn(),
+			rows: [ 'a', 'b', 'c' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await flushPromises();
+
+		const toolbarButton = document.createElement( 'button' );
+		document.body.prepend( toolbarButton );
+		toolbarButton.focus();
+		const firstControl = tbody.rows
+			.item( 0 )
+			?.querySelector< HTMLButtonElement >( '.yamabiko-table-reorder-handle-zone' );
+		if ( ! firstControl ) {
+			throw new Error( 'Expected first row control' );
+		}
+
+		dispatchMousePointerEvent( firstControl, 'pointerdown' );
+		const mouseDownEvent = new MouseEvent( 'mousedown', {
+			bubbles: true,
+			button: 0,
+			cancelable: true,
+		} );
+		firstControl.dispatchEvent( mouseDownEvent );
+		if ( ! mouseDownEvent.defaultPrevented ) {
+			firstControl.focus();
+		}
+
+		expect( mouseDownEvent.defaultPrevented ).toBe( true );
+		expect( document.activeElement ).toBe( toolbarButton );
+		expect( firstControl.title ).toBe( 'Drag to move this row, or click to choose a destination.' );
+		controller.destroy();
+	} );
+
 	it( 'focuses the last active movable row without starting a reorder session', async () => {
 		const runtime = createRuntime();
 		ensureSortableRuntimeMock.mockResolvedValue( runtime );
