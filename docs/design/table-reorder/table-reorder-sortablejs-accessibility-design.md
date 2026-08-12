@@ -258,7 +258,8 @@ Tableブロックをキーボードで選択しただけでは、Table Reorder�
 | `VIS-PC-POINTER-ACTIVE` | 単一ポインター移動先選択中・PC | 操作中のTable | インライン案内 | Table上部に表示し、移動先UIと同じTableに関連付ける | Click where you want to move the row. Press Escape to cancel. | 行を移動したい位置をクリックしてください。Escキーでキャンセルできます。 | PCで行ハンドルをクリックし、移動対象を選択したとき | 移動先をクリックして確定したとき、またはEscキーでキャンセルしたとき |
 | `VIS-TOUCH-MODE` | タッチの「行を並び替え」モード | 操作中のTable | インライン案内 | Table上部に表示し、縦スクロール中も対象Tableの案内を確認できる状態を保つ | Touch and hold a row, then drag it. Or tap a move button and choose a destination. Tap a cell to edit it. | 行を長押ししてドラッグするか、移動ボタンをタップして移動先を選択します。セルはタップして編集できます。 | タッチで「行を並び替え」モードへ入ったとき | モードをOFFにしたとき、または単一ポインター移動先選択中の案内へ置き換わったとき |
 | `VIS-TOUCH-POINTER-ACTIVE` | 単一ポインター移動先選択中・タッチ | 操作中のTableと「キャンセル」操作 | 「キャンセル」操作を併設したインライン案内 | Table上部に表示し、移動先を探して縦スクロールしても案内と「キャンセル」を画面内で確認・操作できる状態を保つ | Tap where you want to move the row. | 行を移動したい位置をタップしてください。 | タッチで行の並べ替えUIをタップし、移動対象を選択したとき | 移動先をタップして確定したとき、「キャンセル」をタップしたとき、またはモードをOFFにしたとき |
-| `VIS-ROWSPAN-ERROR` | rowspan範囲内の移動不可行をタッチで長押し | 長押しした行を含むTable | WordPress標準の一時通知（エラー） | Gutenbergの一時通知として表示し、操作中のTableを見失わせない | This row cannot be moved because it is within a cell that spans multiple rows. | この行は、複数行にまたがる結合セルの範囲内にあるため移動できません。 | 移動不可行の長押しを検出し、既存仕様どおりドラッグを開始しなかったとき | 一時通知の標準の表示時間が終わったとき、または利用者が閉じたとき |
+| `VIS-ROWSPAN-ERROR` | rowspan範囲内の移動不可行からの操作開始 | 操作対象の行を含むTable | WordPress標準の一時通知（エラー） | Gutenbergの一時通知として表示する。Toolbar入口から表示した場合は「行を並び替え」操作にフォーカスを維持する | This row cannot be moved because it is within a cell that spans multiple rows. | この行は、複数行にまたがる結合セルの範囲内にあるため移動できません。 | タッチで移動不可行を長押ししてドラッグを開始しなかったとき、またはToolbar入口で現在行が移動不可と判定されたとき | 一時通知の標準の表示時間が終わったとき、または利用者が閉じたとき |
+| `VIS-NO-MOVABLE-ROWS` | 移動可能な本文行がない | 対象Table | WordPress標準の一時通知（警告） | Gutenbergの一時通知として表示し、「行を並び替え」操作にフォーカスを維持する | There are no rows that can be reordered in this table. | この表には並べ替えできる行がありません。 | Toolbarの「行を並び替え」操作を実行したが、移動可能な本文行がないとき | 一時通知の標準の表示時間が終わったとき、または利用者が閉じたとき |
 | `VIS-TOUCH-COACHMARK` | タッチでの初回利用 | ブロックツールバーの「行を並び替え」操作 | WordPress標準のPopover相当のコーチマーク | ツールバーの「行を並び替え」操作に紐づけ、入口との対応が分かる位置に表示する | You can reorder the rows in this table. Tap “Reorder rows” in the toolbar to begin. | この表は行を並べ替えられます。ツールバーの「行を並び替え」をタップして始めます。 | タッチ端末でTable Reorderを初めて利用し、対象Tableを選択したとき | 利用者が閉じたとき、または「行を並び替え」操作を実行したとき。閉じた後は自動再表示しない |
 
 タッチの単一ポインター移動先選択中は、移動先UI上からスワイプを開始しても、スクロールジェスチャーだけでは移動を確定しない。移動先へのタップで確定し、「キャンセル」のタップでは行順を変更せず移動先UIと選択中表示を解除して、タッチの「行を並び替え」モードへ戻る。モード自体は維持する。モードをOFFにした場合も進行中の選択を確定せず終了するが、これは副次的なキャンセル手段とする。
@@ -269,31 +270,31 @@ Tableブロックをキーボードで選択しただけでは、Table Reorder�
 
 | メッセージID | 状態・イベント | 英語原文 | 日本語 | 通知契機 | 含める情報 | 重複抑制 |
 |---|---|---|---|---|---|---|
-| `ANN-MOVE-STARTED` | キーボード並べ替え開始 | Moving {rowLabel}, row {currentPosition} of {rowCount}. | {rowLabel}、全{rowCount}行中{currentPosition}行目の移動を開始しました。 | 行の並べ替えUIでEnterまたはSpaceキーを押し、キーボード並べ替えを開始したとき | 対象行、現在位置、総行数 | 一つの操作セッションにつき開始時の1回だけ通知する |
-| `ANN-DESTINATION-REQUESTED` | 単一ポインター操作で移動対象を選択 | {rowLabel} selected. Choose a destination. | {rowLabel}を選択しました。移動先を選んでください。 | PCでハンドルをクリック、またはタッチで行の並べ替えUIをタップし、移動先の選択待ちになったとき | 対象行、次に必要な操作 | 一つの操作セッションにつき選択時の1回だけ通知する |
-| `ANN-DESTINATION-CHANGED` | キーボードで有効な移動先が変化 | Move {rowLabel} to position {destinationPosition} of {rowCount}. | {rowLabel}を全{rowCount}行中{destinationPosition}行目へ移動します。 | ArrowUpまたはArrowDownで移動先候補が実際に変わったとき | 対象行、移動先、総行数 | 同じ移動先の連続通知を抑制し、候補が変わった場合だけ通知する |
-| `ANN-MOVE-COMMITTED` | 移動確定 | Moved {rowLabel} from position {fromPosition} to {toPosition}. | {rowLabel}を{fromPosition}行目から{toPosition}行目へ移動しました。 | 有効な別位置への移動を確定し、行順の更新が完了したとき | 対象行、移動元、移動先 | 一回の確定につき1回だけ通知する。同じ位置の確定では通知しない |
-| `ANN-MOVE-CANCELED` | 操作キャンセル | Canceled moving {rowLabel}. It remains at position {currentPosition}. | {rowLabel}の移動をキャンセルしました。位置は{currentPosition}行目のままです。 | Escape、「キャンセル」、選択中のモードOFF等で行順を変更せず操作を終了したとき | 対象行、維持された位置 | 一回のキャンセルにつき1回だけ通知する |
-| `ANN-MOVE-BOUNDARY` | 先頭・末尾でそれ以上移動できない | {rowLabel} cannot move any farther {direction}. | {rowLabel}は、これ以上{direction}へ移動できません。 | 移動先候補が変わらない方向へArrowUpまたはArrowDownを押したとき | 対象行、移動できない方向 | 同じ方向の同一通知を連続抑制し、候補変更または方向変更後は再通知できる |
-| `ANN-ROWSPAN-BLOCKED` | 結合セル制約で移動不可 | {rowLabel} cannot be moved because it is within a cell that spans multiple rows. | {rowLabel}は、複数行にまたがる結合セルの範囲内にあるため移動できません。 | 移動不可行から操作を開始しようとしたとき、またはToolbar入口で現在行が移動不可と判定されたとき | 対象行、移動できない理由 | 同一操作に対する同じ理由の連続通知を抑制する |
+| `ANN-MOVE-STARTED` | キーボード並べ替え開始 | Moving %1$s, row %2$d of %3$d. | %1$s、全%3$d行中%2$d行目の移動を開始しました。 | 行の並べ替えUIでEnterまたはSpaceキーを押し、キーボード並べ替えを開始したとき | 対象行の代表情報、現在位置、総行数 | 一つの操作セッションにつき開始時の1回だけ通知する |
+| `ANN-DESTINATION-REQUESTED` | 単一ポインター操作で移動対象を選択 | %1$s selected. Choose a destination. | %1$sを選択しました。移動先を選んでください。 | PCでハンドルをクリック、またはタッチで行の並べ替えUIをタップし、移動先の選択待ちになったとき | 対象行の代表情報、次に必要な操作 | 一つの操作セッションにつき選択時の1回だけ通知する |
+| `ANN-DESTINATION-CHANGED` | キーボードで有効な移動先が変化 | Move %1$s to position %2$d of %3$d. | %1$sを全%3$d行中%2$d行目へ移動します。 | ArrowUpまたはArrowDownで移動先候補が実際に変わったとき | 対象行の代表情報、移動先、総行数 | 同じ移動先の連続通知を抑制し、候補が変わった場合だけ通知する |
+| `ANN-MOVE-COMMITTED` | 移動確定 | Moved %1$s from position %2$d to %3$d. | %1$sを%2$d行目から%3$d行目へ移動しました。 | 有効な別位置への移動を確定し、行順の更新が完了したとき | 対象行の代表情報、移動元、移動先 | 一回の確定につき1回だけ通知する。同じ位置の確定では通知しない |
+| `ANN-MOVE-CANCELED` | 操作キャンセル | Canceled moving %1$s. It remains at position %2$d. | %1$sの移動をキャンセルしました。位置は%2$d行目のままです。 | Escape、「キャンセル」、選択中のモードOFF等で行順を変更せず操作を終了したとき | 対象行の代表情報、維持された位置 | 一回のキャンセルにつき1回だけ通知する |
+| `ANN-MOVE-BOUNDARY` | 先頭・末尾でそれ以上移動できない | %1$s cannot move any farther %2$s. | %1$sは、これ以上%2$sへ移動できません。 | 移動先候補が変わらない方向へArrowUpまたはArrowDownを押したとき | 対象行の代表情報、移動できない方向 | 同じ方向の同一通知を連続抑制し、候補変更または方向変更後は再通知できる |
+| `ANN-ROWSPAN-BLOCKED` | 結合セル制約で移動不可 | %1$s cannot be moved because it is within a cell that spans multiple rows. | %1$sは、複数行にまたがる結合セルの範囲内にあるため移動できません。 | 移動不可行から操作を開始しようとしたとき、またはToolbar入口で現在行が移動不可と判定されたとき | 対象行の代表情報、移動できない理由 | 同一操作に対する同じ理由の連続通知を抑制する |
 | `ANN-NO-MOVABLE-ROWS` | 移動可能な本文行がない | There are no rows that can be reordered in this table. | この表には並べ替えできる行がありません。 | Toolbarの「行を並び替え」操作を実行したが、移動可能な本文行がないとき | 対象Tableに移動可能行がないこと | 同じToolbar操作1回につき1回だけ通知する |
 
-`{direction}` は英語では `up` / `down`、日本語では「上」/「下」の翻訳済み値を使用する。行番号、移動元・移動先、総行数、行の代表情報など実行時に変わる値もプレースホルダーとして英語原文へ組み込み、文章部分を操作ロジックへ直書きしない。
+8.3の可変値は、`@wordpress/i18n` の `sprintf()` で展開できる番号付きプレースホルダーを使用する。各文言の `%1$s`、`%2$d`、`%3$d` は「含める情報」に記載した可変情報を左から順に表し、翻訳側で語順を変更できるよう番号を付ける。対象行を表す文字列は行内容から得られる短い代表情報だけとし、表内の行位置を含めない。行位置、移動元・移動先、総行数は別の数値プレースホルダーで伝える。空行の代表情報には翻訳対象の `Empty row` / 「空の行」を使用する。`ANN-MOVE-BOUNDARY` の `%2$s` は英語では `up` / `down`、日本語では「上」/「下」の翻訳済み値を使用する。文章部分を操作ロジックへ直書きせず、独自の `{rowLabel}` 等の名前付きトークン置換を追加しない。
 
 ### 8.4 操作UIのアクセシブルな名前・説明
 
 | メッセージID | 対象UI | 用途 | 英語原文 | 日本語 | 含める可変情報 |
 |---|---|---|---|---|---|
-| `UI-ROW-CONTROL-NAME` | 行の並べ替えUI | 対象行を識別できる名前 | Reorder row {position}: {summary} | {position}行目「{summary}」を並べ替え | 表内の現在位置、行内容の代表情報 |
+| `UI-ROW-CONTROL-NAME` | 行の並べ替えUI | 対象行を識別できる名前 | Reorder row %1$d: %2$s | %1$d行目「%2$s」を並べ替え | 表内の現在位置、行内容の代表情報 |
 | `UI-ROW-CONTROL-POINTER-DESCRIPTION` | PCの行ハンドル | ドラッグと単一ポインター操作を説明 | Drag to move this row, or activate to choose a destination. | ドラッグして行を移動できます。実行すると移動先を選択できます。 | なし |
 | `UI-ROW-CONTROL-KEYBOARD-DESCRIPTION` | フォーカス中の行の並べ替えUI | キーボード開始方法を説明 | Press Enter or Space to start moving this row. | EnterまたはSpaceキーで、この行の移動を開始します。 | なし |
-| `UI-DESTINATION-BEFORE-NAME` | 行間の移動先UI | 挿入位置を識別できる名前 | Move before row {position}: {summary} | {position}行目「{summary}」の前へ移動 | 移動先側の行位置、代表情報 |
+| `UI-DESTINATION-BEFORE-NAME` | 行間の移動先UI | 挿入位置を識別できる名前 | Move before row %1$d: %2$s | %1$d行目「%2$s」の前へ移動 | 移動先側の行位置、代表情報 |
 | `UI-DESTINATION-END-NAME` | Table末尾の移動先UI | 末尾への挿入位置を識別できる名前 | Move to the end of the table. | 表の末尾へ移動 | なし |
 | `UI-CANCEL-NAME` | タッチの単一ポインター移動先選択中のキャンセル操作 | 確定せず移動先選択を終了 | Cancel | キャンセル | なし |
 | `UI-TOOLBAR-REORDER-NAME` | ブロックツールバーの入口 | Table Reorderの入口を識別 | Reorder rows | 行を並び替え | なし |
 | `UI-TOOLBAR-REORDER-DESCRIPTION` | ブロックツールバーの入口 | 入口の役割を説明 | Move table rows using drag and drop, the keyboard, or destination selection. | ドラッグ、キーボード、または移動先の選択で表の行を移動します。 | なし |
 
-`{summary}` は行内容から得られる代表情報を簡潔に整形する。空行では翻訳対象の `Empty row` / 「空の行」を使用する。同じ代表情報を持つ行も `{position}` によって区別できるようにする。並べ替え後は現在位置を使用して名前を更新する。
+8.4の可変値も `@wordpress/i18n` の `sprintf()` で展開できる番号付きプレースホルダーを使用する。`UI-ROW-CONTROL-NAME` と `UI-DESTINATION-BEFORE-NAME` では、`%1$d` を表内の現在位置、`%2$s` を行内容から得られる短い代表情報とする。空行では翻訳対象の `Empty row` / 「空の行」を使用する。同じ代表情報を持つ行も現在位置によって区別できるようにし、並べ替え後は現在位置を使用して名前を更新する。
 
 UIの名前・説明は、8.3の動的通知とは役割が異なる。具体的な `aria-label`、`aria-describedby` 等の属性選定やDOM構造は実装時に決定する。
 
@@ -301,7 +302,7 @@ UIの名前・説明は、8.3の動的通知とは役割が異なる。具体的
 
 同じTable内では、画面表示メッセージを次の優先順で扱い、同じ操作文脈の案内を重ねて表示しない。
 
-1. `VIS-ROWSPAN-ERROR`
+1. `VIS-ROWSPAN-ERROR` または `VIS-NO-MOVABLE-ROWS`
 2. `VIS-KEYBOARD-ACTIVE` または入力方式に応じた `VIS-PC-POINTER-ACTIVE` / `VIS-TOUCH-POINTER-ACTIVE`
 3. `VIS-TOUCH-MODE`
 4. `VIS-PC-HANDLE-HOVER` または `VIS-ROW-HANDLE-FOCUS`
@@ -325,7 +326,8 @@ PCは行へのhoverでハンドルを発見でき、ハンドルのツールチ�
 ### 8.7 多言語化と一元管理
 
 - 英語をWordPress i18nの翻訳元とし、日本語はWordPressの翻訳データとして提供する。
-- JavaScriptでは `@wordpress/i18n` の翻訳関数を使用し、`yamabiko-editor-tools` テキストドメインを使用する。
+- JavaScriptでは `@wordpress/i18n` の翻訳関数と `sprintf()` を使用し、`yamabiko-editor-tools` テキストドメインを使用する。
+- 可変値を含む文言は番号付きの `%1$s` / `%2$d` 等を翻訳元へ含め、独自の名前付きトークン置換を実装しない。
 - 必要なスクリプト翻訳はWordPress標準の仕組みで読み込む。
 - `en` / `ja` の独自言語オブジェクトをTypeScript内に持たない。
 - 本章のメッセージIDと実装上の定義を対応付け、Table Reorderの利用者向け文言を一つのメッセージモジュールへ集約する。
@@ -386,7 +388,7 @@ DOM取得、イベント登録、フォーカス対象の探索方法、クリ�
 | A11Y-FR-05 操作文脈 | Table選択だけではフォーカスを変えず、キーボード入口では現在行を優先して対象行へ移る。PC単一ポインター操作ではハンドルクリック後も対象行にフォーカスを維持し、確定後は移動後の同じ行へ戻す。操作中は必要に応じて縦スクロールを追従させる。 |
 | A11Y-FR-06 フォーカス可視性 | フォーカス中の並べ替えUIをhoverに依存せず視覚的に識別できるようにする。 |
 | A11Y-FR-07 フォーカス遮蔽 | Table Reorder自身のUIでフォーカス対象を完全に隠さず、必要な縦スクロールを含めて遷移後も視認できる状態を維持する。 |
-| A11Y-FR-08 操作案内 | 8.2の画面表示メッセージ表を正本とし、PCのツールチップ、操作中のインライン案内、タッチの初回コーチマーク、rowspanエラーについて、表示形式・位置・文言・表示契機・消える契機を定義する。 |
+| A11Y-FR-08 操作案内 | 8.2の画面表示メッセージ表を正本とし、PCのツールチップ、操作中のインライン案内、タッチの初回コーチマーク、rowspanエラー、移動可能行がない場合の警告について、表示形式・位置・文言・表示契機・消える契機を定義する。 |
 | A11Y-FR-09 支援技術への情報提供 | 8.3の動的通知表を正本とし、開始、移動先選択待ち、移動先変更、確定、キャンセル、境界、結合セル制約、移動可能行なしの通知文言・可変情報・重複抑制を定義する。 |
 | A11Y-FR-10 名前・役割・状態 | 8.4の名前・説明表を正本とし、行の並べ替えUI、移動先UI、キャンセル操作、Toolbar入口を識別する英語原文・日本語・可変情報を定義する。対象行は現在位置と行内容の代表情報で区別する。 |
 | A11Y-FR-11 基本要件の共有 | 結合セル、データ保持、Undo、対象範囲、無効操作の基本要件をすべてのアクセシビリティ操作に共通適用する。 |
@@ -424,6 +426,7 @@ DOM取得、イベント登録、フォーカス対象の探索方法、クリ�
 - PC単一ポインター操作では、ハンドルクリック後は対象行の並べ替えUIにフォーカスを維持し、移動先クリック後の確定時には移動後の同じ行の並べ替えUIへフォーカスする設計になっている。
 - 画面表示メッセージ、支援技術向け動的通知、操作UIのアクセシブルな名前・説明を8章の別表に整理し、各メッセージIDに英語原文と日本語を定義している。
 - 画面表示メッセージごとに、状態、表示対象、表示形式、表示位置・関連付け、表示契機、消える契機を定義している。
+- Toolbar入口で現在行がrowspan制約により移動不能な場合と、移動可能な本文行がない場合は、フォーカスをToolbarに維持しながら画面表示と支援技術向け通知の両方で理由を伝える設計になっている。
 - PCでは行へのhoverで表示されたハンドルのツールチップから、ドラッグとクリックの両操作を再確認できる設計になっている。
 - キーボード並べ替え中と単一ポインター移動先選択中は、Table上部のインライン案内から次の操作と確定・キャンセル方法を継続して確認できる設計になっている。
 - タッチの単一ポインター移動先選択中は、縦スクロールしても案内と明示的な「キャンセル」操作を確認・操作でき、スワイプだけでは移動を確定しない設計になっている。
@@ -431,6 +434,7 @@ DOM取得、イベント登録、フォーカス対象の探索方法、クリ�
 - 画面表示メッセージの競合時の優先関係と置き換え条件を定義し、確定・キャンセル・単純な移動境界では不要な画面表示を追加しない設計になっている。
 - 支援技術向け動的通知ごとに通知契機、含める情報、重複抑制を定義し、具体的なARIA・DOM実装とは分離している。
 - 利用者向け文言はWordPress標準i18nを使う一つのメッセージモジュールへ集約し、controller等へ直書きしない設計になっている。
+- 可変値を含む文言はWordPress標準の `sprintf()` と番号付きプレースホルダーを使用し、対象行の代表情報と行位置を重複させない設計になっている。
 - タッチ操作ではモード開始時の初期フォーカスを定義せず、セルの短いタップは通常編集、行の長押しは既存の SortableJS DnD、行の並べ替えUIのタップはドラッグを必要としない移動先選択として、それぞれ別の操作経路にしている。
 - キーボード操作、単一ポインター操作、フォーカス管理、操作案内、支援技術への情報提供を整理している。
 - Target Size と Focus Not Obscured への対応を整理している。
