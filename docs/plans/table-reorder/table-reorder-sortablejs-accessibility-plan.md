@@ -132,7 +132,7 @@ iframe / non-iframeの差を上位へ漏らさないため、行control、target
 
 支援技術向け通知は新しいnpm依存を追加せず、`reorder-ui.ts` がowning documentへ一つのlive status nodeを作成し、controllerが基本設計8章で定義された状態変化・操作結果に対応するイベントと可変値だけを渡す。直前と同じ通知の抑制も基本設計のルールに従ってcontroller / UI境界で行う。
 
-JavaScript翻訳はJSON生成だけで完了とせず、`yamabiko-editor-tools.php` でTable Reorder scriptをenqueueした後、同じhandle `yamabiko-editor-tools-table-reorder-index` に `wp_set_script_translations()` で `yamabiko-editor-tools` text domainと `languages/` を関連付ける。これにより `messages.ts` の翻訳をWordPress標準i18n経路で実ブラウザーへロードする。
+JavaScript翻訳はJSON生成だけで完了とせず、既存の `npm run i18n` / `i18n:json` をsource → build mapping対応へ拡張し、`wp i18n make-json --use-map` 等で `src/editor-extensions/table-reorder/messages.ts` の翻訳元を実際にenqueueされる `build/editor-extensions/table-reorder/index.js` に対応付けたJSONを生成する。`yamabiko-editor-tools.php` ではTable Reorder scriptをenqueueした後、同じhandle `yamabiko-editor-tools-table-reorder-index` に `wp_set_script_translations()` で `yamabiko-editor-tools` text domainと `__DIR__ . '/languages'` 相当の実ファイルシステム上のディレクトリを関連付ける。これにより `messages.ts` の翻訳をWordPress標準i18n経路で実ブラウザーへロードする。
 
 ## Architecture
 
@@ -141,7 +141,7 @@ JavaScript翻訳はJSON生成だけで完了とせず、`yamabiko-editor-tools.p
 | Module | Plan |
 |---|---|
 | `index.tsx` | `editor.scss` のimportだけを追加する。登録責務は変更しない。 |
-| `yamabiko-editor-tools.php` | Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持する。script enqueue後、同じhandle `yamabiko-editor-tools-table-reorder-index` に `wp_set_script_translations()` で `yamabiko-editor-tools` text domainと `languages/` を関連付ける。生成された `build/editor-extensions/table-reorder/index.css` が存在する場合は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueする。 |
+| `yamabiko-editor-tools.php` | Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持する。script enqueue後、同じhandle `yamabiko-editor-tools-table-reorder-index` に `wp_set_script_translations()` で `yamabiko-editor-tools` text domainと `__DIR__ . '/languages'` 相当の実ファイルシステム上のディレクトリを関連付ける。生成された `build/editor-extensions/table-reorder/index.css` が存在する場合は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueする。 |
 | `with-table-reorder.tsx` | PC / タッチのToolbar入口を基本設計に合わせて描画し、controllerへのfocus要求をhook経由で呼ぶ。PCではモードを新設しない。タッチ初回コーチマークをToolbar入口に紐づけて表示する。 |
 | `use-table-reorder.ts` | controller ref、Toolbar focus bridge、commit後のpending focus復元、タッチ初回コーチマークのdismiss済み状態の永続化境界を追加する。既存hover / touch mode lifecycleとrowspan制約算出は維持する。 |
 | `messages.ts` | 新規。基本設計8章のメッセージIDと実装定義を対応付け、`yamabiko-editor-tools` text domainのWordPress i18n / `sprintf()` による画面表示・動的通知・アクセシブルな名前 / 説明の文言生成を一元管理する。表示状態やDOMは所有しない。 |
@@ -286,7 +286,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - `with-table-reorder.tsx` / `use-table-reorder.ts` にToolbar focus bridgeを追加する。
   - controllerで最後に操作していたtbody行を追跡し、基本設計のfocus優先順位を実現する。
   - 新規 `editor.scss` でfocus表示と最低target sizeを実装する。
-  - `yamabiko-editor-tools.php` ではTable ReorderのJS / runtime configを既存 `enqueue_block_editor_assets` に残す。script enqueue後、同じhandle `yamabiko-editor-tools-table-reorder-index` に `wp_set_script_translations()` で `yamabiko-editor-tools` text domainと `languages/` を関連付ける。生成された `build/editor-extensions/table-reorder/index.css` は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueし、CSSが未生成の場合は既存script経路を壊さないよう独立して存在確認する。
+  - `yamabiko-editor-tools.php` ではTable ReorderのJS / runtime configを既存 `enqueue_block_editor_assets` に残す。script enqueue後、同じhandle `yamabiko-editor-tools-table-reorder-index` に `wp_set_script_translations()` で `yamabiko-editor-tools` text domainと `__DIR__ . '/languages'` 相当の実ファイルシステム上のディレクトリを関連付ける。生成された `build/editor-extensions/table-reorder/index.css` は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueし、CSSが未生成の場合は既存script経路を壊さないよう独立して存在確認する。
 - Validation:
   - Toolbarを実行しただけでは並べ替えsessionを開始しない。
   - 現在行が移動不能ならToolbarへfocusを維持し、基本設計8章の通知を表示・通知できる。
@@ -363,12 +363,12 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - iframe / non-iframeの両環境でfocus、target位置、live statusがowning document内にあることを確認する。
   - iframe / non-iframeの両環境で `index.css` がeditorへ配信され、row control / target / 案内のstyleが適用されることを確認する。
   - 既存PC drag、touch long-press drag、rowspan warning、DOM restore before commit、Undo、セル編集を回帰確認する。
-  - WordPress i18n用の翻訳データを既存のリポジトリ手順に従って更新し、生成されたJSONがTable Reorderのscript handle `yamabiko-editor-tools-table-reorder-index` へ実際にロードされ、日本語localeで基本設計8章の翻訳が画面表示・動的通知・アクセシブルな名前 / 説明へ反映されることを確認する。
+  - WordPress i18n用の翻訳データを既存のリポジトリ手順に従って更新する。`i18n:json` をsource → build mapping対応へ拡張し、`wp i18n make-json --use-map` 等で `src/editor-extensions/table-reorder/messages.ts` の翻訳元を `build/editor-extensions/table-reorder/index.js` に対応付けたJSONを生成する。生成されたJSONがTable Reorderのscript handle `yamabiko-editor-tools-table-reorder-index` へ実際にロードされ、日本語localeで基本設計8章の翻訳が画面表示・動的通知・アクセシブルな名前 / 説明へ反映されることを確認する。
   - `src/editor-extensions/table-reorder/README.md` のfile責務とcontrol flowを更新する。
 - Validation:
   - Node品質gate、production build、repository diff checkを通す。
   - 実ブラウザーで要件・基本設計の受け入れ確認を行う。
-  - 日本語localeの実ブラウザーで、Table Reorderのscript handleに関連付けたJSON翻訳がロードされ、基本設計8章の翻訳が表示・通知されることを確認する。
+  - 日本語localeの実ブラウザーで、source → build mappingにより `build/editor-extensions/table-reorder/index.js` に対応付けて生成したJSON翻訳がTable Reorderのscript handleへロードされ、基本設計8章の翻訳が表示・通知されることを確認する。
 
 ## Decisions and validation questions
 
@@ -381,7 +381,8 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - 移動可否と移動後配列の計算は `row-order.ts` / `rowspan.ts` を正本とし、入力方式別に複製しない。
 - Gutenberg再描画をまたぐfocus復元requestだけを `use-table-reorder.ts` がrefで保持する。
 - 行control / target /案内 / live statusは新規 `reorder-ui.ts` に集約し、drag専用UIは `drag-ui.ts` に残す。
-- persistentなaccessibility UIの見た目は新規 `editor.scss` に置く。Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持し、`yamabiko-editor-tools.php` の追加責務は生成された `build/editor-extensions/table-reorder/index.css` の `enqueue_block_assets` + `is_admin()` によるeditor content配信と、Table Reorder script handleへの `wp_set_script_translations()` による翻訳関連付けに限定する。汎用style / i18n基盤は追加しない。
+- persistentなaccessibility UIの見た目は新規 `editor.scss` に置く。Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持し、`yamabiko-editor-tools.php` の追加責務は生成された `build/editor-extensions/table-reorder/index.css` の `enqueue_block_assets` + `is_admin()` によるeditor content配信と、Table Reorder script handleへの `wp_set_script_translations()` による翻訳関連付けに限定する。`wp_set_script_translations()` の翻訳ディレクトリには `__DIR__ . '/languages'` 相当の実ファイルシステム上のパスを渡し、汎用style / i18n基盤は追加しない。
+- JavaScript翻訳JSONは既存i18n手順にsource → build mappingだけを追加し、`messages.ts` の翻訳元を実際にenqueueされる `build/editor-extensions/table-reorder/index.js` に対応付けて生成する。新しい汎用翻訳基盤は作らない。
 - single-pointer sessionのcancelは、PCでは `Escape`、touchでは案内に併設する明示的なキャンセル操作を主経路とする。touch reorder modeをOFFにする場合もactive sessionをcancelしてからcleanupする。
 - タッチ初回コーチマークは本実装に含め、Toolbar入口に紐づけて初回利用時だけ表示し、閉じた後の自動再表示を永続的に抑制する。PCには追加しない。
 - 基本設計8章の画面表示・動的通知・アクセシブルな名前 / 説明は新規 `messages.ts` に集約し、`yamabiko-editor-tools` text domainのWordPress i18n / `sprintf()` を使用する。controllerやUIへ利用者向け文字列を直書きしない。
@@ -481,7 +482,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - Messages / i18n
   - 基本設計8章の画面表示・動的通知・アクセシブルな名前 / 説明が `messages.ts` を経由し、controller / UIへ利用者向け文字列が直書きされていない。
   - `messages.ts` のWordPress i18n関数が `yamabiko-editor-tools` text domainを使用している。
-  - 生成したJSON翻訳がTable Reorderのscript handle `yamabiko-editor-tools-table-reorder-index` へ実際にロードされ、日本語localeで基本設計8章の翻訳がWordPress標準i18n経路から適用される。
+  - source → build mappingにより `src/editor-extensions/table-reorder/messages.ts` の翻訳元を `build/editor-extensions/table-reorder/index.js` に対応付けたJSONが生成され、そのJSON翻訳がTable Reorderのscript handle `yamabiko-editor-tools-table-reorder-index` へ実際にロードされ、日本語localeで基本設計8章の翻訳がWordPress標準i18n経路から適用される。
   - 同じTableで複数の案内が競合する場合、基本設計8章の優先関係に従って必要な案内だけが表示される。
 - Support technology
   - 少なくとも一つの主要screen reader + Chrome系browserで、row名、開始、移動先変更、確定、cancel、移動不能理由を確認する。
@@ -502,7 +503,8 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - PC drag / click、touch short tap / long press / control tapの競合と、PC `Escape` / touch明示的cancelによるsingle-pointerの確定しないcancel経路を実装・検証する順序が明確である。
 - タッチ初回コーチマークを初回だけ表示し、閉じた後の自動再表示を抑制する実装・検証計画がある。
 - 基本設計8章の利用者向け文言を `messages.ts` に一元管理し、`yamabiko-editor-tools` text domainのWordPress標準i18nを利用する実装・検証計画がある。
-- 生成したJSON翻訳をTable Reorderのscript handleへ関連付け、日本語localeの実ブラウザーで翻訳が適用されることを検証する計画がある。
+- JavaScript翻訳JSONを既存i18n手順のsource → build mappingで `build/editor-extensions/table-reorder/index.js` に対応付け、Table Reorderのscript handleへ関連付けて日本語localeの実ブラウザーで翻訳が適用されることを検証する計画がある。
+- `wp_set_script_translations()` の翻訳ディレクトリへ実ファイルシステム上の `languages` パスを渡す計画がある。
 - touch reorder mode中に必要な操作案内を実装・確認する計画がある。
 - iframe / non-iframeの両方でTable Reorderの生成CSS配信を検証する計画がある。
 - unit test、Playwright、手動accessibility確認、iframe / non-iframe回帰の役割分担が明確である。
