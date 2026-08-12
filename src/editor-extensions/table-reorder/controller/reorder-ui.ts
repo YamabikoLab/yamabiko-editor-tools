@@ -6,7 +6,7 @@
  */
 
 import { Tooltip } from '@wordpress/components';
-import { createElement, hydrateRoot } from '@wordpress/element';
+import { createElement, createRoot, flushSync } from '@wordpress/element';
 
 import {
 	getEmptyRowLabel,
@@ -89,10 +89,6 @@ export const getRowRepresentativeText = ( row: HTMLTableRowElement ): string => 
  * native focusで見えるようにする。touch reorder modeでは全controlを表示する。変更した先頭cellの
  * inline styleと生成DOMは`cleanup()`で開始前へ戻す。
  *
- * WordPress TooltipはReact rootで管理するが、controllerが同期的に利用するbuttonは先にnative DOMとして
- * 生成し、そのmarkupを`hydrateRoot()`で引き継ぐ。これによりReact effect内から呼ばれた場合でも
- * `flushSync()`へ依存せず、SortableJS / hover listenerへ安定したcontrol参照を返す。
- *
  * @param document             controlを生成するeditor document。
  * @param tbody                controlを追加するTable body。
  * @param nonMovableRowIndices controlを作成しない行index。
@@ -148,6 +144,11 @@ export const createRowControls = (
 		const pointerDescription = getRowControlPointerDescription();
 		const keyboardDescription = getRowControlKeyboardDescription();
 		const usePointerDescription = ! options.showAll;
+
+		const mount = document.createElement( 'span' );
+		mount.style.display = 'contents';
+		firstCell.prepend( mount );
+		const root = createRoot( mount );
 		let tooltipText: string | undefined = usePointerDescription
 			? getPointerHandleTooltip()
 			: undefined;
@@ -155,43 +156,7 @@ export const createRowControls = (
 			? pointerDescriptionId
 			: undefined;
 
-		const mount = document.createElement( 'span' );
-		mount.style.display = 'contents';
-
-		const control = document.createElement( 'button' );
-		control.className = HANDLE_ZONE_CLASS;
-		control.contentEditable = 'false';
-		control.type = 'button';
-		control.setAttribute( 'aria-label', rowControlName );
-		if ( descriptionId ) {
-			control.setAttribute( 'aria-describedby', descriptionId );
-		}
-		control.dataset.visible = options.showAll ? 'true' : 'false';
-
-		const handle = document.createElement( 'span' );
-		handle.className = HANDLE_CLASS;
-		handle.setAttribute( 'aria-hidden', 'true' );
-		handle.textContent = '⋮⋮';
-
-		const pointerDescriptionElement = document.createElement( 'span' );
-		pointerDescriptionElement.className = DESCRIPTION_CLASS;
-		pointerDescriptionElement.id = pointerDescriptionId;
-		pointerDescriptionElement.textContent = pointerDescription;
-
-		const keyboardDescriptionElement = document.createElement( 'span' );
-		keyboardDescriptionElement.className = DESCRIPTION_CLASS;
-		keyboardDescriptionElement.id = keyboardDescriptionId;
-		keyboardDescriptionElement.textContent = keyboardDescription;
-
-		control.append( handle, pointerDescriptionElement, keyboardDescriptionElement );
-		mount.append( control );
-		firstCell.prepend( mount );
-
-		let hydrated = false;
-		let renderPending = false;
-		let cleanedUp = false;
-
-		const createControlTree = () => {
+		const renderControl = () => {
 			const anchor = createElement(
 				'button',
 				{
@@ -199,22 +164,6 @@ export const createRowControls = (
 					'aria-label': rowControlName,
 					className: HANDLE_ZONE_CLASS,
 					contentEditable: false,
-					'data-visible': control.dataset.visible,
-					ref: ( element: HTMLButtonElement | null ) => {
-						if ( ! element ) {
-							return;
-						}
-
-						hydrated = true;
-						if ( renderPending && ! cleanedUp ) {
-							renderPending = false;
-							queueMicrotask( () => {
-								if ( ! cleanedUp ) {
-									root.render( createControlTree() );
-								}
-							} );
-						}
-					},
 					type: 'button',
 				},
 				createElement(
@@ -242,33 +191,35 @@ export const createRowControls = (
 					keyboardDescription
 				)
 			);
+			root.render(
+				createElement( Tooltip, {
+					children: anchor,
+					text: tooltipText,
+				} )
+			);
+		};
 
-			return createElement( Tooltip, {
-				children: anchor,
-				text: tooltipText,
-			} );
-		};
-		const root = hydrateRoot( mount, createControlTree() );
-		const requestTooltipRender = () => {
-			if ( ! hydrated ) {
-				renderPending = true;
-				return;
-			}
+		flushSync( renderControl );
+		const renderedControl = mount.querySelector< HTMLButtonElement >( `.${ HANDLE_ZONE_CLASS }` );
+		if ( ! renderedControl ) {
+			root.unmount();
+			mount.remove();
+			continue;
+		}
 
-			root.render( createControlTree() );
-		};
-		const syncDescription = () => {
-			if ( descriptionId ) {
-				control.setAttribute( 'aria-describedby', descriptionId );
-			} else {
-				control.removeAttribute( 'aria-describedby' );
-			}
-		};
+		const handle = renderedControl.querySelector< HTMLSpanElement >( `.${ HANDLE_CLASS }` );
+		if ( ! handle ) {
+			root.unmount();
+			mount.remove();
+			continue;
+		}
+
+		renderedControl.dataset.visible = options.showAll ? 'true' : 'false';
+
 		const onFocus = () => {
 			tooltipText = getKeyboardHandleTooltip();
 			descriptionId = keyboardDescriptionId;
-			syncDescription();
-			requestTooltipRender();
+			flushSync( renderControl );
 		};
 		const onBlur = () => {
 			if ( usePointerDescription ) {
@@ -278,21 +229,18 @@ export const createRowControls = (
 				tooltipText = undefined;
 				descriptionId = undefined;
 			}
-			syncDescription();
-			requestTooltipRender();
+			flushSync( renderControl );
 		};
-
-		control.addEventListener( 'focus', onFocus );
-		control.addEventListener( 'blur', onBlur );
+		renderedControl.addEventListener( 'focus', onFocus );
+		renderedControl.addEventListener( 'blur', onBlur );
 
 		cleanupControlRoots.push( () => {
-			cleanedUp = true;
-			control.removeEventListener( 'focus', onFocus );
-			control.removeEventListener( 'blur', onBlur );
+			renderedControl.removeEventListener( 'focus', onFocus );
+			renderedControl.removeEventListener( 'blur', onBlur );
 			root.unmount();
 			mount.remove();
 		} );
-		entries.push( { control, handle, row } );
+		entries.push( { control: renderedControl, handle, row } );
 	}
 
 	return {
