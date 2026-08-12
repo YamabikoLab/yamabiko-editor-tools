@@ -6,6 +6,10 @@ import {
 } from './sortable-runtime';
 import type { TableContext } from '../table-context';
 
+jest.mock( '@wordpress/components', () => ( {
+	Tooltip: ( { children }: { children: unknown } ) => children,
+} ) );
+
 jest.mock( './sortable-runtime', () => ( {
 	ensureSortableRuntime: jest.fn(),
 } ) );
