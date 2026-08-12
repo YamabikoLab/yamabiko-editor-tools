@@ -35,6 +35,10 @@ final class Plugin {
 			'enqueue_block_editor_assets',
 			array( self::class, 'enqueue_table_reorder_editor_assets' )
 		);
+		add_action(
+			'enqueue_block_assets',
+			array( self::class, 'enqueue_table_reorder_editor_styles' )
+		);
 	}
 
 	/**
@@ -64,7 +68,33 @@ final class Plugin {
 			return;
 		}
 
+		wp_set_script_translations(
+			$handle,
+			'yamabiko-editor-tools',
+			__DIR__ . '/languages'
+		);
 		self::add_table_reorder_runtime_config( $handle );
+	}
+
+	/**
+	 * Enqueues the generated Table Reorder stylesheet for editor content.
+	 */
+	public static function enqueue_table_reorder_editor_styles(): void {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		$file_path = __DIR__ . '/build/editor-extensions/table-reorder/index.css';
+		if ( ! is_readable( $file_path ) ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'yamabiko-editor-tools-table-reorder-style',
+			plugins_url( 'build/editor-extensions/table-reorder/index.css', __FILE__ ),
+			array(),
+			(string) filemtime( $file_path )
+		);
 	}
 
 	/**
