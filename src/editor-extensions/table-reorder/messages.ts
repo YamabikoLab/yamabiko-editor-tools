@@ -5,8 +5,7 @@ import { __, sprintf } from '@wordpress/i18n';
  *
  * @return 翻訳済みの空行ラベル。
  */
-export const getEmptyRowLabel = (): string =>
-	__( 'Empty row', 'yamabiko-editor-tools' );
+export const getEmptyRowLabel = (): string => __( 'Empty row', 'yamabiko-editor-tools' );
 
 /**
  * PCでhover中の行controlに表示する案内を返す。
@@ -14,10 +13,7 @@ export const getEmptyRowLabel = (): string =>
  * @return VIS-PC-HANDLE-HOVERの翻訳済み文言。
  */
 export const getPointerHandleTooltip = (): string =>
-	__(
-		'Drag to move this row, or click to choose a destination.',
-		'yamabiko-editor-tools'
-	);
+	__( 'Drag to move this row, or click to choose a destination.', 'yamabiko-editor-tools' );
 
 /**
  * keyboard focus中の行controlに表示する案内を返す。
@@ -46,10 +42,7 @@ export const getRowControlName = ( rowNumber: number, rowLabel: string ): string
  * @return UI-ROW-CONTROL-POINTER-DESCRIPTIONの翻訳済み文言。
  */
 export const getRowControlPointerDescription = (): string =>
-	__(
-		'Drag to move this row, or activate to choose a destination.',
-		'yamabiko-editor-tools'
-	);
+	__( 'Drag to move this row, or activate to choose a destination.', 'yamabiko-editor-tools' );
 
 /**
  * keyboard向けの行control説明を返す。
@@ -64,8 +57,7 @@ export const getRowControlKeyboardDescription = (): string =>
  *
  * @return UI-TOOLBAR-REORDER-NAMEの翻訳済み文言。
  */
-export const getToolbarReorderName = (): string =>
-	__( 'Reorder rows', 'yamabiko-editor-tools' );
+export const getToolbarReorderName = (): string => __( 'Reorder rows', 'yamabiko-editor-tools' );
 
 /**
  * rowspan範囲内の移動不能行について表示する案内を返す。
@@ -84,7 +76,4 @@ export const getRowspanErrorMessage = (): string =>
  * @return VIS-NO-MOVABLE-ROWSの翻訳済み文言。
  */
 export const getNoMovableRowsMessage = (): string =>
-	__(
-		'There are no rows that can be reordered in this table.',
-		'yamabiko-editor-tools'
-	);
+	__( 'There are no rows that can be reordered in this table.', 'yamabiko-editor-tools' );

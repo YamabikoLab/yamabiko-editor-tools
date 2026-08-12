@@ -201,9 +201,7 @@ describe( 'createSortableController', () => {
 
 		expect( controller.focusRowControl() ).toBe( 'current-row-not-movable' );
 		expect(
-			tbody.ownerDocument.activeElement?.classList.contains(
-				'yamabiko-table-reorder-handle-zone'
-			)
+			tbody.ownerDocument.activeElement?.classList.contains( 'yamabiko-table-reorder-handle-zone' )
 		).toBe( false );
 		controller.destroy();
 	} );
