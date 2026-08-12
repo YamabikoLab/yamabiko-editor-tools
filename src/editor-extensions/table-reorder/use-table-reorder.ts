@@ -64,8 +64,8 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	const interactionMode = isHoverCapable
 		? 'hover'
 		: isSelected && isTouchReorderMode
-			? 'touch'
-			: null;
+		? 'touch'
+		: null;
 
 	useEffect( () => {
 		createNoticeRef.current = createNotice;
