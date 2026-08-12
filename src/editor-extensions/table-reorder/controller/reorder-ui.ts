@@ -200,9 +200,7 @@ export const createRowControls = (
 		};
 
 		flushSync( renderControl );
-		const renderedControl = mount.querySelector< HTMLButtonElement >(
-			`.${ HANDLE_ZONE_CLASS }`
-		);
+		const renderedControl = mount.querySelector< HTMLButtonElement >( `.${ HANDLE_ZONE_CLASS }` );
 		if ( ! renderedControl ) {
 			root.unmount();
 			mount.remove();
