@@ -57,6 +57,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	const { body, clientId, enabled, isSelected, setAttributes } = options;
 	const anchorRef = useRef< HTMLSpanElement >( null );
 	const controllerRef = useRef< SortableController | null >( null );
+	const pendingFocusRowIndexRef = useRef< number | null >( null );
 	const { createNotice } = useDispatch( noticesStore );
 	const createNoticeRef = useRef( createNotice );
 	const setAttributesRef = useRef( setAttributes );
@@ -148,7 +149,10 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 				forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
 				interactionMode,
 				nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
-				onCommit: ( reorderedBody ) => {
+				onCommit: ( reorderedBody, focusRowIndex ) => {
+					if ( focusRowIndex !== undefined ) {
+						pendingFocusRowIndexRef.current = focusRowIndex;
+					}
 					setAttributesRef.current( { body: reorderedBody } );
 				},
 				onNonMovableRowLongPress: () => {
@@ -170,6 +174,13 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 
 			controller = createdController;
 			controllerRef.current = createdController;
+			const pendingFocusRowIndex = pendingFocusRowIndexRef.current;
+			if (
+				pendingFocusRowIndex !== null &&
+				createdController.focusRowControlAt( pendingFocusRowIndex )
+			) {
+				pendingFocusRowIndexRef.current = null;
+			}
 		} );
 
 		return () => {

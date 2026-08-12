@@ -21,6 +21,16 @@ const createTable = ( labels: string[] ) => {
 	return { tbody };
 };
 
+const pressKey = ( control: HTMLButtonElement, key: string ) => {
+	control.dispatchEvent(
+		new KeyboardEvent( 'keydown', {
+			bubbles: true,
+			cancelable: true,
+			key,
+		} )
+	);
+};
+
 describe( 'reorder-ui', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
@@ -47,6 +57,7 @@ describe( 'reorder-ui', () => {
 			'Reorder row 2: Empty row'
 		);
 		expect( controls.entries[ 0 ].control.dataset.visible ).toBe( 'false' );
+		expect( controls.entries[ 0 ].control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
 		expect( tbody.rows.item( 2 )?.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).toBeNull();
 		expect( firstCell.style.paddingInlineStart ).not.toBe( '7px' );
 
@@ -55,6 +66,44 @@ describe( 'reorder-ui', () => {
 		expect( tbody.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).toBeNull();
 		expect( firstCell.style.position ).toBe( 'static' );
 		expect( firstCell.style.paddingInlineStart ).toBe( '7px' );
+	} );
+
+	it( 'keeps only one row control visible in hover mode', () => {
+		const { tbody } = createTable( [ 'Alpha', 'Beta' ] );
+		const controls = createRowControls( document, tbody, [], { showAll: false } );
+		const [ firstEntry, secondEntry ] = controls.entries;
+
+		controls.setVisible( firstEntry, true );
+		expect( firstEntry.control.dataset.visible ).toBe( 'true' );
+		expect( secondEntry.control.dataset.visible ).toBe( 'false' );
+
+		controls.setVisible( secondEntry, true );
+		expect( firstEntry.control.dataset.visible ).toBe( 'false' );
+		expect( secondEntry.control.dataset.visible ).toBe( 'true' );
+
+		controls.cleanup();
+	} );
+
+	it( 'exposes keyboard reorder active state with aria-pressed', () => {
+		const { tbody } = createTable( [ 'Alpha' ] );
+		const controls = createRowControls( document, tbody, [], { showAll: false } );
+		const control = controls.entries[ 0 ].control;
+
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+
+		pressKey( control, 'Enter' );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( control.getAttribute( 'aria-describedby' ) ).toBeNull();
+
+		pressKey( control, 'Escape' );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+
+		pressKey( control, ' ' );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		pressKey( control, ' ' );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+
+		controls.cleanup();
 	} );
 
 	it( 'uses WordPress Tooltip instead of a native title and switches the accessible description', () => {

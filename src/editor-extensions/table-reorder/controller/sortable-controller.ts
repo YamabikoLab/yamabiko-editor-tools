@@ -1,7 +1,7 @@
 /**
  * Table ReorderのSortableJS instanceとdrag session lifecycleを管理する。
  *
- * SortableJS callbacks、drag session state、行control制御、DOM所有権handoff、cleanupを集約する。
+ * SortableJS callbacks、drag session state、keyboard session、行control制御、DOM所有権handoff、cleanupを集約する。
  * touch pressのpointer追跡は`touch-press.ts`へ委譲し、React / Gutenberg統合層とは狭いcallback境界で接続する。
  * UI描画やReact state自体は扱わず、drag中にSortableJSが変更する行DOMはcommit前またはdestroy時に元へ戻す。
  */
@@ -21,6 +21,8 @@ import {
 } from './reorder-ui';
 import {
 	getMoveInsertionIndex,
+	getNextValidRowMoveIndex,
+	getRowMoveInsertionIndex,
 	isNoopRowMove,
 	isRowMoveAllowed,
 	reorderRows,
@@ -52,7 +54,7 @@ export type SortableControllerOptions = {
 	forbiddenInsertionIndices: readonly number[];
 	interactionMode: ReorderInteractionMode;
 	nonMovableRowIndices: readonly number[];
-	onCommit: ( reorderedRows: unknown[] ) => void;
+	onCommit: ( reorderedRows: unknown[], focusRowIndex?: number ) => void;
 	onNonMovableRowLongPress: () => void;
 	onRequestTouchModeExit: () => void;
 	rows: readonly unknown[] | null;
@@ -63,6 +65,7 @@ export type SortableControllerOptions = {
 export type SortableController = {
 	destroy: () => void;
 	focusRowControl: () => FocusRowControlResult;
+	focusRowControlAt: ( rowIndex: number ) => boolean;
 };
 
 /** SortableJSのonEndで利用するindex情報。 */
@@ -100,6 +103,13 @@ type SortableOptions = {
 	scrollSensitivity: number;
 	scrollSpeed: number;
 	touchStartThreshold?: number;
+};
+
+/** キーボード並べ替え中だけ保持する一時状態。 */
+type KeyboardSession = {
+	currentIndex: number;
+	entry: RowControlEntry;
+	oldIndex: number;
 };
 
 /**
@@ -146,11 +156,17 @@ export const createSortableController = (
 		const rowIndex = Array.from( tbody.rows ).indexOf( row );
 		return rowIndex >= 0 ? rowIndex : null;
 	};
+	const constraints = {
+		forbiddenInsertionIndices,
+		nonMovableRowIndices,
+		rowCount: rows?.length ?? tbody.rows.length,
+	};
 
 	let destroyed = false;
 	let sortable: SortableInstance | null = null;
 	let dragRows: HTMLTableRowElement[] | null = null;
 	let activeEntry: RowControlEntry | null = null;
+	let keyboardSession: KeyboardSession | null = null;
 	let lastActiveRowIndex: number | null = getRowIndexFromElement(
 		tbody.ownerDocument.activeElement
 	);
@@ -202,7 +218,7 @@ export const createSortableController = (
 		rowControls.setVisible( entry, true );
 	};
 	const deactivateEntry = ( entry: RowControlEntry ) => {
-		if ( isDragging && activeEntry === entry ) {
+		if ( ( isDragging || keyboardSession?.entry === entry ) && activeEntry === entry ) {
 			return;
 		}
 
@@ -228,8 +244,60 @@ export const createSortableController = (
 			lastActiveRowIndex = rowIndex;
 		}
 	};
+	const showKeyboardCandidate = ( session: KeyboardSession ) => {
+		if ( session.currentIndex === session.oldIndex ) {
+			insertionLine.hide();
+			return;
+		}
+
+		const insertionIndex = getRowMoveInsertionIndex( session.oldIndex, session.currentIndex );
+		if ( insertionIndex <= 0 ) {
+			const firstRow = tbody.rows.item( 0 );
+			if ( firstRow ) {
+				insertionLine.show( firstRow, false );
+			}
+			return;
+		}
+
+		if ( insertionIndex >= tbody.rows.length ) {
+			const lastRow = tbody.rows.item( tbody.rows.length - 1 );
+			if ( lastRow ) {
+				insertionLine.show( lastRow, true );
+			}
+			return;
+		}
+
+		const nextRow = tbody.rows.item( insertionIndex );
+		if ( nextRow ) {
+			insertionLine.show( nextRow, false );
+		}
+	};
+	const finishKeyboardSession = ( commit: boolean ) => {
+		const session = keyboardSession;
+		if ( ! session ) {
+			return;
+		}
+
+		keyboardSession = null;
+		insertionLine.hide();
+		releaseEntry();
+		if (
+			commit &&
+			rows &&
+			! isNoopRowMove( session.oldIndex, session.currentIndex ) &&
+			isRowMoveAllowed( session.oldIndex, session.currentIndex, constraints )
+		) {
+			const reorderedRows = reorderRows( rows, session.oldIndex, session.currentIndex );
+			if ( reorderedRows ) {
+				onCommit( reorderedRows, session.currentIndex );
+				return;
+			}
+		}
+
+		session.entry.control.focus();
+	};
 	const onRowPointerEnter = ( event: PointerEvent ) => {
-		if ( event.pointerType !== 'mouse' || isDragging ) {
+		if ( event.pointerType !== 'mouse' || isDragging || keyboardSession ) {
 			return;
 		}
 
@@ -249,7 +317,7 @@ export const createSortableController = (
 		}
 	};
 	const onControlPointerDown = ( event: PointerEvent ) => {
-		if ( event.pointerType !== 'mouse' ) {
+		if ( event.pointerType !== 'mouse' || keyboardSession ) {
 			return;
 		}
 
@@ -273,9 +341,90 @@ export const createSortableController = (
 	};
 	const onControlBlur = ( event: FocusEvent ) => {
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
+		if ( entry && keyboardSession?.entry === entry ) {
+			queueMicrotask( () => {
+				if ( ! destroyed && keyboardSession?.entry === entry ) {
+					entry.control.focus();
+				}
+			} );
+			return;
+		}
 		if ( entry && useHoverMode && activeEntry !== entry ) {
 			rowControls.setVisible( entry, false );
 		}
+	};
+	const onControlKeyDown = ( event: KeyboardEvent ) => {
+		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
+		if ( ! entry || isDragging ) {
+			return;
+		}
+
+		if ( event.repeat && ( event.key === 'Enter' || event.key === ' ' ) ) {
+			return;
+		}
+
+		if ( ! keyboardSession ) {
+			if ( event.key !== 'Enter' && event.key !== ' ' ) {
+				return;
+			}
+
+			const rowIndex = Array.from( tbody.rows ).indexOf( entry.row );
+			if ( rowIndex < 0 || nonMovableRows.has( rowIndex ) ) {
+				return;
+			}
+
+			event.preventDefault();
+			event.stopPropagation();
+			activateEntry( entry );
+			keyboardSession = {
+				currentIndex: rowIndex,
+				entry,
+				oldIndex: rowIndex,
+			};
+			entry.control.focus();
+			return;
+		}
+
+		if ( keyboardSession.entry !== entry ) {
+			return;
+		}
+
+		if ( event.key === 'Tab' ) {
+			event.preventDefault();
+			event.stopPropagation();
+			entry.control.focus();
+			return;
+		}
+		if ( event.key === 'Escape' ) {
+			event.preventDefault();
+			event.stopPropagation();
+			finishKeyboardSession( false );
+			return;
+		}
+		if ( event.key === 'Enter' || event.key === ' ' ) {
+			event.preventDefault();
+			event.stopPropagation();
+			finishKeyboardSession( true );
+			return;
+		}
+		if ( event.key !== 'ArrowUp' && event.key !== 'ArrowDown' ) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		const nextIndex = getNextValidRowMoveIndex(
+			keyboardSession.oldIndex,
+			keyboardSession.currentIndex,
+			event.key === 'ArrowUp' ? 'up' : 'down',
+			constraints
+		);
+		if ( nextIndex === null ) {
+			return;
+		}
+
+		keyboardSession.currentIndex = nextIndex;
+		showKeyboardCandidate( keyboardSession );
 	};
 
 	for ( const eventName of blockSelectionEvents ) {
@@ -286,6 +435,7 @@ export const createSortableController = (
 	for ( const entry of entries ) {
 		entry.control.addEventListener( 'focus', onControlFocus );
 		entry.control.addEventListener( 'blur', onControlBlur );
+		entry.control.addEventListener( 'keydown', onControlKeyDown );
 		entry.control.addEventListener( 'pointerdown', onControlPointerDown );
 		if ( useHoverMode ) {
 			entry.control.addEventListener( 'mousedown', onControlMouseDown );
@@ -389,11 +539,6 @@ export const createSortableController = (
 					return;
 				}
 
-				const constraints = {
-					forbiddenInsertionIndices,
-					nonMovableRowIndices,
-					rowCount: rows.length,
-				};
 				if (
 					isNoopRowMove( oldIndex, newIndex ) ||
 					! isRowMoveAllowed( oldIndex, newIndex, constraints )
@@ -431,6 +576,19 @@ export const createSortableController = (
 		sortable = createdSortable;
 	} );
 
+	const focusRowControlAt = ( rowIndex: number ): boolean => {
+		const row = tbody.rows.item( rowIndex );
+		const entry = row ? entryByRow.get( row ) : undefined;
+		if ( ! entry ) {
+			return false;
+		}
+
+		lastActiveRowIndex = rowIndex;
+		rowControls.setVisible( entry, true );
+		entry.control.focus();
+		return true;
+	};
+
 	return {
 		focusRowControl: () => {
 			if ( entries.length === 0 ) {
@@ -447,25 +605,22 @@ export const createSortableController = (
 					return 'current-row-not-movable';
 				}
 
-				const currentRow = tbody.rows.item( lastActiveRowIndex );
-				const currentEntry = currentRow ? entryByRow.get( currentRow ) : undefined;
-				if ( currentEntry ) {
-					rowControls.setVisible( currentEntry, true );
-					currentEntry.control.focus();
+				if ( focusRowControlAt( lastActiveRowIndex ) ) {
 					return 'focused';
 				}
 			}
 
-			rowControls.setVisible( entries[ 0 ], true );
-			entries[ 0 ].control.focus();
+			focusRowControlAt( Array.from( tbody.rows ).indexOf( entries[ 0 ].row ) );
 			return 'focused';
 		},
+		focusRowControlAt,
 		destroy: () => {
 			if ( destroyed ) {
 				return;
 			}
 
 			destroyed = true;
+			keyboardSession = null;
 			sortable?.destroy();
 			sortable = null;
 			insertionLine.cleanup();
@@ -474,6 +629,7 @@ export const createSortableController = (
 			for ( const entry of entries ) {
 				entry.control.removeEventListener( 'focus', onControlFocus );
 				entry.control.removeEventListener( 'blur', onControlBlur );
+				entry.control.removeEventListener( 'keydown', onControlKeyDown );
 				entry.control.removeEventListener( 'pointerdown', onControlPointerDown );
 				if ( useHoverMode ) {
 					entry.control.removeEventListener( 'mousedown', onControlMouseDown );

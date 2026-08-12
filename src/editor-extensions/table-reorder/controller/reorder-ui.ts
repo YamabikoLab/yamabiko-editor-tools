@@ -150,6 +150,7 @@ export const createRowControls = (
 		mount.style.display = 'contents';
 		firstCell.prepend( mount );
 		const root = createRoot( mount );
+		let isPressed = false;
 		let tooltipText: string | undefined = usePointerDescription
 			? getPointerHandleTooltip()
 			: undefined;
@@ -161,8 +162,9 @@ export const createRowControls = (
 			const anchor = createElement(
 				'button',
 				{
-					'aria-describedby': descriptionId,
+					'aria-describedby': isPressed ? undefined : descriptionId,
 					'aria-label': rowControlName,
+					'aria-pressed': isPressed,
 					className: HANDLE_ZONE_CLASS,
 					contentEditable: false,
 					type: 'button',
@@ -198,7 +200,7 @@ export const createRowControls = (
 			root.render(
 				createElement( Tooltip, {
 					children: anchor,
-					text: tooltipText,
+					text: isPressed ? undefined : tooltipText,
 				} )
 			);
 		};
@@ -220,6 +222,13 @@ export const createRowControls = (
 
 		renderedControl.dataset.visible = options.showAll ? 'true' : 'false';
 
+		const setPressed = ( nextIsPressed: boolean ) => {
+			if ( isPressed === nextIsPressed ) {
+				return;
+			}
+			isPressed = nextIsPressed;
+			flushSync( renderControl );
+		};
 		const onFocus = () => {
 			tooltipText = getKeyboardHandleTooltip();
 			descriptionId = keyboardDescriptionId;
@@ -235,12 +244,24 @@ export const createRowControls = (
 			}
 			flushSync( renderControl );
 		};
+		const onKeyDown = ( event: KeyboardEvent ) => {
+			if ( event.repeat ) {
+				return;
+			}
+			if ( event.key === 'Escape' ) {
+				setPressed( false );
+			} else if ( event.key === 'Enter' || event.key === ' ' ) {
+				setPressed( ! isPressed );
+			}
+		};
 		renderedControl.addEventListener( 'focus', onFocus );
 		renderedControl.addEventListener( 'blur', onBlur );
+		renderedControl.addEventListener( 'keydown', onKeyDown );
 
 		cleanupControlRoots.push( () => {
 			renderedControl.removeEventListener( 'focus', onFocus );
 			renderedControl.removeEventListener( 'blur', onBlur );
+			renderedControl.removeEventListener( 'keydown', onKeyDown );
 			root.unmount();
 			mount.remove();
 		} );
@@ -250,6 +271,13 @@ export const createRowControls = (
 	return {
 		entries,
 		setVisible: ( entry, isVisible ) => {
+			if ( isVisible && ! options.showAll ) {
+				for ( const otherEntry of entries ) {
+					if ( otherEntry !== entry ) {
+						otherEntry.control.dataset.visible = 'false';
+					}
+				}
+			}
 			entry.control.dataset.visible = isVisible ? 'true' : 'false';
 		},
 		cleanup: () => {
