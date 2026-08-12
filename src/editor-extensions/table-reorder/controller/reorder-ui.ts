@@ -43,10 +43,9 @@ export type RowControlEntry = {
 	row: HTMLTableRowElement;
 };
 
-/** 行control群と、その表示・状態・cleanupをまとめたUI。 */
+/** 行control群と、その表示・cleanupをまとめたUI。 */
 export type RowControls = {
 	entries: RowControlEntry[];
-	setPressed: ( entry: RowControlEntry, isPressed: boolean ) => void;
 	setVisible: ( entry: RowControlEntry, isVisible: boolean ) => void;
 	cleanup: () => void;
 };
@@ -105,7 +104,6 @@ export const createRowControls = (
 ): RowControls => {
 	const entries: RowControlEntry[] = [];
 	const cleanupControlRoots: Array< () => void > = [];
-	const setPressedByEntry = new Map< RowControlEntry, ( isPressed: boolean ) => void >();
 	const changedCells: Array< {
 		cell: HTMLTableCellElement;
 		paddingInlineStart: string;
@@ -224,6 +222,13 @@ export const createRowControls = (
 
 		renderedControl.dataset.visible = options.showAll ? 'true' : 'false';
 
+		const setPressed = ( nextIsPressed: boolean ) => {
+			if ( isPressed === nextIsPressed ) {
+				return;
+			}
+			isPressed = nextIsPressed;
+			flushSync( renderControl );
+		};
 		const onFocus = () => {
 			tooltipText = getKeyboardHandleTooltip();
 			descriptionId = keyboardDescriptionId;
@@ -239,32 +244,32 @@ export const createRowControls = (
 			}
 			flushSync( renderControl );
 		};
-		renderedControl.addEventListener( 'focus', onFocus );
-		renderedControl.addEventListener( 'blur', onBlur );
-
-		const entry = { control: renderedControl, handle, row };
-		setPressedByEntry.set( entry, ( nextIsPressed ) => {
-			if ( isPressed === nextIsPressed ) {
+		const onKeyDown = ( event: KeyboardEvent ) => {
+			if ( event.repeat ) {
 				return;
 			}
-			isPressed = nextIsPressed;
-			flushSync( renderControl );
-		} );
+			if ( event.key === 'Escape' ) {
+				setPressed( false );
+			} else if ( event.key === 'Enter' || event.key === ' ' ) {
+				setPressed( ! isPressed );
+			}
+		};
+		renderedControl.addEventListener( 'focus', onFocus );
+		renderedControl.addEventListener( 'blur', onBlur );
+		renderedControl.addEventListener( 'keydown', onKeyDown );
+
 		cleanupControlRoots.push( () => {
 			renderedControl.removeEventListener( 'focus', onFocus );
 			renderedControl.removeEventListener( 'blur', onBlur );
-			setPressedByEntry.delete( entry );
+			renderedControl.removeEventListener( 'keydown', onKeyDown );
 			root.unmount();
 			mount.remove();
 		} );
-		entries.push( entry );
+		entries.push( { control: renderedControl, handle, row } );
 	}
 
 	return {
 		entries,
-		setPressed: ( entry, isPressed ) => {
-			setPressedByEntry.get( entry )?.( isPressed );
-		},
 		setVisible: ( entry, isVisible ) => {
 			if ( isVisible && ! options.showAll ) {
 				for ( const otherEntry of entries ) {
