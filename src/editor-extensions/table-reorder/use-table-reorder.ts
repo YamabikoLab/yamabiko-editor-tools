@@ -11,7 +11,10 @@ import { useEffect, useRef, useState, type RefObject } from '@wordpress/element'
 import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
-import { createSortableController } from './controller/sortable-controller';
+import {
+	createSortableController,
+	type ReorderInteractionMode,
+} from './controller/sortable-controller';
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { resolveTableContext } from './table-context';
 
@@ -61,6 +64,12 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		() => window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
 	);
 	const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
+	let interactionMode: ReorderInteractionMode | null = null;
+	if ( isHoverCapable ) {
+		interactionMode = 'hover';
+	} else if ( isSelected && isTouchReorderMode ) {
+		interactionMode = 'touch';
+	}
 
 	useEffect( () => {
 		createNoticeRef.current = createNotice;
@@ -97,7 +106,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	}, [ isSelected ] );
 
 	useEffect( () => {
-		if ( ! enabled ) {
+		if ( ! enabled || ! interactionMode ) {
 			return;
 		}
 
@@ -117,10 +126,10 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 			return;
 		}
 
-		const hoverMedia = context.window.matchMedia( HOVER_REORDER_MEDIA_QUERY );
-		const useHoverMode = isHoverCapable && hoverMedia.matches;
-		const useTouchMode = ! useHoverMode && isSelected && isTouchReorderMode;
-		if ( ! useHoverMode && ! useTouchMode ) {
+		if (
+			interactionMode === 'hover' &&
+			! context.window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
+		) {
 			return;
 		}
 
@@ -128,7 +137,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		const controller = createSortableController( {
 			context,
 			forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
-			interactionMode: useHoverMode ? 'hover' : 'touch',
+			interactionMode,
 			nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
 			onCommit: ( reorderedBody ) => {
 				setAttributesRef.current( { body: reorderedBody } );
@@ -150,7 +159,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		return () => {
 			controller.destroy();
 		};
-	}, [ body, clientId, enabled, isHoverCapable, isSelected, isTouchReorderMode ] );
+	}, [ body, clientId, enabled, interactionMode ] );
 
 	return {
 		anchorRef,

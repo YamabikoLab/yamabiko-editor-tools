@@ -113,6 +113,7 @@ describe( 'createSortableController', () => {
 		const runtime = createRuntime();
 		ensureSortableRuntimeMock.mockResolvedValue( runtime );
 		const { context, tbody } = createContext();
+		context.blockElement.setAttribute( 'draggable', 'true' );
 		const controller = createSortableController( {
 			context,
 			forbiddenInsertionIndices: [],
@@ -132,11 +133,17 @@ describe( 'createSortableController', () => {
 
 		dispatchMousePointerEvent( firstRow!, 'pointerenter' );
 		expect( firstHandle?.style.opacity ).toBe( '1' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
 		dispatchMousePointerEvent( firstRow!, 'pointerleave' );
 		expect( firstHandle?.style.opacity ).toBe( '0' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
 
 		expect( getCreatedOptions( runtime ).handle ).toBe( '.yamabiko-table-reorder-handle-zone' );
+
+		dispatchMousePointerEvent( firstRow!, 'pointerenter' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
 		controller.destroy();
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
 	} );
 
 	it( 'restores the original DOM order before committing reordered rows', async () => {
