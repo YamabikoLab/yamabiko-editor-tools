@@ -1,6 +1,10 @@
 import {
-	getEndInsertionIndex,
 	getMoveInsertionIndex,
+	getNextValidRowMoveIndex,
+	getRowMoveInsertionIndex,
+	getValidRowMoveTargets,
+	isNoopRowMove,
+	isRowMoveAllowed,
 	reorderRows,
 	restoreOriginalRowOrder,
 } from './row-order';
@@ -119,23 +123,149 @@ describe( 'getMoveInsertionIndex', () => {
 	} );
 } );
 
-describe( 'getEndInsertionIndex', () => {
+describe( 'getRowMoveInsertionIndex', () => {
 	it( 'uses newIndex + 1 when moving downward', () => {
-		expect( getEndInsertionIndex( 1, 3 ) ).toBe( 4 );
+		expect( getRowMoveInsertionIndex( 1, 3 ) ).toBe( 4 );
 	} );
 
 	it( 'uses newIndex when moving upward', () => {
-		expect( getEndInsertionIndex( 3, 1 ) ).toBe( 1 );
+		expect( getRowMoveInsertionIndex( 3, 1 ) ).toBe( 1 );
 	} );
 
 	it( 'uses newIndex when the position is unchanged', () => {
-		expect( getEndInsertionIndex( 2, 2 ) ).toBe( 2 );
+		expect( getRowMoveInsertionIndex( 2, 2 ) ).toBe( 2 );
 	} );
 
 	it( 'returns rows.length for a downward move to the last row', () => {
 		const rowsLength = 4;
 
-		expect( getEndInsertionIndex( 0, rowsLength - 1 ) ).toBe( rowsLength );
+		expect( getRowMoveInsertionIndex( 0, rowsLength - 1 ) ).toBe( rowsLength );
+	} );
+} );
+
+describe( 'isNoopRowMove', () => {
+	it( 'returns true only when the row position is unchanged', () => {
+		expect( isNoopRowMove( 2, 2 ) ).toBe( true );
+		expect( isNoopRowMove( 2, 1 ) ).toBe( false );
+	} );
+} );
+
+describe( 'isRowMoveAllowed', () => {
+	const baseConstraints = {
+		forbiddenInsertionIndices: [] as readonly number[],
+		nonMovableRowIndices: [] as readonly number[],
+		rowCount: 4,
+	};
+
+	it( 'allows top, bottom, and same-position destinations when constraints permit them', () => {
+		expect( isRowMoveAllowed( 0, 3, baseConstraints ) ).toBe( true );
+		expect( isRowMoveAllowed( 3, 0, baseConstraints ) ).toBe( true );
+		expect( isRowMoveAllowed( 2, 2, baseConstraints ) ).toBe( true );
+	} );
+
+	it( 'rejects a non-movable source row', () => {
+		expect(
+			isRowMoveAllowed( 1, 3, {
+				...baseConstraints,
+				nonMovableRowIndices: [ 1, 2 ],
+			} )
+		).toBe( false );
+	} );
+
+	it( 'rejects forbidden insertion positions in both directions', () => {
+		const constraints = {
+			...baseConstraints,
+			forbiddenInsertionIndices: [ 2 ],
+		};
+
+		expect( isRowMoveAllowed( 0, 1, constraints ) ).toBe( false );
+		expect( isRowMoveAllowed( 3, 2, constraints ) ).toBe( false );
+		expect( isRowMoveAllowed( 0, 2, constraints ) ).toBe( true );
+		expect( isRowMoveAllowed( 3, 1, constraints ) ).toBe( true );
+	} );
+
+	it.each( [
+		[ -1, 0 ],
+		[ 0, -1 ],
+		[ 4, 0 ],
+		[ 0, 4 ],
+		[ 0.5, 1 ],
+		[ 0, 1.5 ],
+	] )( 'rejects invalid indices %p -> %p', ( oldIndex, newIndex ) => {
+		expect( isRowMoveAllowed( oldIndex, newIndex, baseConstraints ) ).toBe( false );
+	} );
+
+	it( 'rejects an invalid row count', () => {
+		expect( isRowMoveAllowed( 0, 1, { ...baseConstraints, rowCount: 1.5 } ) ).toBe( false );
+	} );
+} );
+
+describe( 'getNextValidRowMoveIndex', () => {
+	const baseConstraints = {
+		forbiddenInsertionIndices: [] as readonly number[],
+		nonMovableRowIndices: [] as readonly number[],
+		rowCount: 5,
+	};
+
+	it( 'skips forbidden rowspan positions when moving down', () => {
+		expect(
+			getNextValidRowMoveIndex( 0, 0, 'down', {
+				...baseConstraints,
+				forbiddenInsertionIndices: [ 2, 3 ],
+			} )
+		).toBe( 3 );
+	} );
+
+	it( 'skips forbidden rowspan positions when moving up', () => {
+		expect(
+			getNextValidRowMoveIndex( 4, 4, 'up', {
+				...baseConstraints,
+				forbiddenInsertionIndices: [ 2, 3 ],
+			} )
+		).toBe( 1 );
+	} );
+
+	it( 'can return to the original position while a keyboard move is active', () => {
+		expect( getNextValidRowMoveIndex( 2, 3, 'up', baseConstraints ) ).toBe( 2 );
+	} );
+
+	it( 'returns null at the first and last available destinations', () => {
+		expect( getNextValidRowMoveIndex( 0, 0, 'up', baseConstraints ) ).toBeNull();
+		expect( getNextValidRowMoveIndex( 4, 4, 'down', baseConstraints ) ).toBeNull();
+	} );
+
+	it( 'returns null when the source row cannot move', () => {
+		expect(
+			getNextValidRowMoveIndex( 1, 1, 'down', {
+				...baseConstraints,
+				nonMovableRowIndices: [ 1 ],
+			} )
+		).toBeNull();
+	} );
+} );
+
+describe( 'getValidRowMoveTargets', () => {
+	it( 'returns only non-noop destinations outside forbidden rowspan positions', () => {
+		expect(
+			getValidRowMoveTargets( 0, {
+				forbiddenInsertionIndices: [ 2, 3 ],
+				nonMovableRowIndices: [],
+				rowCount: 5,
+			} )
+		).toEqual( [
+			{ insertionIndex: 4, newIndex: 3 },
+			{ insertionIndex: 5, newIndex: 4 },
+		] );
+	} );
+
+	it( 'returns no targets for a non-movable source row', () => {
+		expect(
+			getValidRowMoveTargets( 1, {
+				forbiddenInsertionIndices: [],
+				nonMovableRowIndices: [ 1 ],
+				rowCount: 3,
+			} )
+		).toEqual( [] );
 	} );
 } );
 
