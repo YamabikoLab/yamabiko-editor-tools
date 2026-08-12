@@ -1,17 +1,16 @@
 /**
  * Table ReorderをGutenbergのBlockEditへ接続するcomposition / rendering adapter。
  *
- * core/table判定、元のBlockEdit、touch並び替えtoolbar、Table探索用hidden anchorの描画だけを担当する。
- * React state / effectとcontroller lifecycleは`use-table-reorder.ts`へ委譲し、drag処理やDOM操作は
- * さらに下位のTable Reorderモジュールが所有する。
+ * core/table判定、元のBlockEdit、Table Reorder toolbar、Table探索用hidden anchorの描画だけを担当する。
+ * React state / effectとcontroller lifecycleは`use-table-reorder.ts`へ委譲する。
  */
 
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { ToolbarButton } from '@wordpress/components';
 import type { ComponentType } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 
+import { getToolbarReorderName } from './messages';
 import { useTableReorder } from './use-table-reorder';
 
 /** Core Table blockのbodyを含むattribute形。 */
@@ -27,10 +26,8 @@ type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 /**
  * BlockEditへTable Reorderの描画境界を追加するHOC。
  *
- * Table以外のblockは元のBlockEditだけを描画する。Tableではcustom hookが返すstate / callbackを使い、
- * touch端末向けtoolbarとTable DOM解決の起点となるhidden anchorを追加する。
- *
  * @param BlockEdit Gutenbergが提供する元のBlockEdit component。
+ * @return Table Reorderを接続したBlockEdit component。
  */
 export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps > ) =>
 	/**
@@ -46,29 +43,38 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			setAttributes,
 		} = props;
 		const isTableBlock = props.name === 'core/table';
-		const { anchorRef, isHoverCapable, isTouchReorderMode, toggleTouchReorderMode } =
-			useTableReorder( {
-				body,
-				clientId,
-				enabled: isTableBlock,
-				isSelected,
-				setAttributes,
-			} );
+		const {
+			anchorRef,
+			isHoverCapable,
+			isTouchReorderMode,
+			requestRowControlFocus,
+			toggleTouchReorderMode,
+		} = useTableReorder( {
+			body,
+			clientId,
+			enabled: isTableBlock,
+			isSelected,
+			setAttributes,
+		} );
 
 		if ( ! isTableBlock ) {
 			return <BlockEdit { ...props } />;
 		}
 
+		const toolbarLabel = getToolbarReorderName();
+
 		return (
 			<>
 				<BlockEdit { ...props } />
-				{ ! isHoverCapable && isSelected && (
+				{ isSelected && (
 					<BlockControls>
 						<ToolbarButton
 							icon="sort"
-							isPressed={ isTouchReorderMode }
-							label={ __( '行を並び替え', 'yamabiko-editor-tools' ) }
-							onClick={ toggleTouchReorderMode }
+							isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
+							label={ toolbarLabel }
+							onClick={
+								isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode
+							}
 							showTooltip
 						/>
 					</BlockControls>
