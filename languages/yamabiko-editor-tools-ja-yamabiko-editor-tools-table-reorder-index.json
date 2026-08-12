@@ -1,0 +1,38 @@
+{
+  "translation-revision-date": "2026-08-13 04:06+0900",
+  "generator": "Yamabiko Editor Tools",
+  "domain": "yamabiko-editor-tools",
+  "locale_data": {
+    "messages": {
+      "": {
+        "domain": "yamabiko-editor-tools",
+        "lang": "ja",
+        "plural-forms": "nplurals=1; plural=0;"
+      },
+      "Empty row": [
+        "空の行"
+      ],
+      "Drag to move this row, or click to choose a destination.": [
+        "ドラッグでこの行を移動するか、クリックして移動先を選択します。"
+      ],
+      "Press Enter or Space to start moving this row.": [
+        "Enter または Space でこの行の移動を開始します。"
+      ],
+      "Reorder row %1$d: %2$s": [
+        "%1$d行目を並べ替え: %2$s"
+      ],
+      "Drag to move this row, or activate to choose a destination.": [
+        "ドラッグでこの行を移動するか、操作して移動先を選択します。"
+      ],
+      "Reorder rows": [
+        "行を並べ替え"
+      ],
+      "This row cannot be moved because it is within a cell that spans multiple rows.": [
+        "この行は複数行にまたがるセルの範囲内にあるため移動できません。"
+      ],
+      "There are no rows that can be reordered in this table.": [
+        "このテーブルには並べ替え可能な行がありません。"
+      ]
+    }
+  }
+}
