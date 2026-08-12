@@ -39,6 +39,45 @@ describe( 'drag-ui', () => {
 		expect( document.body.contains( insertionLine.element ) ).toBe( false );
 	} );
 
+	it( 'repositions the insertion line when the editor scrolls', () => {
+		const { tbody } = createTable( 1 );
+		const row = tbody.rows.item( 0 );
+		if ( ! row ) {
+			throw new Error( 'Expected table row' );
+		}
+		const getRect = jest.spyOn( row, 'getBoundingClientRect' );
+		getRect.mockReturnValue( {
+			bottom: 120,
+			height: 20,
+			left: 10,
+			right: 210,
+			top: 100,
+			width: 200,
+			x: 10,
+			y: 100,
+			toJSON: () => ( {} ),
+		} );
+		const insertionLine = createInsertionLine( document );
+		insertionLine.show( row, false );
+		expect( insertionLine.element.style.top ).toBe( '100px' );
+
+		getRect.mockReturnValue( {
+			bottom: 70,
+			height: 20,
+			left: 10,
+			right: 210,
+			top: 50,
+			width: 200,
+			x: 10,
+			y: 50,
+			toJSON: () => ( {} ),
+		} );
+		document.dispatchEvent( new Event( 'scroll' ) );
+
+		expect( insertionLine.element.style.top ).toBe( '50px' );
+		insertionLine.cleanup();
+	} );
+
 	it( 'restores touch-mode DOM changes on cleanup', () => {
 		const { tbody } = createTable( 2 );
 		const editable = tbody.rows.item( 0 )?.cells.item( 0 );
