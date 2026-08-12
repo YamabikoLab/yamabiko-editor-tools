@@ -383,10 +383,7 @@ export const createRowMoveTargets = (
 		button.setAttribute(
 			'aria-label',
 			nextRow
-				? getDestinationBeforeName(
-						target.insertionIndex + 1,
-						getRowRepresentativeText( nextRow )
-				  )
+				? getDestinationBeforeName( target.insertionIndex + 1, getRowRepresentativeText( nextRow ) )
 				: getDestinationEndName()
 		);
 

@@ -235,9 +235,7 @@ export const createSortableController = (
 	};
 	const deactivateEntry = ( entry: RowControlEntry ) => {
 		if (
-			( isDragging ||
-				keyboardSession?.entry === entry ||
-				singlePointerSession?.entry === entry ) &&
+			( isDragging || keyboardSession?.entry === entry || singlePointerSession?.entry === entry ) &&
 			activeEntry === entry
 		) {
 			return;
@@ -370,12 +368,7 @@ export const createSortableController = (
 		singlePointerSession = { entry, oldIndex, targetsUi };
 	};
 	const onRowPointerEnter = ( event: PointerEvent ) => {
-		if (
-			event.pointerType !== 'mouse' ||
-			isDragging ||
-			keyboardSession ||
-			singlePointerSession
-		) {
+		if ( event.pointerType !== 'mouse' || isDragging || keyboardSession || singlePointerSession ) {
 			return;
 		}
 
