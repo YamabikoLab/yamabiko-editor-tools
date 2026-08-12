@@ -133,9 +133,7 @@ export const isRowMoveAllowed = (
 		return false;
 	}
 
-	return ! forbiddenInsertionIndices.includes(
-		getRowMoveInsertionIndex( oldIndex, newIndex )
-	);
+	return ! forbiddenInsertionIndices.includes( getRowMoveInsertionIndex( oldIndex, newIndex ) );
 };
 
 /**
