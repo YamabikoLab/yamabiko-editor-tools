@@ -254,6 +254,11 @@ export const createSortableController = (
 			suppressBlockDrag();
 		}
 	};
+	const onControlMouseDown = ( event: MouseEvent ) => {
+		if ( event.button === 0 ) {
+			event.preventDefault();
+		}
+	};
 	const onControlFocus = ( event: FocusEvent ) => {
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
 		if ( entry ) {
@@ -278,6 +283,7 @@ export const createSortableController = (
 		entry.control.addEventListener( 'blur', onControlBlur );
 		entry.control.addEventListener( 'pointerdown', onControlPointerDown );
 		if ( useHoverMode ) {
+			entry.control.addEventListener( 'mousedown', onControlMouseDown );
 			entry.row.addEventListener( 'pointerenter', onRowPointerEnter );
 			entry.row.addEventListener( 'pointerleave', onRowPointerLeave );
 		}
@@ -460,6 +466,7 @@ export const createSortableController = (
 				entry.control.removeEventListener( 'blur', onControlBlur );
 				entry.control.removeEventListener( 'pointerdown', onControlPointerDown );
 				if ( useHoverMode ) {
+					entry.control.removeEventListener( 'mousedown', onControlMouseDown );
 					entry.row.removeEventListener( 'pointerenter', onRowPointerEnter );
 					entry.row.removeEventListener( 'pointerleave', onRowPointerLeave );
 				}
