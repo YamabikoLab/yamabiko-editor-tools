@@ -1,8 +1,9 @@
 /**
  * Table ReorderのSortableJS instanceとdrag session lifecycleを管理する。
  *
- * SortableJS callbacks、drag session state、keyboard session、行control制御、DOM所有権handoff、cleanupを集約する。
- * touch pressのpointer追跡は`touch-press.ts`へ委譲し、React / Gutenberg統合層とは狭いcallback境界で接続する。
+ * SortableJS callbacks、drag session state、keyboard / single-pointer session、行control制御、
+ * DOM所有権handoff、cleanupを集約する。touch pressのpointer追跡は`touch-press.ts`へ委譲し、
+ * React / Gutenberg統合層とは狭いcallback境界で接続する。
  * UI描画やReact state自体は扱わず、drag中にSortableJSが変更する行DOMはcommit前またはdestroy時に元へ戻す。
  */
 
@@ -15,14 +16,17 @@ import {
 } from './drag-ui';
 import {
 	createRowControls,
+	createRowMoveTargets,
 	HANDLE_ZONE_CLASS,
 	type RowControlEntry,
+	type RowMoveTargetsUi,
 	stopRowControlInteractionPropagation,
 } from './reorder-ui';
 import {
 	getMoveInsertionIndex,
 	getNextValidRowMoveIndex,
 	getRowMoveInsertionIndex,
+	getValidRowMoveTargets,
 	isNoopRowMove,
 	isRowMoveAllowed,
 	reorderRows,
@@ -41,6 +45,9 @@ const AUTO_SCROLL_SENSITIVITY_PX = 80;
 
 /** SortableJSのauto-scroll速度。 */
 const AUTO_SCROLL_SPEED_PX = 8;
+
+/** drag完了直後に同じhandleへ発生するclickを単一ポインター開始として扱わない時間。 */
+const DRAG_CLICK_SUPPRESSION_MS = 250;
 
 /** Table Reorderが利用する操作方式。 */
 export type ReorderInteractionMode = 'hover' | 'touch';
@@ -112,6 +119,13 @@ type KeyboardSession = {
 	oldIndex: number;
 };
 
+/** 単一ポインターで移動先を選択中だけ保持する一時状態。 */
+type SinglePointerSession = {
+	entry: RowControlEntry;
+	oldIndex: number;
+	targetsUi: RowMoveTargetsUi;
+};
+
 /**
  * 解決済みTable contextと制約からSortableJS controllerを生成する。
  *
@@ -167,12 +181,14 @@ export const createSortableController = (
 	let dragRows: HTMLTableRowElement[] | null = null;
 	let activeEntry: RowControlEntry | null = null;
 	let keyboardSession: KeyboardSession | null = null;
+	let singlePointerSession: SinglePointerSession | null = null;
 	let lastActiveRowIndex: number | null = getRowIndexFromElement(
 		tbody.ownerDocument.activeElement
 	);
 	let isDragging = false;
 	let blockDragSuppressed = false;
 	let originalDraggable: string | null = null;
+	let suppressPointerClickUntil = 0;
 	let restoreFallbackCellWidths: () => void = () => undefined;
 
 	const restoreFallbackWidths = () => {
@@ -218,7 +234,12 @@ export const createSortableController = (
 		rowControls.setVisible( entry, true );
 	};
 	const deactivateEntry = ( entry: RowControlEntry ) => {
-		if ( ( isDragging || keyboardSession?.entry === entry ) && activeEntry === entry ) {
+		if (
+			( isDragging ||
+				keyboardSession?.entry === entry ||
+				singlePointerSession?.entry === entry ) &&
+			activeEntry === entry
+		) {
 			return;
 		}
 
@@ -296,8 +317,65 @@ export const createSortableController = (
 
 		session.entry.control.focus();
 	};
+	const finishSinglePointerSession = ( newIndex?: number ) => {
+		const session = singlePointerSession;
+		if ( ! session ) {
+			return;
+		}
+
+		singlePointerSession = null;
+		session.targetsUi.cleanup();
+		session.entry.setPressed( false );
+		releaseEntry();
+
+		if (
+			newIndex !== undefined &&
+			rows &&
+			! isNoopRowMove( session.oldIndex, newIndex ) &&
+			isRowMoveAllowed( session.oldIndex, newIndex, constraints )
+		) {
+			const reorderedRows = reorderRows( rows, session.oldIndex, newIndex );
+			if ( reorderedRows ) {
+				onCommit( reorderedRows, newIndex );
+				return;
+			}
+		}
+
+		session.entry.control.focus();
+	};
+	const startSinglePointerSession = ( entry: RowControlEntry ) => {
+		if ( isDragging || keyboardSession || singlePointerSession || ! rows ) {
+			return;
+		}
+
+		const oldIndex = Array.from( tbody.rows ).indexOf( entry.row );
+		if ( oldIndex < 0 || nonMovableRows.has( oldIndex ) ) {
+			return;
+		}
+
+		const targets = getValidRowMoveTargets( oldIndex, constraints );
+		if ( targets.length === 0 ) {
+			entry.control.focus();
+			return;
+		}
+
+		activateEntry( entry );
+		entry.setPressed( true );
+		entry.control.focus();
+		const targetsUi = createRowMoveTargets( document, tbody, targets, {
+			isTouch: ! useHoverMode,
+			onCancel: () => finishSinglePointerSession(),
+			onSelect: ( newIndex ) => finishSinglePointerSession( newIndex ),
+		} );
+		singlePointerSession = { entry, oldIndex, targetsUi };
+	};
 	const onRowPointerEnter = ( event: PointerEvent ) => {
-		if ( event.pointerType !== 'mouse' || isDragging || keyboardSession ) {
+		if (
+			event.pointerType !== 'mouse' ||
+			isDragging ||
+			keyboardSession ||
+			singlePointerSession
+		) {
 			return;
 		}
 
@@ -317,7 +395,7 @@ export const createSortableController = (
 		}
 	};
 	const onControlPointerDown = ( event: PointerEvent ) => {
-		if ( event.pointerType !== 'mouse' || keyboardSession ) {
+		if ( event.pointerType !== 'mouse' || keyboardSession || singlePointerSession ) {
 			return;
 		}
 
@@ -331,6 +409,27 @@ export const createSortableController = (
 		if ( event.button === 0 ) {
 			event.preventDefault();
 		}
+	};
+	const onControlClick = ( event: MouseEvent ) => {
+		if ( event.detail === 0 || keyboardSession || isDragging ) {
+			return;
+		}
+		if ( useHoverMode && view.performance.now() < suppressPointerClickUntil ) {
+			event.preventDefault();
+			event.stopPropagation();
+			return;
+		}
+
+		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
+		if ( ! entry ) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		if ( singlePointerSession?.entry === entry ) {
+			return;
+		}
+		startSinglePointerSession( entry );
 	};
 	const onControlFocus = ( event: FocusEvent ) => {
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
@@ -355,7 +454,7 @@ export const createSortableController = (
 	};
 	const onControlKeyDown = ( event: KeyboardEvent ) => {
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
-		if ( ! entry || isDragging ) {
+		if ( ! entry || isDragging || singlePointerSession ) {
 			return;
 		}
 
@@ -426,15 +525,24 @@ export const createSortableController = (
 		keyboardSession.currentIndex = nextIndex;
 		showKeyboardCandidate( keyboardSession );
 	};
+	const onDocumentKeyDown = ( event: KeyboardEvent ) => {
+		if ( event.key === 'Escape' && useHoverMode && singlePointerSession ) {
+			event.preventDefault();
+			event.stopPropagation();
+			finishSinglePointerSession();
+		}
+	};
 
 	for ( const eventName of blockSelectionEvents ) {
 		tbody.addEventListener( eventName, stopRowControlInteractionPropagation );
 	}
+	document.addEventListener( 'keydown', onDocumentKeyDown, true );
 	tbody.addEventListener( 'focusin', rememberRowFromEvent );
 	tbody.addEventListener( 'pointerdown', rememberRowFromEvent );
 	for ( const entry of entries ) {
 		entry.control.addEventListener( 'focus', onControlFocus );
 		entry.control.addEventListener( 'blur', onControlBlur );
+		entry.control.addEventListener( 'click', onControlClick );
 		entry.control.addEventListener( 'keydown', onControlKeyDown );
 		entry.control.addEventListener( 'pointerdown', onControlPointerDown );
 		if ( useHoverMode ) {
@@ -479,8 +587,12 @@ export const createSortableController = (
 				restoreFallbackCellWidths = fixFallbackRowCellWidths( event.item );
 			},
 			onStart: () => {
+				if ( singlePointerSession ) {
+					finishSinglePointerSession();
+				}
 				insertionLine.hide();
 				isDragging = true;
+				suppressPointerClickUntil = Number.POSITIVE_INFINITY;
 				suppressBlockDrag();
 				if ( activeEntry ) {
 					rowControls.setVisible( activeEntry, true );
@@ -520,6 +632,7 @@ export const createSortableController = (
 			onEnd: ( event ) => {
 				insertionLine.hide();
 				isDragging = false;
+				suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
 				restoreFallbackWidths();
 				restoreDragRows();
 
@@ -553,6 +666,7 @@ export const createSortableController = (
 			},
 			onUnchoose: () => {
 				insertionLine.hide();
+				suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
 				restoreFallbackWidths();
 			},
 			scroll: true,
@@ -621,14 +735,21 @@ export const createSortableController = (
 
 			destroyed = true;
 			keyboardSession = null;
+			if ( singlePointerSession ) {
+				singlePointerSession.targetsUi.cleanup();
+				singlePointerSession.entry.setPressed( false );
+				singlePointerSession = null;
+			}
 			sortable?.destroy();
 			sortable = null;
 			insertionLine.cleanup();
 			touchPressTracker?.destroy();
 			restoreFallbackWidths();
+			document.removeEventListener( 'keydown', onDocumentKeyDown, true );
 			for ( const entry of entries ) {
 				entry.control.removeEventListener( 'focus', onControlFocus );
 				entry.control.removeEventListener( 'blur', onControlBlur );
+				entry.control.removeEventListener( 'click', onControlClick );
 				entry.control.removeEventListener( 'keydown', onControlKeyDown );
 				entry.control.removeEventListener( 'pointerdown', onControlPointerDown );
 				if ( useHoverMode ) {
