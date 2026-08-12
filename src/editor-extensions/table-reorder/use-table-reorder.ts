@@ -135,32 +135,49 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		}
 
 		const rowspanRanges = getRowspanRanges( body );
-		const controller = createSortableController( {
-			context,
-			forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
-			interactionMode,
-			nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
-			onCommit: ( reorderedBody ) => {
-				setAttributesRef.current( { body: reorderedBody } );
-			},
-			onNonMovableRowLongPress: () => {
-				void createNoticeRef.current( 'warning', getRowspanErrorMessage(), {
-					type: 'snackbar',
-				} );
-			},
-			onRequestTouchModeExit: () => {
-				setIsTouchReorderMode( false );
-			},
-			rows: Array.isArray( body ) ? body : null,
-			runtimeUrl,
+		let controller: SortableController | null = null;
+		let disposed = false;
+
+		queueMicrotask( () => {
+			if ( disposed ) {
+				return;
+			}
+
+			const createdController = createSortableController( {
+				context,
+				forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
+				interactionMode,
+				nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
+				onCommit: ( reorderedBody ) => {
+					setAttributesRef.current( { body: reorderedBody } );
+				},
+				onNonMovableRowLongPress: () => {
+					void createNoticeRef.current( 'warning', getRowspanErrorMessage(), {
+						type: 'snackbar',
+					} );
+				},
+				onRequestTouchModeExit: () => {
+					setIsTouchReorderMode( false );
+				},
+				rows: Array.isArray( body ) ? body : null,
+				runtimeUrl,
+			} );
+
+			if ( disposed ) {
+				createdController.destroy();
+				return;
+			}
+
+			controller = createdController;
+			controllerRef.current = createdController;
 		} );
-		controllerRef.current = controller;
 
 		return () => {
+			disposed = true;
 			if ( controllerRef.current === controller ) {
 				controllerRef.current = null;
 			}
-			controller.destroy();
+			controller?.destroy();
 		};
 	}, [ body, clientId, enabled, interactionMode ] );
 
