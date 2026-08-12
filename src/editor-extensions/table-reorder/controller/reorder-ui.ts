@@ -5,6 +5,9 @@
  * handle gutter、focus時の案内切り替えとcleanupを所有する。drag中だけの一時UIは扱わない。
  */
 
+import { Tooltip } from '@wordpress/components';
+import { createElement, createRoot, flushSync } from '@wordpress/element';
+
 import {
 	getEmptyRowLabel,
 	getKeyboardHandleTooltip,
@@ -99,6 +102,7 @@ export const createRowControls = (
 	options: RowControlOptions
 ): RowControls => {
 	const entries: RowControlEntry[] = [];
+	const cleanupControlRoots: Array< () => void > = [];
 	const changedCells: Array< {
 		cell: HTMLTableCellElement;
 		paddingInlineStart: string;
@@ -132,56 +136,110 @@ export const createRowControls = (
 			? `calc(${ computedStyle.paddingInlineStart } + ${ HANDLE_GUTTER_PX }px)`
 			: `${ HANDLE_GUTTER_PX }px`;
 
-		const control = document.createElement( 'button' );
-		control.type = 'button';
-		control.className = HANDLE_ZONE_CLASS;
-		control.setAttribute( 'contenteditable', 'false' );
-		control.setAttribute( 'aria-label', getRowControlName( rowIndex + 1, rowLabel ) );
-		control.dataset.visible = options.showAll ? 'true' : 'false';
-
-		const handle = document.createElement( 'span' );
-		handle.className = HANDLE_CLASS;
-		handle.setAttribute( 'aria-hidden', 'true' );
-		handle.textContent = '⋮⋮';
-
 		descriptionSequence += 1;
 		const descriptionBaseId = `yamabiko-table-reorder-description-${ descriptionSequence }`;
-		const pointerDescription = document.createElement( 'span' );
-		pointerDescription.id = `${ descriptionBaseId }-pointer`;
-		pointerDescription.className = DESCRIPTION_CLASS;
-		pointerDescription.textContent = getRowControlPointerDescription();
-
-		const keyboardDescription = document.createElement( 'span' );
-		keyboardDescription.id = `${ descriptionBaseId }-keyboard`;
-		keyboardDescription.className = DESCRIPTION_CLASS;
-		keyboardDescription.textContent = getRowControlKeyboardDescription();
-
+		const pointerDescriptionId = `${ descriptionBaseId }-pointer`;
+		const keyboardDescriptionId = `${ descriptionBaseId }-keyboard`;
+		const rowControlName = getRowControlName( rowIndex + 1, rowLabel );
+		const pointerDescription = getRowControlPointerDescription();
+		const keyboardDescription = getRowControlKeyboardDescription();
 		const usePointerDescription = ! options.showAll;
-		if ( usePointerDescription ) {
-			control.title = getPointerHandleTooltip();
-			control.setAttribute( 'aria-describedby', pointerDescription.id );
+
+		const mount = document.createElement( 'span' );
+		mount.style.display = 'contents';
+		firstCell.prepend( mount );
+		const root = createRoot( mount );
+		let control: HTMLButtonElement | null = null;
+		let tooltipText: string | undefined = usePointerDescription
+			? getPointerHandleTooltip()
+			: undefined;
+		let descriptionId: string | undefined = usePointerDescription
+			? pointerDescriptionId
+			: undefined;
+
+		const renderControl = () => {
+			const anchor = createElement(
+				'button',
+				{
+					'aria-describedby': descriptionId,
+					'aria-label': rowControlName,
+					className: HANDLE_ZONE_CLASS,
+					contentEditable: false,
+					ref: ( element: HTMLButtonElement | null ) => {
+						control = element;
+					},
+					type: 'button',
+				},
+				createElement(
+					'span',
+					{
+						'aria-hidden': true,
+						className: HANDLE_CLASS,
+					},
+					'⋮⋮'
+				),
+				createElement(
+					'span',
+					{
+						className: DESCRIPTION_CLASS,
+						id: pointerDescriptionId,
+					},
+					pointerDescription
+				),
+				createElement(
+					'span',
+					{
+						className: DESCRIPTION_CLASS,
+						id: keyboardDescriptionId,
+					},
+					keyboardDescription
+				)
+			);
+			root.render( createElement( Tooltip, { text: tooltipText }, anchor ) );
+		};
+
+		flushSync( renderControl );
+		if ( ! control ) {
+			root.unmount();
+			mount.remove();
+			continue;
 		}
 
+		const renderedControl = control;
+		const handle = renderedControl.querySelector< HTMLSpanElement >( `.${ HANDLE_CLASS }` );
+		if ( ! handle ) {
+			root.unmount();
+			mount.remove();
+			continue;
+		}
+
+		renderedControl.dataset.visible = options.showAll ? 'true' : 'false';
+
 		const onFocus = () => {
-			control.title = getKeyboardHandleTooltip();
-			control.setAttribute( 'aria-describedby', keyboardDescription.id );
+			tooltipText = getKeyboardHandleTooltip();
+			descriptionId = keyboardDescriptionId;
+			flushSync( renderControl );
 		};
 		const onBlur = () => {
 			if ( usePointerDescription ) {
-				control.title = getPointerHandleTooltip();
-				control.setAttribute( 'aria-describedby', pointerDescription.id );
-				return;
+				tooltipText = getPointerHandleTooltip();
+				descriptionId = pointerDescriptionId;
+			} else {
+				tooltipText = undefined;
+				descriptionId = undefined;
 			}
-
-			control.removeAttribute( 'title' );
-			control.removeAttribute( 'aria-describedby' );
+			flushSync( renderControl );
 		};
-		control.addEventListener( 'focus', onFocus );
-		control.addEventListener( 'blur', onBlur );
+		renderedControl.addEventListener( 'focus', onFocus );
+		renderedControl.addEventListener( 'blur', onBlur );
 
-		control.append( handle, pointerDescription, keyboardDescription );
-		firstCell.prepend( control );
-		entries.push( { control, handle, row } );
+		cleanupControlRoots.push( () => {
+			renderedControl.removeEventListener( 'focus', onFocus );
+			renderedControl.removeEventListener( 'blur', onBlur );
+			root.unmount();
+			mount.remove();
+		} );
+		entries.push( { control: renderedControl, handle, row } );
 	}
 
 	return {
@@ -190,8 +248,8 @@ export const createRowControls = (
 			entry.control.dataset.visible = isVisible ? 'true' : 'false';
 		},
 		cleanup: () => {
-			for ( const { control } of entries ) {
-				control.remove();
+			for ( const cleanupControlRoot of cleanupControlRoots ) {
+				cleanupControlRoot();
 			}
 			for ( const { cell, paddingInlineStart, position } of changedCells ) {
 				cell.style.paddingInlineStart = paddingInlineStart;
