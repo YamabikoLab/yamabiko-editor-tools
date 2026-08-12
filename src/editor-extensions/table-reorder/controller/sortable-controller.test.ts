@@ -172,7 +172,7 @@ describe( 'createSortableController', () => {
 		secondCell?.dispatchEvent( new FocusEvent( 'focusin', { bubbles: true } ) );
 
 		expect( controller.focusRowControl() ).toBe( 'focused' );
-		expect( document.activeElement ).toBe(
+		expect( tbody.ownerDocument.activeElement ).toBe(
 			tbody.rows.item( 1 )?.querySelector( '.yamabiko-table-reorder-handle-zone' )
 		);
 		expect( onCommit ).not.toHaveBeenCalled();
@@ -201,7 +201,9 @@ describe( 'createSortableController', () => {
 
 		expect( controller.focusRowControl() ).toBe( 'current-row-not-movable' );
 		expect(
-			document.activeElement?.classList.contains( 'yamabiko-table-reorder-handle-zone' )
+			tbody.ownerDocument.activeElement?.classList.contains(
+				'yamabiko-table-reorder-handle-zone'
+			)
 		).toBe( false );
 		controller.destroy();
 	} );
