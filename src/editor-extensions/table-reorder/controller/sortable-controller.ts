@@ -280,6 +280,7 @@ export const createSortableController = (
 
 		keyboardSession = null;
 		insertionLine.hide();
+		releaseEntry();
 		if (
 			commit &&
 			rows &&
@@ -355,6 +356,10 @@ export const createSortableController = (
 	const onControlKeyDown = ( event: KeyboardEvent ) => {
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
 		if ( ! entry || isDragging ) {
+			return;
+		}
+
+		if ( event.repeat && ( event.key === 'Enter' || event.key === ' ' ) ) {
 			return;
 		}
 
