@@ -1,22 +1,24 @@
 /**
  * Table ReorderのSortableJS instanceとdrag session lifecycleを管理する。
  *
- * SortableJS callbacks、drag session state、hover handle制御、DOM所有権handoff、cleanupを集約する。
+ * SortableJS callbacks、drag session state、行control制御、DOM所有権handoff、cleanupを集約する。
  * touch pressのpointer追跡は`touch-press.ts`へ委譲し、React / Gutenberg統合層とは狭いcallback境界で接続する。
  * UI描画やReact state自体は扱わず、drag中にSortableJSが変更する行DOMはcommit前またはdestroy時に元へ戻す。
  */
 
 import {
-	createHoverHandles,
 	createInsertionLine,
 	createTouchDragUi,
 	fixFallbackRowCellWidths,
-	HANDLE_ZONE_CLASS,
-	type HoverHandleEntry,
 	NON_MOVABLE_ROW_CLASS,
-	stopHoverHandleInteractionPropagation,
 	TOUCH_CHOSEN_CLASS,
 } from './drag-ui';
+import {
+	createRowControls,
+	HANDLE_ZONE_CLASS,
+	type RowControlEntry,
+	stopRowControlInteractionPropagation,
+} from './reorder-ui';
 import {
 	getMoveInsertionIndex,
 	isNoopRowMove,
@@ -41,6 +43,9 @@ const AUTO_SCROLL_SPEED_PX = 8;
 /** Table Reorderが利用する操作方式。 */
 export type ReorderInteractionMode = 'hover' | 'touch';
 
+/** Toolbar focus要求の結果。 */
+export type FocusRowControlResult = 'focused' | 'current-row-not-movable' | 'no-movable-rows';
+
 /** React / Gutenberg統合層からcontrollerへ渡す設定。 */
 export type SortableControllerOptions = {
 	context: TableContext;
@@ -57,6 +62,7 @@ export type SortableControllerOptions = {
 /** React側へ公開するcontroller lifecycleの最小interface。 */
 export type SortableController = {
 	destroy: () => void;
+	focusRowControl: () => FocusRowControlResult;
 };
 
 /** SortableJSのonEndで利用するindex情報。 */
@@ -99,12 +105,8 @@ type SortableOptions = {
 /**
  * 解決済みTable contextと制約からSortableJS controllerを生成する。
  *
- * controllerはSortableJS instance、drag callbacks、hover listener、一時DOM装飾、fallback style、
- * Gutenberg block drag抑止を所有する。touch press listenerとtimerは専用trackerへ委譲し、
- * `destroy()`から同じcleanup境界で破棄する。runtime読み込み完了前に`destroy()`された場合は、
- * 遅れて読み込みが完了しても古いSortableJS instanceを生成しない。
- *
  * @param options controller生成に必要なcontext、制約、callback。
+ * @return controller lifecycleとToolbar focus入口。
  */
 export const createSortableController = (
 	options: SortableControllerOptions
@@ -122,27 +124,36 @@ export const createSortableController = (
 	} = options;
 	const useHoverMode = interactionMode === 'hover';
 	const insertionLine = createInsertionLine( document );
-	const hoverHandles = useHoverMode
-		? createHoverHandles( document, tbody, nonMovableRowIndices )
-		: null;
+	const rowControls = createRowControls( document, tbody, nonMovableRowIndices, {
+		showAll: ! useHoverMode,
+	} );
 	const touchDragUi = useHoverMode
 		? null
 		: createTouchDragUi( document, tbody, nonMovableRowIndices );
-	const entries = hoverHandles?.entries ?? [];
-	const entryByZone = new Map( entries.map( ( entry ) => [ entry.zone, entry ] ) );
-	const entryByRow = new Map< HTMLTableRowElement, HoverHandleEntry >();
-	for ( const entry of entries ) {
-		const row = entry.zone.closest< HTMLTableRowElement >( 'tr' );
-		if ( row ) {
-			entryByRow.set( row, entry );
-		}
-	}
+	const entries = rowControls.entries;
+	const entryByControl = new Map( entries.map( ( entry ) => [ entry.control, entry ] ) );
+	const entryByRow = new Map< HTMLTableRowElement, RowControlEntry >(
+		entries.map( ( entry ) => [ entry.row, entry ] )
+	);
+	const nonMovableRows = new Set( nonMovableRowIndices );
 	const blockSelectionEvents = [ 'pointerdown', 'mousedown', 'click' ] as const;
+	const getRowIndexFromElement = ( element: Element | null ): number | null => {
+		const row = element?.closest< HTMLTableRowElement >( 'tr' ) ?? null;
+		if ( ! row || row.parentElement !== tbody ) {
+			return null;
+		}
+
+		const rowIndex = Array.from( tbody.rows ).indexOf( row );
+		return rowIndex >= 0 ? rowIndex : null;
+	};
 
 	let destroyed = false;
 	let sortable: SortableInstance | null = null;
 	let dragRows: HTMLTableRowElement[] | null = null;
-	let activeEntry: HoverHandleEntry | null = null;
+	let activeEntry: RowControlEntry | null = null;
+	let lastActiveRowIndex: number | null = getRowIndexFromElement(
+		tbody.ownerDocument.activeElement
+	);
 	let isDragging = false;
 	let blockDragSuppressed = false;
 	let originalDraggable: string | null = null;
@@ -182,24 +193,22 @@ export const createSortableController = (
 		originalDraggable = null;
 		blockDragSuppressed = false;
 	};
-	const activateEntry = ( entry: HoverHandleEntry ) => {
-		if ( ! hoverHandles ) {
-			return;
-		}
-
+	const activateEntry = ( entry: RowControlEntry ) => {
 		if ( activeEntry && activeEntry !== entry ) {
-			hoverHandles.setVisible( activeEntry, false );
+			rowControls.setVisible( activeEntry, false );
 		}
 		activeEntry = entry;
 		suppressBlockDrag();
-		hoverHandles.setVisible( entry, true );
+		rowControls.setVisible( entry, true );
 	};
-	const deactivateEntry = ( entry: HoverHandleEntry ) => {
+	const deactivateEntry = ( entry: RowControlEntry ) => {
 		if ( isDragging && activeEntry === entry ) {
 			return;
 		}
 
-		hoverHandles?.setVisible( entry, false );
+		if ( ! entry.control.matches( ':focus' ) ) {
+			rowControls.setVisible( entry, false );
+		}
 		if ( activeEntry === entry ) {
 			activeEntry = null;
 			restoreBlockDrag();
@@ -207,11 +216,17 @@ export const createSortableController = (
 	};
 	const releaseEntry = () => {
 		isDragging = false;
-		if ( activeEntry ) {
-			hoverHandles?.setVisible( activeEntry, false );
+		if ( activeEntry && ! activeEntry.control.matches( ':focus' ) ) {
+			rowControls.setVisible( activeEntry, false );
 		}
 		activeEntry = null;
 		restoreBlockDrag();
+	};
+	const rememberRowFromEvent = ( event: Event ) => {
+		const rowIndex = getRowIndexFromElement( event.target as Element | null );
+		if ( rowIndex !== null ) {
+			lastActiveRowIndex = rowIndex;
+		}
 	};
 	const onRowPointerEnter = ( event: PointerEvent ) => {
 		if ( event.pointerType !== 'mouse' || isDragging ) {
@@ -233,31 +248,54 @@ export const createSortableController = (
 			deactivateEntry( entry );
 		}
 	};
-	const onZonePointerDown = ( event: PointerEvent ) => {
+	const onControlPointerDown = ( event: PointerEvent ) => {
 		if ( event.pointerType !== 'mouse' ) {
 			return;
 		}
 
-		const entry = entryByZone.get( event.currentTarget as HTMLElement );
+		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
 		if ( entry ) {
 			activateEntry( entry );
 			suppressBlockDrag();
 		}
 	};
+	const onControlMouseDown = ( event: MouseEvent ) => {
+		if ( event.button === 0 ) {
+			event.preventDefault();
+		}
+	};
+	const onControlFocus = ( event: FocusEvent ) => {
+		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
+		if ( entry ) {
+			lastActiveRowIndex = Array.from( tbody.rows ).indexOf( entry.row );
+			rowControls.setVisible( entry, true );
+		}
+	};
+	const onControlBlur = ( event: FocusEvent ) => {
+		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
+		if ( entry && useHoverMode && activeEntry !== entry ) {
+			rowControls.setVisible( entry, false );
+		}
+	};
 
 	for ( const eventName of blockSelectionEvents ) {
-		tbody.addEventListener( eventName, stopHoverHandleInteractionPropagation );
+		tbody.addEventListener( eventName, stopRowControlInteractionPropagation );
 	}
-	if ( useHoverMode ) {
-		for ( const [ row, entry ] of entryByRow ) {
-			row.addEventListener( 'pointerenter', onRowPointerEnter );
-			row.addEventListener( 'pointerleave', onRowPointerLeave );
-			entry.zone.addEventListener( 'pointerdown', onZonePointerDown );
+	tbody.addEventListener( 'focusin', rememberRowFromEvent );
+	tbody.addEventListener( 'pointerdown', rememberRowFromEvent );
+	for ( const entry of entries ) {
+		entry.control.addEventListener( 'focus', onControlFocus );
+		entry.control.addEventListener( 'blur', onControlBlur );
+		entry.control.addEventListener( 'pointerdown', onControlPointerDown );
+		if ( useHoverMode ) {
+			entry.control.addEventListener( 'mousedown', onControlMouseDown );
+			entry.row.addEventListener( 'pointerenter', onRowPointerEnter );
+			entry.row.addEventListener( 'pointerleave', onRowPointerLeave );
 		}
+	}
 
-		const hoveredEntry = entries.find(
-			( entry ) => entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
-		);
+	if ( useHoverMode ) {
+		const hoveredEntry = entries.find( ( entry ) => entry.row.matches( ':hover' ) );
 		if ( hoveredEntry ) {
 			activateEntry( hoveredEntry );
 		}
@@ -295,7 +333,7 @@ export const createSortableController = (
 				isDragging = true;
 				suppressBlockDrag();
 				if ( activeEntry ) {
-					hoverHandles?.setVisible( activeEntry, true );
+					rowControls.setVisible( activeEntry, true );
 				}
 			},
 			onMove: ( event ) => {
@@ -336,9 +374,7 @@ export const createSortableController = (
 				restoreDragRows();
 
 				if ( useHoverMode ) {
-					const hoveredAfterDrag = entries.find(
-						( entry ) => entry.zone.closest< HTMLTableRowElement >( 'tr' )?.matches( ':hover' )
-					);
+					const hoveredAfterDrag = entries.find( ( entry ) => entry.row.matches( ':hover' ) );
 					if ( hoveredAfterDrag ) {
 						activateEntry( hoveredAfterDrag );
 					} else {
@@ -396,6 +432,34 @@ export const createSortableController = (
 	} );
 
 	return {
+		focusRowControl: () => {
+			if ( entries.length === 0 ) {
+				return 'no-movable-rows';
+			}
+
+			const activeRowIndex = getRowIndexFromElement( tbody.ownerDocument.activeElement );
+			if ( activeRowIndex !== null ) {
+				lastActiveRowIndex = activeRowIndex;
+			}
+
+			if ( lastActiveRowIndex !== null ) {
+				if ( nonMovableRows.has( lastActiveRowIndex ) ) {
+					return 'current-row-not-movable';
+				}
+
+				const currentRow = tbody.rows.item( lastActiveRowIndex );
+				const currentEntry = currentRow ? entryByRow.get( currentRow ) : undefined;
+				if ( currentEntry ) {
+					rowControls.setVisible( currentEntry, true );
+					currentEntry.control.focus();
+					return 'focused';
+				}
+			}
+
+			rowControls.setVisible( entries[ 0 ], true );
+			entries[ 0 ].control.focus();
+			return 'focused';
+		},
 		destroy: () => {
 			if ( destroyed ) {
 				return;
@@ -407,19 +471,24 @@ export const createSortableController = (
 			insertionLine.cleanup();
 			touchPressTracker?.destroy();
 			restoreFallbackWidths();
-			if ( useHoverMode ) {
-				for ( const [ row, entry ] of entryByRow ) {
-					row.removeEventListener( 'pointerenter', onRowPointerEnter );
-					row.removeEventListener( 'pointerleave', onRowPointerLeave );
-					entry.zone.removeEventListener( 'pointerdown', onZonePointerDown );
+			for ( const entry of entries ) {
+				entry.control.removeEventListener( 'focus', onControlFocus );
+				entry.control.removeEventListener( 'blur', onControlBlur );
+				entry.control.removeEventListener( 'pointerdown', onControlPointerDown );
+				if ( useHoverMode ) {
+					entry.control.removeEventListener( 'mousedown', onControlMouseDown );
+					entry.row.removeEventListener( 'pointerenter', onRowPointerEnter );
+					entry.row.removeEventListener( 'pointerleave', onRowPointerLeave );
 				}
 			}
 			for ( const eventName of blockSelectionEvents ) {
-				tbody.removeEventListener( eventName, stopHoverHandleInteractionPropagation );
+				tbody.removeEventListener( eventName, stopRowControlInteractionPropagation );
 			}
+			tbody.removeEventListener( 'focusin', rememberRowFromEvent );
+			tbody.removeEventListener( 'pointerdown', rememberRowFromEvent );
 			restoreDragRows();
 			releaseEntry();
-			hoverHandles?.cleanup();
+			rowControls.cleanup();
 			touchDragUi?.cleanup();
 		},
 	};

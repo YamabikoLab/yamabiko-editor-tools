@@ -8,13 +8,14 @@
 
 import { useDispatch } from '@wordpress/data';
 import { useEffect, useRef, useState, type RefObject } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import {
 	createSortableController,
 	type ReorderInteractionMode,
+	type SortableController,
 } from './controller/sortable-controller';
+import { getNoMovableRowsMessage, getRowspanErrorMessage } from './messages';
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { resolveTableContext } from './table-context';
 
@@ -42,21 +43,20 @@ export type TableReorderHookResult = {
 	anchorRef: RefObject< HTMLSpanElement >;
 	isHoverCapable: boolean;
 	isTouchReorderMode: boolean;
+	requestRowControlFocus: () => void;
 	toggleTouchReorderMode: () => void;
 };
 
 /**
  * Table ReorderのReact lifecycleを所有し、必要な期間だけSortableJS controllerを接続する。
  *
- * `enabled`がfalseの間はcontrollerを生成しない。touch並び替えmodeはhover対応へ切り替わった時、
- * または対象blockの選択が解除された時にresetする。controllerへ渡すcommit / notice callbackは
- * ref経由で最新のWordPress APIを参照し、callback identityだけを理由としたcontroller再生成を避ける。
- *
  * @param options Table blockのbody、選択状態、clientId、attribute更新callback。
+ * @return Toolbar描画と操作に必要なstate / callback。
  */
 export const useTableReorder = ( options: UseTableReorderOptions ): TableReorderHookResult => {
 	const { body, clientId, enabled, isSelected, setAttributes } = options;
 	const anchorRef = useRef< HTMLSpanElement >( null );
+	const controllerRef = useRef< SortableController | null >( null );
 	const { createNotice } = useDispatch( noticesStore );
 	const createNoticeRef = useRef( createNotice );
 	const setAttributesRef = useRef( setAttributes );
@@ -106,6 +106,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	}, [ isSelected ] );
 
 	useEffect( () => {
+		controllerRef.current = null;
 		if ( ! enabled || ! interactionMode ) {
 			return;
 		}
@@ -134,30 +135,55 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		}
 
 		const rowspanRanges = getRowspanRanges( body );
-		const controller = createSortableController( {
-			context,
-			forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
-			interactionMode,
-			nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
-			onCommit: ( reorderedBody ) => {
-				setAttributesRef.current( { body: reorderedBody } );
-			},
-			onNonMovableRowLongPress: () => {
-				void createNoticeRef.current(
-					'warning',
-					__( '縦結合を含む行は並び替えできません。', 'yamabiko-editor-tools' ),
-					{ type: 'snackbar' }
-				);
-			},
-			onRequestTouchModeExit: () => {
-				setIsTouchReorderMode( false );
-			},
-			rows: Array.isArray( body ) ? body : null,
-			runtimeUrl,
+		let controller: SortableController | null = null;
+		let disposed = false;
+
+		queueMicrotask( () => {
+			if ( disposed ) {
+				return;
+			}
+
+			const createdController = createSortableController( {
+				context,
+				forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
+				interactionMode,
+				nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
+				onCommit: ( reorderedBody ) => {
+					setAttributesRef.current( { body: reorderedBody } );
+				},
+				onNonMovableRowLongPress: () => {
+					void createNoticeRef.current( 'warning', getRowspanErrorMessage(), {
+						type: 'snackbar',
+					} );
+				},
+				onRequestTouchModeExit: () => {
+					setIsTouchReorderMode( false );
+				},
+				rows: Array.isArray( body ) ? body : null,
+				runtimeUrl,
+			} );
+
+			if ( disposed ) {
+				createdController.destroy();
+				return;
+			}
+
+			controller = createdController;
+			controllerRef.current = createdController;
 		} );
 
 		return () => {
-			controller.destroy();
+			disposed = true;
+			const controllerToDestroy = controller;
+			controller = null;
+			if ( controllerRef.current === controllerToDestroy ) {
+				controllerRef.current = null;
+			}
+			if ( controllerToDestroy ) {
+				queueMicrotask( () => {
+					controllerToDestroy.destroy();
+				} );
+			}
 		};
 	}, [ body, clientId, enabled, interactionMode ] );
 
@@ -165,6 +191,18 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		anchorRef,
 		isHoverCapable,
 		isTouchReorderMode,
+		requestRowControlFocus: () => {
+			const result = controllerRef.current?.focusRowControl();
+			if ( result === 'current-row-not-movable' ) {
+				void createNoticeRef.current( 'warning', getRowspanErrorMessage(), {
+					type: 'snackbar',
+				} );
+			} else if ( result === 'no-movable-rows' ) {
+				void createNoticeRef.current( 'warning', getNoMovableRowsMessage(), {
+					type: 'snackbar',
+				} );
+			}
+		},
 		toggleTouchReorderMode: () => {
 			setIsTouchReorderMode( ( isActive ) => ! isActive );
 		},

@@ -1,9 +1,7 @@
 import {
-	createHoverHandles,
 	createInsertionLine,
 	createTouchDragUi,
 	fixFallbackRowCellWidths,
-	HANDLE_ZONE_CLASS,
 	NON_MOVABLE_ROW_CLASS,
 	TOUCH_CHOSEN_CLASS,
 } from './drag-ui';
@@ -29,38 +27,6 @@ describe( 'drag-ui', () => {
 	beforeEach( () => {
 		document.head.replaceChildren();
 		document.body.replaceChildren();
-	} );
-
-	it( 'restores changed first-cell inline styles when hover handles are cleaned up', () => {
-		const { tbody } = createTable( 1 );
-		const cell = tbody.rows.item( 0 )?.cells.item( 0 );
-		if ( ! cell ) {
-			throw new Error( 'Expected first table cell' );
-		}
-		cell.style.position = 'static';
-		cell.style.paddingInlineStart = '7px';
-
-		const handles = createHoverHandles( document, tbody, [] );
-		expect( cell.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).not.toBeNull();
-		expect( cell.style.paddingInlineStart ).not.toBe( '7px' );
-
-		handles.cleanup();
-
-		expect( cell.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).toBeNull();
-		expect( cell.style.position ).toBe( 'static' );
-		expect( cell.style.paddingInlineStart ).toBe( '7px' );
-	} );
-
-	it( 'does not create a hover handle for non-movable rows', () => {
-		const { tbody } = createTable( 3 );
-		const handles = createHoverHandles( document, tbody, [ 1 ] );
-
-		expect( handles.entries ).toHaveLength( 2 );
-		expect( tbody.rows.item( 0 )?.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).not.toBeNull();
-		expect( tbody.rows.item( 1 )?.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).toBeNull();
-		expect( tbody.rows.item( 2 )?.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).not.toBeNull();
-
-		handles.cleanup();
 	} );
 
 	it( 'removes the insertion line from the document on cleanup', () => {
@@ -127,7 +93,6 @@ describe( 'drag-ui', () => {
 		expect( cell.style.boxSizing ).toBe( 'border-box' );
 
 		restore();
-
 		expect( cell.style.width ).toBe( '25%' );
 		expect( cell.style.minWidth ).toBe( '10px' );
 		expect( cell.style.maxWidth ).toBe( '80px' );

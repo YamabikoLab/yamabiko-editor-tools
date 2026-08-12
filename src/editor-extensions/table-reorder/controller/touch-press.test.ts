@@ -4,6 +4,10 @@ import {
 	TOUCH_START_THRESHOLD_PX,
 } from './touch-press';
 
+jest.mock( '@wordpress/components', () => ( {
+	Tooltip: ( { children }: { children: unknown } ) => children,
+} ) );
+
 const dispatchPointerEvent = (
 	target: Element,
 	type: string,
