@@ -190,6 +190,7 @@ export const createSortableController = (
 			hoverHandles.setVisible( activeEntry, false );
 		}
 		activeEntry = entry;
+		suppressBlockDrag();
 		hoverHandles.setVisible( entry, true );
 	};
 	const deactivateEntry = ( entry: HoverHandleEntry ) => {
