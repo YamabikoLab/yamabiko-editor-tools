@@ -174,10 +174,16 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 
 		return () => {
 			disposed = true;
-			if ( controllerRef.current === controller ) {
+			const controllerToDestroy = controller;
+			controller = null;
+			if ( controllerRef.current === controllerToDestroy ) {
 				controllerRef.current = null;
 			}
-			controller?.destroy();
+			if ( controllerToDestroy ) {
+				queueMicrotask( () => {
+					controllerToDestroy.destroy();
+				} );
+			}
 		};
 	}, [ body, clientId, enabled, interactionMode ] );
 
