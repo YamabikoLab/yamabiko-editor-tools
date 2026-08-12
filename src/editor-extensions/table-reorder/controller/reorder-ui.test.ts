@@ -53,16 +53,22 @@ describe( 'reorder-ui', () => {
 		expect( firstCell.style.paddingInlineStart ).toBe( '7px' );
 	} );
 
-	it( 'switches the control description when keyboard focus enters and leaves', () => {
+	it( 'uses WordPress Tooltip instead of a native title and switches the accessible description', () => {
 		const { tbody } = createTable( [ 'Alpha' ] );
 		const controls = createRowControls( document, tbody, [], { showAll: false } );
 		const control = controls.entries[ 0 ].control;
+		const pointerDescriptionId = control.getAttribute( 'aria-describedby' );
 
-		expect( control.title ).toBe( 'Drag to move this row, or click to choose a destination.' );
+		expect( control.hasAttribute( 'title' ) ).toBe( false );
+		expect( pointerDescriptionId ).toContain( '-pointer' );
+
 		control.dispatchEvent( new FocusEvent( 'focus' ) );
-		expect( control.title ).toBe( 'Press Enter or Space to start moving this row.' );
+		expect( control.hasAttribute( 'title' ) ).toBe( false );
+		expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
+
 		control.dispatchEvent( new FocusEvent( 'blur' ) );
-		expect( control.title ).toBe( 'Drag to move this row, or click to choose a destination.' );
+		expect( control.hasAttribute( 'title' ) ).toBe( false );
+		expect( control.getAttribute( 'aria-describedby' ) ).toBe( pointerDescriptionId );
 
 		controls.cleanup();
 	} );
