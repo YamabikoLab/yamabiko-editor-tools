@@ -200,9 +200,9 @@ describe( 'createSortableController', () => {
 		secondCell?.dispatchEvent( new FocusEvent( 'focusin', { bubbles: true } ) );
 
 		expect( controller.focusRowControl() ).toBe( 'current-row-not-movable' );
-		expect( document.activeElement?.classList.contains( 'yamabiko-table-reorder-handle-zone' ) ).toBe(
-			false
-		);
+		expect(
+			document.activeElement?.classList.contains( 'yamabiko-table-reorder-handle-zone' )
+		).toBe( false );
 		controller.destroy();
 	} );
 

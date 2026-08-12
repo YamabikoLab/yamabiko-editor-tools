@@ -72,9 +72,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 							icon="sort"
 							isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
 							label={ toolbarLabel }
-							onClick={
-								isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode
-							}
+							onClick={ isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode }
 							showTooltip
 						/>
 					</BlockControls>

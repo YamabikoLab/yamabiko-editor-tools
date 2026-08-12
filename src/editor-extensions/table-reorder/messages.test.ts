@@ -32,11 +32,7 @@ describe( 'messages', () => {
 
 	it( 'builds the row-control name from the current position and row label', () => {
 		expect( getRowControlName( 2, 'Example row' ) ).toBe( 'Reorder row 2: Example row' );
-		expect( sprintfMock ).toHaveBeenCalledWith(
-			'Reorder row %1$d: %2$s',
-			2,
-			'Example row'
-		);
+		expect( sprintfMock ).toHaveBeenCalledWith( 'Reorder row %1$d: %2$s', 2, 'Example row' );
 	} );
 
 	it( 'uses the Table Reorder text domain for Phase 2 messages', () => {

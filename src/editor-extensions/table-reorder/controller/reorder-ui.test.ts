@@ -1,8 +1,4 @@
-import {
-	createRowControls,
-	getRowRepresentativeText,
-	HANDLE_ZONE_CLASS,
-} from './reorder-ui';
+import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './reorder-ui';
 
 const createTable = ( labels: string[] ) => {
 	const table = document.createElement( 'table' );
