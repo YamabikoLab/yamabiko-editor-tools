@@ -113,8 +113,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'touch',
 			nonMovableRowIndices: [],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -137,8 +135,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -175,8 +171,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -220,8 +214,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -250,8 +242,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -293,8 +283,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -343,8 +331,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -367,8 +353,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [ 1 ],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -394,8 +378,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [ 0, 1, 2 ],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -419,8 +401,6 @@ describe( 'createSortableController', () => {
 			interactionMode: 'touch',
 			nonMovableRowIndices: [],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c' ],
 			runtimeUrl: '/sortable.js',
 		} );
