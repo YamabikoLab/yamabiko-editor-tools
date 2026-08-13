@@ -358,7 +358,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - single-pointer session中は、PCでは `Escape`、touchでは案内に併設するキャンセル操作という基本設計のキャンセル経路を案内とUIへ反映する。
   - owning document内のlive status nodeと基本設計8章の重複通知抑制を実装する。
   - row controlに現在の操作対象であることを表す状態を付与し、focus表示とは区別する。
-  - keyboard候補が実際に変更された場合だけ、現在候補と移動方向側の次の有効位置を可能な範囲で見えるよう必要最小限のscrollを補助する。先頭・末尾など候補が変化しない操作ではscrollしない。
+  - keyboard候補が実際に変更された場合だけ、現在の挿入線とその直前・直後に存在する行、移動方向側の次の有効位置を可能な範囲で見えるよう必要最小限のscrollを補助する。Table Reorderの案内等が占有する領域を除いた実質的な可視領域を基準に判定し、先頭・末尾など候補が変化しない操作ではscrollしない。
   - pointer target表示中も元のrow controlをTable Reorder自身のUIで完全に隠さない。
 - Validation:
   - 基本設計8章で定義された開始、候補変更、確定、キャンセル、移動不能等の画面表示 / 動的通知が、定義された契機と優先関係で一つだけ提示される。
@@ -369,7 +369,8 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - 利用者向け文言が一つの `messages.ts` に集約され、controller / UI処理へ直書きされていない。
   - row control / targetのhit areaがWCAG 2.2 2.5.8の最低要件を満たす。
   - focusされたcontrolがTable Reorderの案内 / target UIによって完全に隠れない。
-  - keyboard候補が可視領域外へ進んだ場合も縦scrollが追従し、現在候補と移動方向側の次の有効位置を可能な範囲で継続して確認できる。
+  - keyboard並べ替え中の挿入線と、その直前・直後に存在する行がTable Reorderの案内等で隠れず、先頭・末尾を含めて確定時の挿入位置を継続して判断できる。
+  - keyboard候補が実質的な可視領域外へ進んだ場合も縦scrollが追従し、現在の挿入線とその直前・直後に存在する行、移動方向側の次の有効位置を可能な範囲で継続して確認できる。
   - 先頭・末尾など候補が変化しない操作では不要なscrollが発生せず、候補変更時の追従量も操作文脈を保つための必要最小限に留まる。
 
 ### Phase 6: 編集環境と既存操作の回帰確認を完了する
@@ -419,7 +420,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - touch端末でToolbarを外付けkeyboardから起動した場合、touch mode開始だけでなくchapter 5のkeyboard focus入口として扱うためのactivation origin判定方法。
 - `setAttributes()` 後にcontrollerが再生成されるタイミングで、pending focus requestを一度だけ確実に消費できるか。
 - 行間targetをfixed overlayで配置した場合のscroll / resize追従と、Gutenberg toolbar / iframe clippingとの干渉。
-- keyboard scroll追従を `scrollIntoView()` 中心で満たせるか、次の有効位置を見せるための追加 `scrollBy()` が必要か。
+- keyboard scroll追従を `scrollIntoView()` 中心で満たせるか、操作案内等の占有領域を除いた実質的な可視領域で挿入線と前後行を確保するための追加 `scrollBy()` 等が必要か。
 - row accessible nameに採用する代表的内容の長さ、空行fallback、重複行の区別が支援技術で実用的か。
 - live statusの `role` / `aria-live` / `aria-atomic` の組み合わせと、重複抑制がChrome + 主要screen readerで過不足ないか。
 - タッチ初回コーチマークのdismiss済み状態を、追加依存を最小にしつつWordPress内で確実に永続化できる保存境界。
@@ -497,7 +498,9 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - Focus / scroll
   - focus ringがhoverに依存せず見える。
   - row control / targetの操作領域を実測しTarget Sizeを確認する。
-  - 長いTableで上下移動し、現在候補と移動方向側の次の有効位置を可能な範囲で確認できる。
+  - 長いTableで上下移動し、現在の挿入線とその直前・直後に存在する行、移動方向側の次の有効位置を可能な範囲で確認できる。
+  - 先頭・末尾へ移動した場合も、操作案内等に挿入線や周辺行が隠れず、確定時の挿入位置を判断できる。
+  - scroll要否はviewport全体ではなく、Table Reorderの案内等を除いた実質的な可視領域で判定される。
   - Table Reorder自身の案内・targetがfocus controlを完全に隠さない。
 - Editor asset delivery
   - iframe / non-iframeの両環境で `build/editor-extensions/table-reorder/index.css` がeditorへ読み込まれる。
