@@ -155,14 +155,6 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 					}
 					setAttributesRef.current( { body: reorderedBody } );
 				},
-				onNonMovableRowLongPress: () => {
-					void createNoticeRef.current( 'warning', getRowspanErrorMessage(), {
-						type: 'snackbar',
-					} );
-				},
-				onRequestTouchModeExit: () => {
-					setIsTouchReorderMode( false );
-				},
 				rows: Array.isArray( body ) ? body : null,
 				runtimeUrl,
 			} );
