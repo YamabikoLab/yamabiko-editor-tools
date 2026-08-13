@@ -59,12 +59,12 @@ describe( 'createSortableController touch handle DnD', () => {
 	} );
 
 	it( 'uses the shared row control as the touch drag handle without long-press settings', async () => {
-		let capturedOptions: TouchSortableOptions | null = null;
 		const runtime: SortableRuntime = {
-			create: jest.fn( ( _element: HTMLElement, options: unknown ): SortableInstance => {
-				capturedOptions = options as TouchSortableOptions;
-				return { destroy: jest.fn() };
-			} ),
+			create: jest.fn(
+				(): SortableInstance => ( {
+					destroy: jest.fn(),
+				} )
+			),
 		};
 		ensureSortableRuntimeMock.mockResolvedValue( runtime );
 		const { context, tbody } = createContext();
@@ -86,12 +86,18 @@ describe( 'createSortableController touch handle DnD', () => {
 		} );
 		await Promise.resolve();
 
+		const createMock = runtime.create as jest.MockedFunction< SortableRuntime[ 'create' ] >;
+		const capturedOptions = createMock.mock.calls[ 0 ]?.[ 1 ] as TouchSortableOptions | undefined;
+		if ( ! capturedOptions ) {
+			throw new Error( 'Expected SortableJS options to be created' );
+		}
+
 		expect( capturedOptions ).toMatchObject( {
 			draggable: 'tr',
 			handle: '.yamabiko-table-reorder-handle-zone',
 		} );
-		expect( capturedOptions?.delay ).toBeUndefined();
-		expect( capturedOptions?.touchStartThreshold ).toBeUndefined();
+		expect( capturedOptions.delay ).toBeUndefined();
+		expect( capturedOptions.touchStartThreshold ).toBeUndefined();
 		expect( firstCell.style.pointerEvents ).toBe( '' );
 		expect( tbody.style.userSelect ).toBe( '' );
 
