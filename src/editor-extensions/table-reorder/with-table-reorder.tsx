@@ -104,7 +104,11 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 							{ toolbarDescription }
 						</span>
 						{ isCoachmarkVisible && toolbarButton && (
-							<Popover anchor={ toolbarButton } onClose={ dismissCoachmark }>
+							<Popover
+								anchor={ toolbarButton }
+								focusOnMount={ false }
+								onClose={ dismissCoachmark }
+							>
 								<div className="yamabiko-table-reorder-coachmark">
 									<p>{ coachmarkMessage }</p>
 									<Button
