@@ -191,7 +191,10 @@ export const createReorderGuidance = (
 
 	const updatePosition = () => {
 		const tableRect = ( table ?? tbody ).getBoundingClientRect();
-		const viewportHeight = Math.max( 0, view?.innerHeight ?? document.documentElement.clientHeight );
+		const viewportHeight = Math.max(
+			0,
+			view?.innerHeight ?? document.documentElement.clientHeight
+		);
 		let top = Math.max( 8, Math.min( tableRect.top - 60, Math.max( 8, viewportHeight - 68 ) ) );
 		if ( sourceControl && viewportHeight > 0 ) {
 			const sourceRect = sourceControl.getBoundingClientRect();
@@ -203,7 +206,8 @@ export const createReorderGuidance = (
 		guidance.style.top = `${ top }px`;
 		guidance.style.left = `${ Math.max( 8, tableRect.left ) }px`;
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
-		const availableWidth = viewportWidth > 16 ? viewportWidth - Math.max( 8, tableRect.left ) - 8 : tableRect.width;
+		const availableWidth =
+			viewportWidth > 16 ? viewportWidth - Math.max( 8, tableRect.left ) - 8 : tableRect.width;
 		guidance.style.width = `${ Math.max( 0, Math.min( tableRect.width, availableWidth ) ) }px`;
 	};
 

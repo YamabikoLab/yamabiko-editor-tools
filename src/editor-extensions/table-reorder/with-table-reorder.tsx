@@ -86,20 +86,12 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 							ref={ toolbarButtonRef }
 							showTooltip
 						/>
-						<span
-							className="yamabiko-table-reorder-description"
-							id={ toolbarDescriptionId }
-						>
+						<span className="yamabiko-table-reorder-description" id={ toolbarDescriptionId }>
 							{ toolbarDescription }
 						</span>
 						{ isTouchCoachmarkVisible && toolbarButtonRef.current && (
-							<Popover
-								anchor={ toolbarButtonRef.current }
-								onClose={ dismissTouchCoachmark }
-							>
-								<p className="yamabiko-table-reorder-coachmark">
-									{ getTouchCoachmarkMessage() }
-								</p>
+							<Popover anchor={ toolbarButtonRef.current } onClose={ dismissTouchCoachmark }>
+								<p className="yamabiko-table-reorder-coachmark">{ getTouchCoachmarkMessage() }</p>
 							</Popover>
 						) }
 					</BlockControls>

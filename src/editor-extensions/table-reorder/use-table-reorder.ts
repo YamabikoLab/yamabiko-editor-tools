@@ -85,9 +85,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	const preferencesActions = useDispatch( 'core/preferences' ) as unknown as PreferencesActions;
 	const isTouchCoachmarkDismissed = useSelect( ( registrySelect ) => {
 		const preferences = registrySelect( 'core/preferences' ) as unknown as PreferencesSelector;
-		return (
-			preferences.get( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE ) === true
-		);
+		return preferences.get( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE ) === true;
 	}, [] );
 	const createNoticeRef = useRef( createNotice );
 	const setAttributesRef = useRef( setAttributes );
@@ -234,11 +232,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 
 	const dismissTouchCoachmark = () => {
 		setIsTouchCoachmarkVisible( false );
-		void preferencesActions.set(
-			PREFERENCES_SCOPE,
-			TOUCH_COACHMARK_DISMISSED_PREFERENCE,
-			true
-		);
+		void preferencesActions.set( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE, true );
 	};
 
 	const notifyTouchNoMovableRows = () => {
@@ -275,9 +269,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 				if ( ! isActive ) {
 					dismissTouchCoachmark();
 					const rowCount = Array.isArray( body ) ? body.length : 0;
-					const nonMovableRowCount = getNonMovableRowIndices(
-						getRowspanRanges( body )
-					).length;
+					const nonMovableRowCount = getNonMovableRowIndices( getRowspanRanges( body ) ).length;
 					if ( rowCount === 0 || nonMovableRowCount >= rowCount ) {
 						notifyTouchNoMovableRows();
 						return false;

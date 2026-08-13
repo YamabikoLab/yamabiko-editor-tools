@@ -354,11 +354,7 @@ export const createSortableController = (
 			const reorderedRows = reorderRows( rows, session.oldIndex, newIndex );
 			if ( reorderedRows ) {
 				announce(
-					getMoveCommittedAnnouncement(
-						session.rowLabel,
-						session.oldIndex + 1,
-						newIndex + 1
-					)
+					getMoveCommittedAnnouncement( session.rowLabel, session.oldIndex + 1, newIndex + 1 )
 				);
 				onCommit( reorderedRows, newIndex );
 				return;
@@ -722,13 +718,7 @@ export const createSortableController = (
 				const reorderedRows = reorderRows( rows, oldIndex, newIndex );
 				if ( reorderedRows ) {
 					if ( draggedRowLabel ) {
-						announce(
-							getMoveCommittedAnnouncement(
-								draggedRowLabel,
-								oldIndex + 1,
-								newIndex + 1
-							)
-						);
+						announce( getMoveCommittedAnnouncement( draggedRowLabel, oldIndex + 1, newIndex + 1 ) );
 					}
 					onCommit( reorderedRows );
 				}

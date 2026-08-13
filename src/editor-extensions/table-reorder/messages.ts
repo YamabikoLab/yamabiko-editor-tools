@@ -54,10 +54,7 @@ export const getRowControlName = ( rowNumber: number, rowLabel: string ): string
 
 /** PC pointer向けの行control説明を返す。 */
 export const getRowControlPointerDescription = (): string =>
-	__(
-		'Drag to move this row, or activate to choose a destination.',
-		'yamabiko-editor-tools'
-	);
+	__( 'Drag to move this row, or activate to choose a destination.', 'yamabiko-editor-tools' );
 
 /** keyboard向けの行control説明を返す。 */
 export const getRowControlKeyboardDescription = (): string =>
