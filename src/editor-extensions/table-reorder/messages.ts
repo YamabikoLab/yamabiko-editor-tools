@@ -123,7 +123,7 @@ export const getMoveStartedAnnouncement = (
  * @param rowLabel 対象行の代表情報。
  */
 export const getDestinationRequestedAnnouncement = ( rowLabel: string ): string => {
-	/* translators: %s: representative row text. */
+	/* translators: 1: representative row text. */
 	const template = __( '%1$s selected. Choose a destination.', 'yamabiko-editor-tools' );
 	return sprintf( template, rowLabel );
 };
@@ -205,7 +205,7 @@ export const getMoveBoundaryAnnouncement = (
  * @param rowLabel 対象行の代表情報。
  */
 export const getRowspanBlockedAnnouncement = ( rowLabel: string ): string => {
-	/* translators: %s: representative row text. */
+	/* translators: 1: representative row text. */
 	const template = __(
 		'%1$s cannot be moved because it is within a cell that spans multiple rows.',
 		'yamabiko-editor-tools'
