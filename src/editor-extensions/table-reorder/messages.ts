@@ -33,6 +33,13 @@ export const getTouchModeMessage = (): string =>
 export const getTouchPointerActiveMessage = (): string =>
 	__( 'Tap where you want to move the row.', 'yamabiko-editor-tools' );
 
+/** PC keyboard利用時に初回だけ表示するcoachmark文言を返す。 */
+export const getKeyboardCoachmarkMessage = (): string =>
+	__(
+		'You can reorder the rows in this table with the keyboard. Select “Reorder rows” in the toolbar.',
+		'yamabiko-editor-tools'
+	);
+
 /** touch端末で初回利用時に表示するcoachmark文言を返す。 */
 export const getTouchCoachmarkMessage = (): string =>
 	__(

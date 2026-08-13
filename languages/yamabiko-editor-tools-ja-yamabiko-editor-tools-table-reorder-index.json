@@ -1,5 +1,5 @@
 {
-	"translation-revision-date": "2026-08-13 18:54+0900",
+	"translation-revision-date": "2026-08-13 19:32+0900",
 	"generator": "Yamabiko Editor Tools",
 	"domain": "yamabiko-editor-tools",
 	"locale_data": {
@@ -26,6 +26,9 @@
 				"行ハンドルをドラッグして行を移動するか、ハンドルをタップして移動先を選択します。セルはタップして編集できます。"
 			],
 			"Tap where you want to move the row.": [ "行を移動したい位置をタップしてください。" ],
+			"You can reorder the rows in this table with the keyboard. Select “Reorder rows” in the toolbar.": [
+				"キーボードで表の行を並べ替えられます。ツールバーの「行を並べ替え」を選択してください。"
+			],
 			"You can reorder the rows in this table. Tap “Reorder rows” in the toolbar to begin.": [
 				"この表は行を並べ替えられます。ツールバーの「行を並べ替え」をタップして始めます。"
 			],

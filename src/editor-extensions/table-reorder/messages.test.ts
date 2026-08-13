@@ -5,6 +5,7 @@ import {
 	getDestinationRequestedAnnouncement,
 	getEmptyRowLabel,
 	getKeyboardActiveMessage,
+	getKeyboardCoachmarkMessage,
 	getKeyboardHandleTooltip,
 	getMoveBoundaryAnnouncement,
 	getMoveCanceledAnnouncement,
@@ -77,6 +78,7 @@ describe( 'messages', () => {
 		getPointerHandleTooltip();
 		getKeyboardHandleTooltip();
 		getKeyboardActiveMessage();
+		getKeyboardCoachmarkMessage();
 		getTouchModeMessage();
 		getTouchCoachmarkMessage();
 		getRowControlName( 1, 'Row' );
