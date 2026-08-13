@@ -368,7 +368,7 @@ export const createSortableController = (
 		}
 	};
 	const onControlPointerDown = ( event: PointerEvent ) => {
-		if ( keyboardSession || singlePointerSession ) {
+		if ( event.pointerType !== 'mouse' || keyboardSession || singlePointerSession ) {
 			return;
 		}
 
