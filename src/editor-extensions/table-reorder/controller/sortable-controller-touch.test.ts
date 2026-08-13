@@ -79,8 +79,6 @@ describe( 'createSortableController touch handle DnD', () => {
 			interactionMode: 'touch',
 			nonMovableRowIndices: [],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b' ],
 			runtimeUrl: '/sortable.js',
 		} );
