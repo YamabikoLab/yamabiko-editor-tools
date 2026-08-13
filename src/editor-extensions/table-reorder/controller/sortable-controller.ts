@@ -2,18 +2,11 @@
  * Table ReorderのSortableJS instanceとdrag session lifecycleを管理する。
  *
  * SortableJS callbacks、drag session state、keyboard / single-pointer session、行control制御、
- * DOM所有権handoff、cleanupを集約する。touch pressのpointer追跡は`touch-press.ts`へ委譲し、
- * React / Gutenberg統合層とは狭いcallback境界で接続する。
+ * DOM所有権handoff、cleanupを集約し、React / Gutenberg統合層とは狭いcallback境界で接続する。
  * UI描画やReact state自体は扱わず、drag中にSortableJSが変更する行DOMはcommit前またはdestroy時に元へ戻す。
  */
 
-import {
-	createInsertionLine,
-	createTouchDragUi,
-	fixFallbackRowCellWidths,
-	NON_MOVABLE_ROW_CLASS,
-	TOUCH_CHOSEN_CLASS,
-} from './drag-ui';
+import { createInsertionLine, fixFallbackRowCellWidths } from './drag-ui';
 import {
 	createRowControls,
 	createRowMoveTargets,
@@ -34,11 +27,6 @@ import {
 } from './row-order';
 import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
 import type { TableContext } from '../table-context';
-import {
-	createTouchPressTracker,
-	TOUCH_DRAG_DELAY_MS,
-	TOUCH_START_THRESHOLD_PX,
-} from './touch-press';
 
 /** SortableJSのauto-scrollを開始する端からの距離。 */
 const AUTO_SCROLL_SENSITIVITY_PX = 80;
@@ -96,11 +84,9 @@ type SortableMoveEventLike = {
 type SortableOptions = {
 	animation: number;
 	bubbleScroll: boolean;
-	chosenClass?: string;
-	delay?: number;
 	draggable: string;
 	forceFallback: boolean;
-	handle?: string;
+	handle: string;
 	onChoose: ( event: SortableChooseEventLike ) => void;
 	onEnd: ( event: SortableEventLike ) => void;
 	onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
@@ -109,7 +95,6 @@ type SortableOptions = {
 	scroll: boolean;
 	scrollSensitivity: number;
 	scrollSpeed: number;
-	touchStartThreshold?: number;
 };
 
 /** キーボード並べ替え中だけ保持する一時状態。 */
@@ -141,8 +126,6 @@ export const createSortableController = (
 		interactionMode,
 		nonMovableRowIndices,
 		onCommit,
-		onNonMovableRowLongPress,
-		onRequestTouchModeExit,
 		rows,
 		runtimeUrl,
 	} = options;
@@ -151,9 +134,6 @@ export const createSortableController = (
 	const rowControls = createRowControls( document, tbody, nonMovableRowIndices, {
 		showAll: ! useHoverMode,
 	} );
-	const touchDragUi = useHoverMode
-		? null
-		: createTouchDragUi( document, tbody, nonMovableRowIndices );
 	const entries = rowControls.entries;
 	const entryByControl = new Map( entries.map( ( entry ) => [ entry.control, entry ] ) );
 	const entryByRow = new Map< HTMLTableRowElement, RowControlEntry >(
@@ -388,7 +368,7 @@ export const createSortableController = (
 		}
 	};
 	const onControlPointerDown = ( event: PointerEvent ) => {
-		if ( event.pointerType !== 'mouse' || keyboardSession || singlePointerSession ) {
+		if ( keyboardSession || singlePointerSession ) {
 			return;
 		}
 
@@ -407,7 +387,7 @@ export const createSortableController = (
 		if ( event.detail === 0 || keyboardSession || isDragging ) {
 			return;
 		}
-		if ( useHoverMode && view.performance.now() < suppressPointerClickUntil ) {
+		if ( view.performance.now() < suppressPointerClickUntil ) {
 			event.preventDefault();
 			event.stopPropagation();
 			return;
@@ -552,17 +532,6 @@ export const createSortableController = (
 		}
 	}
 
-	const touchPressTracker = useHoverMode
-		? null
-		: createTouchPressTracker( {
-				isDragging: () => isDragging,
-				nonMovableRowIndices,
-				onNonMovableRowLongPress,
-				onRequestTouchModeExit,
-				tbody,
-				view,
-		  } );
-
 	void ensureSortableRuntime( document, view, runtimeUrl ).then( ( Sortable ) => {
 		if ( destroyed || ! Sortable ) {
 			return;
@@ -571,8 +540,9 @@ export const createSortableController = (
 		const sortableOptions: SortableOptions = {
 			animation: 150,
 			bubbleScroll: true,
-			draggable: useHoverMode ? 'tr' : `tr:not(.${ NON_MOVABLE_ROW_CLASS })`,
+			draggable: 'tr',
 			forceFallback: true,
+			handle: `.${ HANDLE_ZONE_CLASS }`,
 			onChoose: ( event ) => {
 				insertionLine.hide();
 				dragRows = Array.from( tbody.rows );
@@ -669,14 +639,6 @@ export const createSortableController = (
 			scrollSpeed: AUTO_SCROLL_SPEED_PX,
 		};
 
-		if ( useHoverMode ) {
-			sortableOptions.handle = `.${ HANDLE_ZONE_CLASS }`;
-		} else {
-			sortableOptions.chosenClass = TOUCH_CHOSEN_CLASS;
-			sortableOptions.delay = TOUCH_DRAG_DELAY_MS;
-			sortableOptions.touchStartThreshold = TOUCH_START_THRESHOLD_PX;
-		}
-
 		const createdSortable = Sortable.create( tbody, sortableOptions );
 		if ( destroyed ) {
 			createdSortable.destroy();
@@ -738,7 +700,6 @@ export const createSortableController = (
 			sortable?.destroy();
 			sortable = null;
 			insertionLine.cleanup();
-			touchPressTracker?.destroy();
 			restoreFallbackWidths();
 			document.removeEventListener( 'keydown', onDocumentKeyDown, true );
 			for ( const entry of entries ) {
@@ -761,7 +722,6 @@ export const createSortableController = (
 			restoreDragRows();
 			releaseEntry();
 			rowControls.cleanup();
-			touchDragUi?.cleanup();
 		},
 	};
 };
