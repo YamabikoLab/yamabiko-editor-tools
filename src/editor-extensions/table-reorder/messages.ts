@@ -24,6 +24,22 @@ export const getKeyboardHandleTooltip = (): string =>
 	__( 'Press Enter or Space to start moving this row.', 'yamabiko-editor-tools' );
 
 /**
+ * PC単一ポインター操作中の案内を返す。
+ *
+ * @return VIS-PC-POINTER-ACTIVEの翻訳済み文言。
+ */
+export const getPcPointerActiveMessage = (): string =>
+	__( 'Click where you want to move the row. Press Escape to cancel.', 'yamabiko-editor-tools' );
+
+/**
+ * touch単一ポインター操作中の案内を返す。
+ *
+ * @return VIS-TOUCH-POINTER-ACTIVEの翻訳済み文言。
+ */
+export const getTouchPointerActiveMessage = (): string =>
+	__( 'Tap where you want to move the row.', 'yamabiko-editor-tools' );
+
+/**
  * 行controlのaccessible nameを返す。
  *
  * @param rowNumber 1始まりの現在行位置。
@@ -51,6 +67,34 @@ export const getRowControlPointerDescription = (): string =>
  */
 export const getRowControlKeyboardDescription = (): string =>
 	__( 'Press Enter or Space to start moving this row.', 'yamabiko-editor-tools' );
+
+/**
+ * 行の前に挿入する移動先buttonのaccessible nameを返す。
+ *
+ * @param rowNumber 1始まりの移動先側の行位置。
+ * @param rowLabel  行内容から作った代表情報。
+ * @return UI-DESTINATION-BEFORE-NAMEの翻訳済み文言。
+ */
+export const getDestinationBeforeName = ( rowNumber: number, rowLabel: string ): string => {
+	/* translators: 1: row number, 2: representative row text. */
+	const template = __( 'Move before row %1$d: %2$s', 'yamabiko-editor-tools' );
+	return sprintf( template, rowNumber, rowLabel );
+};
+
+/**
+ * Table末尾の移動先buttonのaccessible nameを返す。
+ *
+ * @return UI-DESTINATION-END-NAMEの翻訳済み文言。
+ */
+export const getDestinationEndName = (): string =>
+	__( 'Move to the end of the table.', 'yamabiko-editor-tools' );
+
+/**
+ * touch単一ポインター操作のキャンセルbutton名を返す。
+ *
+ * @return UI-CANCEL-NAMEの翻訳済み文言。
+ */
+export const getCancelName = (): string => __( 'Cancel', 'yamabiko-editor-tools' );
 
 /**
  * Block ToolbarのTable Reorder入口名を返す。

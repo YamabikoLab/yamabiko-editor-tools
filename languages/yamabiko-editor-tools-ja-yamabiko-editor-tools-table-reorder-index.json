@@ -1,5 +1,5 @@
 {
-	"translation-revision-date": "2026-08-13 04:06+0900",
+	"translation-revision-date": "2026-08-13 10:07+0900",
 	"generator": "Yamabiko Editor Tools",
 	"domain": "yamabiko-editor-tools",
 	"locale_data": {
@@ -16,10 +16,17 @@
 			"Press Enter or Space to start moving this row.": [
 				"Enter または Space でこの行の移動を開始します。"
 			],
+			"Click where you want to move the row. Press Escape to cancel.": [
+				"移動先をクリックしてください。Escでキャンセルできます。"
+			],
+			"Tap where you want to move the row.": [ "移動先をタップしてください。" ],
 			"Reorder row %1$d: %2$s": [ "%1$d行目を並べ替え: %2$s" ],
 			"Drag to move this row, or activate to choose a destination.": [
 				"ドラッグでこの行を移動するか、操作して移動先を選択します。"
 			],
+			"Move before row %1$d: %2$s": [ "%1$d行目の前へ移動: %2$s" ],
+			"Move to the end of the table.": [ "テーブルの末尾へ移動" ],
+			"Cancel": [ "キャンセル" ],
 			"Reorder rows": [ "行を並べ替え" ],
 			"This row cannot be moved because it is within a cell that spans multiple rows.": [
 				"この行は複数行にまたがるセルの範囲内にあるため移動できません。"
