@@ -10,12 +10,17 @@ import { useDispatch, useSelect } from '@wordpress/data';
 import { useEffect, useRef, useState, type RefObject } from '@wordpress/element';
 import { store as noticesStore } from '@wordpress/notices';
 
+import { announceLiveStatus } from './controller/reorder-ui';
 import {
 	createSortableController,
 	type ReorderInteractionMode,
 	type SortableController,
 } from './controller/sortable-controller';
-import { getNoMovableRowsMessage, getRowspanErrorMessage } from './messages';
+import {
+	getNoMovableRowsAnnouncement,
+	getNoMovableRowsMessage,
+	getRowspanErrorMessage,
+} from './messages';
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { resolveTableContext } from './table-context';
 
@@ -236,6 +241,17 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		);
 	};
 
+	const notifyTouchNoMovableRows = () => {
+		void createNoticeRef.current( 'warning', getNoMovableRowsMessage(), {
+			type: 'snackbar',
+		} );
+		const anchor = anchorRef.current;
+		const context = anchor ? resolveTableContext( anchor, clientId ) : null;
+		if ( context ) {
+			announceLiveStatus( context.document, getNoMovableRowsAnnouncement() );
+		}
+	};
+
 	return {
 		anchorRef,
 		dismissTouchCoachmark,
@@ -258,6 +274,14 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 			setIsTouchReorderMode( ( isActive ) => {
 				if ( ! isActive ) {
 					dismissTouchCoachmark();
+					const rowCount = Array.isArray( body ) ? body.length : 0;
+					const nonMovableRowCount = getNonMovableRowIndices(
+						getRowspanRanges( body )
+					).length;
+					if ( rowCount === 0 || nonMovableRowCount >= rowCount ) {
+						notifyTouchNoMovableRows();
+						return false;
+					}
 				}
 				return ! isActive;
 			} );
