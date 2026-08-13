@@ -95,6 +95,10 @@ describe( 'createSortableController', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
 		document.head.querySelectorAll( 'style' ).forEach( ( style ) => style.remove() );
+		Object.defineProperty( window, 'scrollBy', {
+			configurable: true,
+			value: jest.fn(),
+		} );
 		ensureSortableRuntimeMock.mockReset();
 	} );
 
