@@ -6,7 +6,7 @@
  * 命令的処理は下位モジュールへ委譲し、WordPress notice APIとsetAttributesは狭いcallbackへ変換する。
  */
 
-import { dispatch as dataDispatch, select, useDispatch } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { useEffect, useRef, useState, type RefObject } from '@wordpress/element';
 import { store as noticesStore } from '@wordpress/notices';
 
@@ -35,7 +35,7 @@ type PreferencesSelector = {
 
 /** WordPress preferences actionsの利用部分。 */
 type PreferencesActions = {
-	set: ( scope: string, name: string, value: unknown ) => void;
+	set: ( scope: string, name: string, value: unknown ) => Promise< unknown > | unknown;
 };
 
 /** SortableJS runtime URLを公開するeditor windowの設定。 */
@@ -66,24 +66,6 @@ export type TableReorderHookResult = {
 };
 
 /**
- * WordPress preferences storeからtouch coachmarkのdismiss状態を取得する。
- *
- * storeが利用できない場合は未dismissとして扱い、機能本体を止めない。
- *
- * @return dismiss済みならtrue。
- */
-const isTouchCoachmarkDismissed = (): boolean => {
-	const preferences = select( 'core/preferences' ) as unknown as PreferencesSelector | undefined;
-	return preferences?.get( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE ) === true;
-};
-
-/** WordPress preferences storeへtouch coachmarkのdismiss状態を保存する。 */
-const persistTouchCoachmarkDismissed = () => {
-	const actions = dataDispatch( 'core/preferences' ) as unknown as PreferencesActions | undefined;
-	actions?.set( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE, true );
-};
-
-/**
  * Table ReorderのReact lifecycleを所有し、必要な期間だけSortableJS controllerを接続する。
  *
  * @param options Table blockのbody、選択状態、clientId、attribute更新callback。
@@ -95,6 +77,13 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	const controllerRef = useRef< SortableController | null >( null );
 	const pendingFocusRowIndexRef = useRef< number | null >( null );
 	const { createNotice } = useDispatch( noticesStore );
+	const preferencesActions = useDispatch( 'core/preferences' ) as unknown as PreferencesActions;
+	const isTouchCoachmarkDismissed = useSelect( ( registrySelect ) => {
+		const preferences = registrySelect( 'core/preferences' ) as unknown as PreferencesSelector;
+		return (
+			preferences.get( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE ) === true
+		);
+	}, [] );
 	const createNoticeRef = useRef( createNotice );
 	const setAttributesRef = useRef( setAttributes );
 	const [ isHoverCapable, setIsHoverCapable ] = useState(
@@ -151,8 +140,8 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 			return;
 		}
 
-		setIsTouchCoachmarkVisible( ! isTouchCoachmarkDismissed() );
-	}, [ enabled, isHoverCapable, isSelected, isTouchReorderMode ] );
+		setIsTouchCoachmarkVisible( ! isTouchCoachmarkDismissed );
+	}, [ enabled, isHoverCapable, isSelected, isTouchCoachmarkDismissed, isTouchReorderMode ] );
 
 	useEffect( () => {
 		controllerRef.current = null;
@@ -240,7 +229,11 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 
 	const dismissTouchCoachmark = () => {
 		setIsTouchCoachmarkVisible( false );
-		persistTouchCoachmarkDismissed();
+		void preferencesActions.set(
+			PREFERENCES_SCOPE,
+			TOUCH_COACHMARK_DISMISSED_PREFERENCE,
+			true
+		);
 	};
 
 	return {
