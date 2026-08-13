@@ -19,8 +19,10 @@ const ensureSortableRuntimeMock = ensureSortableRuntime as jest.MockedFunction<
 >;
 
 type RuntimeOptions = {
+	onChoose: ( event: { item: HTMLElement } ) => void;
 	onEnd: ( event: { oldIndex?: number; newIndex?: number } ) => void;
 	onStart: () => void;
+	onUnchoose: () => void;
 };
 
 const createRuntime = ( capture?: ( options: RuntimeOptions ) => void ): SortableRuntime => ( {
@@ -216,6 +218,30 @@ describe( 'createSortableController single-pointer reorder', () => {
 		).map( ( target ) => target.dataset.newIndex );
 
 		expect( newIndices ).toEqual( [ '2', '3' ] );
+		controller.destroy();
+	} );
+
+	it( 'does not suppress a PC click when Sortable unchooses without starting a drag', async () => {
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
+		ensureSortableRuntimeMock.mockResolvedValue(
+			createRuntime( ( options ) => {
+				runtimeOptionsRef.current = options;
+			} )
+		);
+		const { controller, tbody } = createController( 'hover' );
+		await Promise.resolve();
+		const control = getControl( tbody, 1 );
+		const row = tbody.rows.item( 1 );
+		const runtimeOptions = runtimeOptionsRef.current;
+		if ( ! runtimeOptions || ! row ) {
+			throw new Error( 'Expected Sortable runtime options and row' );
+		}
+
+		runtimeOptions.onChoose( { item: row } );
+		runtimeOptions.onUnchoose();
+		clickPointerControl( control );
+
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).not.toBeNull();
 		controller.destroy();
 	} );
 
