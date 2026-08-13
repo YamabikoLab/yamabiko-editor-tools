@@ -112,9 +112,8 @@
 
 .yamabiko-table-reorder-pointer-cancel {
 	flex-shrink: 0;
-	min-width: 44px;
-	min-height: 44px;
-	padding: 8px 12px;
+	min-height: 32px;
+	padding: 4px 10px;
 	font: inherit;
 	font-weight: 600;
 	color: var(--wp-admin-theme-color, #3858e9);
