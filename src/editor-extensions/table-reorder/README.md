@@ -10,8 +10,9 @@ Table Reorder extends the Core Table block with row reordering powered by Sortab
 - SortableJS temporarily reorders Gutenberg-owned `<tbody><tr>` elements during dragging.
 - The selected Table is resolved from its owning `document`, so the same implementation works in iframe and non-iframe editors.
 - SortableJS is initialized in the `window` that owns the target Table.
-- On hover-capable devices, hovering a movable row reveals an inline handle at the left edge of the first cell. Dragging still starts only from that handle, not from the row itself.
-- On touch devices, reorder mode enables long-press dragging.
+- On hover-capable devices, hovering a movable row reveals an inline handle at the left edge of the first cell. Dragging starts only from that handle, not from the row itself.
+- On touch devices, reorder mode shows the same row controls. Tapping a handle starts destination selection, while dragging the handle starts SortableJS DnD. Long-pressing a row does not start DnD.
+- Touch cell taps remain available for normal editing, and scrolling outside the row handles is not intercepted by Table Reorder.
 - Rows involved in vertical merges (`rowspan`) cannot be moved, and insertion positions that would split a merged range are rejected.
 - An insertion line shows the destination while dragging.
 - At drag end, the temporary DOM order is restored before `setAttributes()` commits the reordered `body`, returning DOM ownership to Gutenberg.
@@ -24,13 +25,17 @@ table-reorder/
 ├─ index.tsx
 ├─ with-table-reorder.tsx
 ├─ use-table-reorder.ts
+├─ messages.ts
+├─ editor.scss
 ├─ controller/
 │  ├─ sortable-controller.ts
 │  ├─ sortable-controller.test.ts
+│  ├─ sortable-controller-keyboard.test.ts
+│  ├─ sortable-controller-pointer.test.ts
+│  ├─ reorder-ui.ts
+│  ├─ reorder-ui.test.ts
 │  ├─ drag-ui.ts
 │  ├─ drag-ui.test.ts
-│  ├─ touch-press.ts
-│  ├─ touch-press.test.ts
 │  ├─ row-order.ts
 │  ├─ row-order.test.ts
 │  ├─ sortable-runtime.ts
@@ -44,16 +49,20 @@ table-reorder/
 
 Responsibility boundaries:
 
-- `index.tsx`: registers the HOC with `editor.BlockEdit`.
+- `index.tsx`: registers the HOC with `editor.BlockEdit` and loads the editor styles.
 - `with-table-reorder.tsx`: identifies `core/table`, renders the original `BlockEdit`, renders touch reorder controls, and provides the hidden anchor used to locate the Table DOM.
 - `use-table-reorder.ts`: owns hover capability state, touch reorder mode state, selection reset, media-query lifecycle, Table context resolution, constraint calculation, and controller creation / destruction. WordPress notices and `setAttributes()` remain at this React / Gutenberg adapter boundary and are passed to the controller as narrow callbacks.
-- `controller/sortable-controller.ts`: owns SortableJS callbacks, movable-row hover detection, mutable drag session state, temporary block-drag suppression, DOM ownership handoff, and controller cleanup. The SortableJS `handle` remains the handle zone, so row hover changes visibility only.
+- `controller/sortable-controller.ts`: owns SortableJS callbacks, movable-row hover detection, keyboard / single-pointer sessions, mutable drag session state, temporary block-drag suppression, DOM ownership handoff, and controller cleanup. PC and touch both configure SortableJS with the shared row-control handle, so rows themselves are never drag-start areas.
+- `controller/reorder-ui.ts`: owns the shared row controls and destination-selection UI used by mouse, touch, and keyboard interaction.
 - `table-context.ts`: resolves the Table block and its owning `document`, `window`, `table`, and `tbody`, including iframe fallback.
 - `controller/sortable-runtime.ts`: loads or reuses the SortableJS runtime in the owning editor window.
-- `controller/drag-ui.ts`: owns short-lived drag UI and its restoration, including hover handles, touch-mode DOM changes, insertion line, and fallback row widths.
-- `controller/touch-press.ts`: owns touch / pen long-press pointer tracking and cleanup.
-- `controller/row-order.ts`: owns deterministic row reordering, insertion index calculation, and restoration of the original DOM row order.
+- `controller/drag-ui.ts`: owns short-lived drag UI and restoration, including the insertion line and fallback row widths.
+- `controller/row-order.ts`: owns deterministic row reordering, movement validation, insertion index calculation, valid destination calculation, and restoration of the original DOM row order.
 - `rowspan.ts`: owns vertical-merge range analysis and movement / insertion restrictions.
+- `messages.ts`: owns translated Table Reorder messages and accessible labels.
+- `editor.scss`: owns editor-side presentation for row controls and destination-selection UI.
+
+The former `controller/touch-press.ts` long-press tracker is no longer needed. Touch DnD uses the same handle boundary as PC, so cell taps and normal table scrolling do not require a separate press tracker or touch-mode pointer-event suppression.
 
 The dependency direction stays from the Gutenberg / React boundary toward lower-level modules. Lower-level modules do not depend on the HOC or custom hook.
 
