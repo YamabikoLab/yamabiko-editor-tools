@@ -23,7 +23,7 @@ import {
 	getRowControlPointerDescription,
 	getTouchPointerActiveMessage,
 } from '../messages';
-import type { RowMoveDirection, RowMoveTarget } from './row-order';
+import type { RowMoveTarget } from './row-order';
 
 /** 行control本体に付与するclass。SortableJSのhandle selectorとしても利用する。 */
 export const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';
@@ -58,6 +58,9 @@ const POINTER_TAP_THRESHOLD_PX = 5;
 /** keyboard scroll追従でviewport端に確保する最小余白。 */
 const KEYBOARD_SCROLL_MARGIN_PX = 24;
 
+/** 操作案内をviewport端から離す余白。 */
+const GUIDANCE_VIEWPORT_OFFSET_PX = 8;
+
 /** 行controlの説明要素へ一意なIDを割り当てるための連番。 */
 let descriptionSequence = 0;
 
@@ -84,10 +87,14 @@ export type RowControlOptions = {
 	showAll: boolean;
 };
 
+/** 操作中案内を表示するviewport側。 */
+export type ReorderGuidancePosition = 'top' | 'bottom';
+
 /** 操作中案内のlifecycle。 */
 export type ReorderGuidanceUi = {
 	element: HTMLDivElement;
 	setHidden: ( isHidden: boolean ) => void;
+	setPosition: ( position: ReorderGuidancePosition ) => void;
 	cleanup: () => void;
 };
 
@@ -164,20 +171,18 @@ export const announceLiveStatus = ( document: Document, message: string ) => {
 /**
  * Tableに関連付く操作中案内をowning documentへ追加する。
  *
- * fixed配置でスクロール中も確認できる状態を保ち、source controlが指定された場合は案内が
- * そのcontrolを完全に覆わない側へ配置する。
+ * fixed配置でスクロール中も確認できる状態を保つ。既定はviewport上側で、利用者が確認したい
+ * 移動方向を覆わないよう必要に応じて上側 / 下側を切り替えられる。
  *
- * @param document      案内を生成するeditor document。
- * @param tbody         対象Table body。
- * @param message       表示する案内文。
- * @param sourceControl 操作対象の行control。
+ * @param document 案内を生成するeditor document。
+ * @param tbody    対象Table body。
+ * @param message  表示する案内文。
  * @return 案内のlifecycle。
  */
 export const createReorderGuidance = (
 	document: Document,
 	tbody: HTMLTableSectionElement,
-	message: string,
-	sourceControl?: HTMLElement
+	message: string
 ): ReorderGuidanceUi => {
 	const view = document.defaultView;
 	const table = tbody.closest( 'table' );
@@ -188,6 +193,7 @@ export const createReorderGuidance = (
 	text.textContent = message;
 	guidance.append( text );
 	document.body.append( guidance );
+	let position: ReorderGuidancePosition = 'top';
 
 	const updatePosition = () => {
 		const tableRect = ( table ?? tbody ).getBoundingClientRect();
@@ -195,20 +201,24 @@ export const createReorderGuidance = (
 			0,
 			view?.innerHeight ?? document.documentElement.clientHeight
 		);
-		let top = Math.max( 8, Math.min( tableRect.top - 60, Math.max( 8, viewportHeight - 68 ) ) );
-		if ( sourceControl && viewportHeight > 0 ) {
-			const sourceRect = sourceControl.getBoundingClientRect();
-			const estimatedGuidanceBottom = top + 56;
-			if ( sourceRect.top < estimatedGuidanceBottom && sourceRect.bottom > top ) {
-				top = Math.max( 8, viewportHeight - 68 );
-			}
-		}
-		guidance.style.top = `${ top }px`;
-		guidance.style.left = `${ Math.max( 8, tableRect.left ) }px`;
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
+		const left = Math.max( GUIDANCE_VIEWPORT_OFFSET_PX, tableRect.left );
 		const availableWidth =
-			viewportWidth > 16 ? viewportWidth - Math.max( 8, tableRect.left ) - 8 : tableRect.width;
+			viewportWidth > GUIDANCE_VIEWPORT_OFFSET_PX * 2
+				? viewportWidth - left - GUIDANCE_VIEWPORT_OFFSET_PX
+				: tableRect.width;
+		guidance.style.left = `${ left }px`;
 		guidance.style.width = `${ Math.max( 0, Math.min( tableRect.width, availableWidth ) ) }px`;
+
+		const guidanceHeight = guidance.getBoundingClientRect().height;
+		const top =
+			position === 'bottom'
+				? Math.max(
+						GUIDANCE_VIEWPORT_OFFSET_PX,
+						viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+					)
+				: GUIDANCE_VIEWPORT_OFFSET_PX;
+		guidance.style.top = `${ top }px`;
 	};
 
 	updatePosition();
@@ -220,6 +230,13 @@ export const createReorderGuidance = (
 		setHidden: ( isHidden ) => {
 			guidance.hidden = isHidden;
 		},
+		setPosition: ( nextPosition ) => {
+			if ( position === nextPosition ) {
+				return;
+			}
+			position = nextPosition;
+			updatePosition();
+		},
 		cleanup: () => {
 			view?.removeEventListener( 'resize', updatePosition );
 			view?.removeEventListener( 'scroll', updatePosition, true );
@@ -229,38 +246,29 @@ export const createReorderGuidance = (
 };
 
 /**
- * keyboard候補が変化したとき、現在候補と移動方向側の次の有効位置が可能な範囲で見えるよう
- * owning windowを必要最小限だけ縦scrollする。
+ * keyboard候補が実際にviewport外へ進んだとき、その候補を確認できる位置までowning windowを
+ * 必要最小限だけ縦scrollする。
  *
  * 候補が変化しない境界操作からは呼び出さない。
  *
- * @param view               owning window。
- * @param tbody              対象Table body。
- * @param insertionIndex     現在候補の挿入位置。
- * @param direction          keyboard移動方向。
- * @param nextInsertionIndex 同方向側の次の有効な挿入位置。
+ * @param view           owning window。
+ * @param tbody          対象Table body。
+ * @param insertionIndex 現在候補の挿入位置。
  */
 export const scrollKeyboardDestinationIntoView = (
 	view: Window,
 	tbody: HTMLTableSectionElement,
-	insertionIndex: number,
-	direction: RowMoveDirection,
-	nextInsertionIndex: number | null
+	insertionIndex: number
 ) => {
-	const getBoundaryY = ( index: number ): number | null => {
-		const nextRow = tbody.rows.item( index );
-		if ( nextRow ) {
-			return nextRow.getBoundingClientRect().top;
-		}
-		const lastRow = tbody.rows.item( tbody.rows.length - 1 );
-		return lastRow?.getBoundingClientRect().bottom ?? null;
-	};
-
-	const currentY = getBoundaryY( insertionIndex );
+	const nextRow = tbody.rows.item( insertionIndex );
+	const lastRow = tbody.rows.item( tbody.rows.length - 1 );
+	const currentY = nextRow
+		? nextRow.getBoundingClientRect().top
+		: lastRow?.getBoundingClientRect().bottom ?? null;
 	if ( currentY === null ) {
 		return;
 	}
-	const nextY = nextInsertionIndex === null ? null : getBoundaryY( nextInsertionIndex );
+
 	const viewportHeight = view.innerHeight;
 	if ( viewportHeight <= KEYBOARD_SCROLL_MARGIN_PX * 2 ) {
 		return;
@@ -268,25 +276,11 @@ export const scrollKeyboardDestinationIntoView = (
 
 	const lowerBound = KEYBOARD_SCROLL_MARGIN_PX;
 	const upperBound = viewportHeight - KEYBOARD_SCROLL_MARGIN_PX;
-	const relevant = nextY === null ? [ currentY ] : [ currentY, nextY ];
-	const minY = Math.min( ...relevant );
-	const maxY = Math.max( ...relevant );
 	let delta = 0;
-
-	if ( maxY - minY <= upperBound - lowerBound ) {
-		if ( minY < lowerBound ) {
-			delta = minY - lowerBound;
-		} else if ( maxY > upperBound ) {
-			delta = maxY - upperBound;
-		}
-	} else if ( currentY < lowerBound ) {
+	if ( currentY < lowerBound ) {
 		delta = currentY - lowerBound;
 	} else if ( currentY > upperBound ) {
 		delta = currentY - upperBound;
-	} else if ( direction === 'down' && nextY !== null && nextY > upperBound ) {
-		delta = Math.min( nextY - upperBound, currentY - lowerBound );
-	} else if ( direction === 'up' && nextY !== null && nextY < lowerBound ) {
-		delta = Math.max( nextY - lowerBound, currentY - upperBound );
 	}
 
 	if ( Math.abs( delta ) >= 1 ) {
@@ -516,8 +510,7 @@ export const createRowMoveTargets = (
 	const guidance = createReorderGuidance(
 		document,
 		tbody,
-		options.isTouch ? getTouchPointerActiveMessage() : getPcPointerActiveMessage(),
-		options.sourceControl
+		options.isTouch ? getTouchPointerActiveMessage() : getPcPointerActiveMessage()
 	);
 
 	if ( options.isTouch ) {
