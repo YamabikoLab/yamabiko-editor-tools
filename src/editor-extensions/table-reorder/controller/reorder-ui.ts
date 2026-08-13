@@ -184,8 +184,9 @@ export const createReorderGuidance = (
 	document: Document,
 	tbody: HTMLTableSectionElement,
 	message: string,
-	_sourceControl?: HTMLElement
+	sourceControl?: HTMLElement
 ): ReorderGuidanceUi => {
+	void sourceControl;
 	const view = document.defaultView;
 	const table = tbody.closest( 'table' );
 	const guidance = document.createElement( 'div' );
@@ -274,9 +275,11 @@ export const scrollKeyboardDestinationIntoView = (
 	view: Window,
 	tbody: HTMLTableSectionElement,
 	insertionIndex: number,
-	_direction?: RowMoveDirection,
-	_nextInsertionIndex?: number | null
+	direction?: RowMoveDirection,
+	nextInsertionIndex?: number | null
 ) => {
+	void direction;
+	void nextInsertionIndex;
 	const nextRow = tbody.rows.item( insertionIndex );
 	const lastRow = tbody.rows.item( tbody.rows.length - 1 );
 	const currentY = nextRow
