@@ -211,13 +211,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		if ( isKeyboardInput ) {
 			setIsKeyboardCoachmarkVisible( true );
 		}
-	}, [
-		enabled,
-		isHoverCapable,
-		isKeyboardCoachmarkDismissed,
-		isKeyboardInput,
-		isSelected,
-	] );
+	}, [ enabled, isHoverCapable, isKeyboardCoachmarkDismissed, isKeyboardInput, isSelected ] );
 
 	useEffect( () => {
 		if ( ! enabled || ! isSelected || isHoverCapable || isTouchReorderMode ) {
@@ -314,11 +308,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 
 	const dismissKeyboardCoachmark = () => {
 		setIsKeyboardCoachmarkVisible( false );
-		void preferencesActions.set(
-			PREFERENCES_SCOPE,
-			KEYBOARD_COACHMARK_DISMISSED_PREFERENCE,
-			true
-		);
+		void preferencesActions.set( PREFERENCES_SCOPE, KEYBOARD_COACHMARK_DISMISSED_PREFERENCE, true );
 	};
 
 	const dismissTouchCoachmark = () => {
