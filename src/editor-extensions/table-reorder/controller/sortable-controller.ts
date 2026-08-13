@@ -659,7 +659,9 @@ export const createSortableController = (
 			},
 			onUnchoose: () => {
 				insertionLine.hide();
-				suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
+				if ( suppressPointerClickUntil === Number.POSITIVE_INFINITY ) {
+					suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
+				}
 				restoreFallbackWidths();
 			},
 			scroll: true,
