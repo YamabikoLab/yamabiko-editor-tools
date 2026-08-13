@@ -46,26 +46,16 @@
 			"There are no rows that can be reordered in this table.": [
 				"この表には並べ替えできる行がありません。"
 			],
-			"Moving %1$s, row %2$d of %3$d.": [
-				"%1$s、全%3$d行中%2$d行目の移動を開始しました。"
-			],
-			"%1$s selected. Choose a destination.": [
-				"%1$sを選択しました。移動先を選んでください。"
-			],
-			"Move %1$s to position %2$d of %3$d.": [
-				"%1$sを全%3$d行中%2$d行目へ移動します。"
-			],
-			"Moved %1$s from position %2$d to %3$d.": [
-				"%1$sを%2$d行目から%3$d行目へ移動しました。"
-			],
+			"Moving %1$s, row %2$d of %3$d.": [ "%1$s、全%3$d行中%2$d行目の移動を開始しました。" ],
+			"%1$s selected. Choose a destination.": [ "%1$sを選択しました。移動先を選んでください。" ],
+			"Move %1$s to position %2$d of %3$d.": [ "%1$sを全%3$d行中%2$d行目へ移動します。" ],
+			"Moved %1$s from position %2$d to %3$d.": [ "%1$sを%2$d行目から%3$d行目へ移動しました。" ],
 			"Canceled moving %1$s. It remains at position %2$d.": [
 				"%1$sの移動をキャンセルしました。位置は%2$d行目のままです。"
 			],
 			"up": [ "上" ],
 			"down": [ "下" ],
-			"%1$s cannot move any farther %2$s.": [
-				"%1$sは、これ以上%2$sへ移動できません。"
-			],
+			"%1$s cannot move any farther %2$s.": [ "%1$sは、これ以上%2$sへ移動できません。" ],
 			"%1$s cannot be moved because it is within a cell that spans multiple rows.": [
 				"%1$sは、複数行にまたがる結合セルの範囲内にあるため移動できません。"
 			]
