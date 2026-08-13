@@ -1,4 +1,10 @@
-import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './reorder-ui';
+import {
+	announceLiveStatus,
+	createReorderGuidance,
+	createRowControls,
+	getRowRepresentativeText,
+	HANDLE_ZONE_CLASS,
+} from './reorder-ui';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -19,16 +25,6 @@ const createTable = ( labels: string[] ) => {
 	}
 
 	return { tbody };
-};
-
-const pressKey = ( control: HTMLButtonElement, key: string ) => {
-	control.dispatchEvent(
-		new KeyboardEvent( 'keydown', {
-			bubbles: true,
-			cancelable: true,
-			key,
-		} )
-	);
 };
 
 describe( 'reorder-ui', () => {
@@ -84,24 +80,19 @@ describe( 'reorder-ui', () => {
 		controls.cleanup();
 	} );
 
-	it( 'exposes keyboard reorder active state with aria-pressed', () => {
+	it( 'exposes the current reorder target separately from focus state', () => {
 		const { tbody } = createTable( [ 'Alpha' ] );
 		const controls = createRowControls( document, tbody, [], { showAll: false } );
-		const control = controls.entries[ 0 ].control;
+		const entry = controls.entries[ 0 ];
 
-		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( entry.control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
 
-		pressKey( control, 'Enter' );
-		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
-		expect( control.getAttribute( 'aria-describedby' ) ).toBeNull();
+		entry.setPressed( true );
+		expect( entry.control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( entry.control.getAttribute( 'aria-describedby' ) ).toBeNull();
 
-		pressKey( control, 'Escape' );
-		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
-
-		pressKey( control, ' ' );
-		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
-		pressKey( control, ' ' );
-		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		entry.setPressed( false );
+		expect( entry.control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
 
 		controls.cleanup();
 	} );
@@ -136,5 +127,27 @@ describe( 'reorder-ui', () => {
 		row.cells.item( 1 )!.textContent = 'Second cell';
 
 		expect( getRowRepresentativeText( row ) ).toBe( 'Second cell' );
+	} );
+
+	it( 'keeps a single live status node in the owning document', async () => {
+		announceLiveStatus( document, 'First announcement' );
+		announceLiveStatus( document, 'Second announcement' );
+		await Promise.resolve();
+
+		const statuses = document.querySelectorAll( '.yamabiko-table-reorder-live-status' );
+		expect( statuses ).toHaveLength( 1 );
+		expect( statuses[ 0 ].textContent ).toBe( 'Second announcement' );
+		expect( statuses[ 0 ].getAttribute( 'role' ) ).toBe( 'status' );
+	} );
+
+	it( 'creates and cleans up an inline operation guidance', () => {
+		const { tbody } = createTable( [ 'Alpha' ] );
+		const guidance = createReorderGuidance( document, tbody, 'Keyboard guidance' );
+
+		expect( guidance.element.textContent ).toBe( 'Keyboard guidance' );
+		guidance.setHidden( true );
+		expect( guidance.element.hidden ).toBe( true );
+		guidance.cleanup();
+		expect( guidance.element.isConnected ).toBe( false );
 	} );
 } );

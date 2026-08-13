@@ -1,12 +1,12 @@
 /**
  * Table ReorderのReact state / effect lifecycleとcontroller接続を管理する。
  *
- * hover capability、touch並び替えmode、block選択解除時のresetを所有し、解決済みTable contextと
- * rowspan制約からSortableJS controllerを生成・破棄する。DOM装飾やdrag sessionの命令的処理は
- * 下位モジュールへ委譲し、WordPress notice APIとsetAttributesは狭いcallbackへ変換してcontrollerへ渡す。
+ * hover capability、touch並び替えmode、block選択解除時のreset、初回coachmarkの永続化を所有し、
+ * 解決済みTable contextとrowspan制約からSortableJS controllerを生成・破棄する。DOM装飾やdrag sessionの
+ * 命令的処理は下位モジュールへ委譲し、WordPress notice APIとsetAttributesは狭いcallbackへ変換する。
  */
 
-import { useDispatch } from '@wordpress/data';
+import { dispatch as dataDispatch, select, useDispatch } from '@wordpress/data';
 import { useEffect, useRef, useState, type RefObject } from '@wordpress/element';
 import { store as noticesStore } from '@wordpress/notices';
 
@@ -21,6 +21,22 @@ import { resolveTableContext } from './table-context';
 
 /** hover操作を利用できる端末を判定するmedia query。 */
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
+
+/** WordPress preferences storeへ保存するscope。 */
+const PREFERENCES_SCOPE = 'yamabiko-editor-tools';
+
+/** touch初回coachmarkのdismiss状態を保存するpreference名。 */
+const TOUCH_COACHMARK_DISMISSED_PREFERENCE = 'tableReorderTouchCoachmarkDismissed';
+
+/** WordPress preferences selectorの利用部分。 */
+type PreferencesSelector = {
+	get: ( scope: string, name: string ) => unknown;
+};
+
+/** WordPress preferences actionsの利用部分。 */
+type PreferencesActions = {
+	set: ( scope: string, name: string, value: unknown ) => void;
+};
 
 /** SortableJS runtime URLを公開するeditor windowの設定。 */
 type TableReorderConfigWindow = Window & {
@@ -41,10 +57,30 @@ export type UseTableReorderOptions = {
 /** HOCが描画とtoolbar操作に利用する最小state。 */
 export type TableReorderHookResult = {
 	anchorRef: RefObject< HTMLSpanElement >;
+	dismissTouchCoachmark: () => void;
 	isHoverCapable: boolean;
+	isTouchCoachmarkVisible: boolean;
 	isTouchReorderMode: boolean;
 	requestRowControlFocus: () => void;
 	toggleTouchReorderMode: () => void;
+};
+
+/**
+ * WordPress preferences storeからtouch coachmarkのdismiss状態を取得する。
+ *
+ * storeが利用できない場合は未dismissとして扱い、機能本体を止めない。
+ *
+ * @return dismiss済みならtrue。
+ */
+const isTouchCoachmarkDismissed = (): boolean => {
+	const preferences = select( 'core/preferences' ) as unknown as PreferencesSelector | undefined;
+	return preferences?.get( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE ) === true;
+};
+
+/** WordPress preferences storeへtouch coachmarkのdismiss状態を保存する。 */
+const persistTouchCoachmarkDismissed = () => {
+	const actions = dataDispatch( 'core/preferences' ) as unknown as PreferencesActions | undefined;
+	actions?.set( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE, true );
 };
 
 /**
@@ -65,6 +101,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		() => window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
 	);
 	const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
+	const [ isTouchCoachmarkVisible, setIsTouchCoachmarkVisible ] = useState( false );
 	let interactionMode: ReorderInteractionMode | null = null;
 	if ( isHoverCapable ) {
 		interactionMode = 'hover';
@@ -90,6 +127,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 			setIsHoverCapable( hoverMedia.matches );
 			if ( hoverMedia.matches ) {
 				setIsTouchReorderMode( false );
+				setIsTouchCoachmarkVisible( false );
 			}
 		};
 
@@ -103,8 +141,18 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	useEffect( () => {
 		if ( ! isSelected ) {
 			setIsTouchReorderMode( false );
+			setIsTouchCoachmarkVisible( false );
 		}
 	}, [ isSelected ] );
+
+	useEffect( () => {
+		if ( ! enabled || ! isSelected || isHoverCapable || isTouchReorderMode ) {
+			setIsTouchCoachmarkVisible( false );
+			return;
+		}
+
+		setIsTouchCoachmarkVisible( ! isTouchCoachmarkDismissed() );
+	}, [ enabled, isHoverCapable, isSelected, isTouchReorderMode ] );
 
 	useEffect( () => {
 		controllerRef.current = null;
@@ -190,14 +238,21 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		};
 	}, [ body, clientId, enabled, interactionMode ] );
 
+	const dismissTouchCoachmark = () => {
+		setIsTouchCoachmarkVisible( false );
+		persistTouchCoachmarkDismissed();
+	};
+
 	return {
 		anchorRef,
+		dismissTouchCoachmark,
 		isHoverCapable,
+		isTouchCoachmarkVisible,
 		isTouchReorderMode,
 		requestRowControlFocus: () => {
 			const result = controllerRef.current?.focusRowControl();
 			if ( result === 'current-row-not-movable' ) {
-				void createNoticeRef.current( 'warning', getRowspanErrorMessage(), {
+				void createNoticeRef.current( 'error', getRowspanErrorMessage(), {
 					type: 'snackbar',
 				} );
 			} else if ( result === 'no-movable-rows' ) {
@@ -207,7 +262,12 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 			}
 		},
 		toggleTouchReorderMode: () => {
-			setIsTouchReorderMode( ( isActive ) => ! isActive );
+			setIsTouchReorderMode( ( isActive ) => {
+				if ( ! isActive ) {
+					dismissTouchCoachmark();
+				}
+				return ! isActive;
+			} );
 		},
 	};
 };

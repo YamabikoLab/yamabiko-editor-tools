@@ -1,8 +1,8 @@
 /**
- * Table Reorderの待機中から存在する行controlと単一ポインター移動先UIを管理する。
+ * Table Reorderの待機中から存在する行controlと操作中UIを管理する。
  *
  * 移動可能行ごとのnative button、accessible name / description、表示状態、先頭cellの
- * handle gutter、focus時の案内切り替え、単一ポインター用targetとcleanupを所有する。
+ * handle gutter、操作中の案内、live status、単一ポインター用targetとcleanupを所有する。
  * drag中だけの一時UIは扱わない。
  */
 
@@ -23,7 +23,7 @@ import {
 	getRowControlPointerDescription,
 	getTouchPointerActiveMessage,
 } from '../messages';
-import type { RowMoveTarget } from './row-order';
+import type { RowMoveDirection, RowMoveTarget } from './row-order';
 
 /** 行control本体に付与するclass。SortableJSのhandle selectorとしても利用する。 */
 export const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';
@@ -37,11 +37,14 @@ const DESCRIPTION_CLASS = 'yamabiko-table-reorder-description';
 /** 単一ポインター操作の移動先buttonに付与するclass。 */
 export const DESTINATION_CLASS = 'yamabiko-table-reorder-destination';
 
-/** 単一ポインター操作中の案内に付与するclass。 */
-const POINTER_GUIDANCE_CLASS = 'yamabiko-table-reorder-pointer-guidance';
+/** 操作中の案内に付与するclass。 */
+const GUIDANCE_CLASS = 'yamabiko-table-reorder-pointer-guidance';
 
 /** タッチの明示的キャンセルbuttonに付与するclass。 */
 const CANCEL_CLASS = 'yamabiko-table-reorder-pointer-cancel';
+
+/** live statusに付与するclass。 */
+const LIVE_STATUS_CLASS = 'yamabiko-table-reorder-live-status';
 
 /** 行control用に先頭cellへ確保するinline方向の幅。 */
 const HANDLE_GUTTER_PX = 32;
@@ -52,8 +55,14 @@ const MAX_ROW_LABEL_LENGTH = 80;
 /** touch target上の移動をtapではなくscroll gestureとして扱う距離。 */
 const POINTER_TAP_THRESHOLD_PX = 5;
 
+/** keyboard scroll追従でviewport端に確保する最小余白。 */
+const KEYBOARD_SCROLL_MARGIN_PX = 24;
+
 /** 行controlの説明要素へ一意なIDを割り当てるための連番。 */
 let descriptionSequence = 0;
+
+/** owning documentごとに一つだけ共有するlive status。 */
+const liveStatusByDocument = new WeakMap< Document, HTMLElement >();
 
 /** 行control 1件を構成するDOM node。 */
 export type RowControlEntry = {
@@ -75,11 +84,19 @@ export type RowControlOptions = {
 	showAll: boolean;
 };
 
+/** 操作中案内のlifecycle。 */
+export type ReorderGuidanceUi = {
+	element: HTMLDivElement;
+	setHidden: ( isHidden: boolean ) => void;
+	cleanup: () => void;
+};
+
 /** 単一ポインター移動先UI生成時の設定。 */
 export type RowMoveTargetsOptions = {
 	isTouch: boolean;
 	onCancel: () => void;
 	onSelect: ( newIndex: number ) => void;
+	sourceControl: HTMLButtonElement;
 };
 
 /** 単一ポインター移動先UIのlifecycle。 */
@@ -113,6 +130,164 @@ export const getRowRepresentativeText = ( row: HTMLTableRowElement ): string => 
 	}
 
 	return getEmptyRowLabel();
+};
+
+/**
+ * owning document内のlive statusへ一つの通知を送る。
+ *
+ * 同一nodeをdocumentごとに共有し、同じ文言を再通知する必要がある場合にもDOM更新が発生するよう
+ * 一度空にしてからmicrotaskで設定する。連続通知の抑制は操作状態を知るcontroller側が担当する。
+ *
+ * @param document 通知先のeditor document。
+ * @param message  支援技術へ通知する文言。
+ */
+export const announceLiveStatus = ( document: Document, message: string ) => {
+	let status = liveStatusByDocument.get( document );
+	if ( ! status || ! status.isConnected ) {
+		status = document.createElement( 'div' );
+		status.className = `${ DESCRIPTION_CLASS } ${ LIVE_STATUS_CLASS }`;
+		status.setAttribute( 'role', 'status' );
+		status.setAttribute( 'aria-live', 'polite' );
+		status.setAttribute( 'aria-atomic', 'true' );
+		document.body.append( status );
+		liveStatusByDocument.set( document, status );
+	}
+
+	status.textContent = '';
+	queueMicrotask( () => {
+		if ( status?.isConnected ) {
+			status.textContent = message;
+		}
+	} );
+};
+
+/**
+ * Tableに関連付く操作中案内をowning documentへ追加する。
+ *
+ * fixed配置でスクロール中も確認できる状態を保ち、source controlが指定された場合は案内が
+ * そのcontrolを完全に覆わない側へ配置する。
+ *
+ * @param document      案内を生成するeditor document。
+ * @param tbody         対象Table body。
+ * @param message       表示する案内文。
+ * @param sourceControl 操作対象の行control。
+ * @return 案内のlifecycle。
+ */
+export const createReorderGuidance = (
+	document: Document,
+	tbody: HTMLTableSectionElement,
+	message: string,
+	sourceControl?: HTMLElement
+): ReorderGuidanceUi => {
+	const view = document.defaultView;
+	const table = tbody.closest( 'table' );
+	const guidance = document.createElement( 'div' );
+	guidance.className = GUIDANCE_CLASS;
+	guidance.contentEditable = 'false';
+	const text = document.createElement( 'span' );
+	text.textContent = message;
+	guidance.append( text );
+	document.body.append( guidance );
+
+	const updatePosition = () => {
+		const tableRect = ( table ?? tbody ).getBoundingClientRect();
+		const viewportHeight = Math.max( 0, view?.innerHeight ?? document.documentElement.clientHeight );
+		let top = Math.max( 8, Math.min( tableRect.top - 60, Math.max( 8, viewportHeight - 68 ) ) );
+		if ( sourceControl && viewportHeight > 0 ) {
+			const sourceRect = sourceControl.getBoundingClientRect();
+			const estimatedGuidanceBottom = top + 56;
+			if ( sourceRect.top < estimatedGuidanceBottom && sourceRect.bottom > top ) {
+				top = Math.max( 8, viewportHeight - 68 );
+			}
+		}
+		guidance.style.top = `${ top }px`;
+		guidance.style.left = `${ Math.max( 8, tableRect.left ) }px`;
+		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
+		const availableWidth = viewportWidth > 16 ? viewportWidth - Math.max( 8, tableRect.left ) - 8 : tableRect.width;
+		guidance.style.width = `${ Math.max( 0, Math.min( tableRect.width, availableWidth ) ) }px`;
+	};
+
+	updatePosition();
+	view?.addEventListener( 'resize', updatePosition );
+	view?.addEventListener( 'scroll', updatePosition, true );
+
+	return {
+		element: guidance,
+		setHidden: ( isHidden ) => {
+			guidance.hidden = isHidden;
+		},
+		cleanup: () => {
+			view?.removeEventListener( 'resize', updatePosition );
+			view?.removeEventListener( 'scroll', updatePosition, true );
+			guidance.remove();
+		},
+	};
+};
+
+/**
+ * keyboard候補が変化したとき、現在候補と移動方向側の次の有効位置が可能な範囲で見えるよう
+ * owning windowを必要最小限だけ縦scrollする。
+ *
+ * 候補が変化しない境界操作からは呼び出さない。
+ *
+ * @param view               owning window。
+ * @param tbody              対象Table body。
+ * @param insertionIndex     現在候補の挿入位置。
+ * @param direction          keyboard移動方向。
+ * @param nextInsertionIndex 同方向側の次の有効な挿入位置。
+ */
+export const scrollKeyboardDestinationIntoView = (
+	view: Window,
+	tbody: HTMLTableSectionElement,
+	insertionIndex: number,
+	direction: RowMoveDirection,
+	nextInsertionIndex: number | null
+) => {
+	const getBoundaryY = ( index: number ): number | null => {
+		const nextRow = tbody.rows.item( index );
+		if ( nextRow ) {
+			return nextRow.getBoundingClientRect().top;
+		}
+		const lastRow = tbody.rows.item( tbody.rows.length - 1 );
+		return lastRow?.getBoundingClientRect().bottom ?? null;
+	};
+
+	const currentY = getBoundaryY( insertionIndex );
+	if ( currentY === null ) {
+		return;
+	}
+	const nextY = nextInsertionIndex === null ? null : getBoundaryY( nextInsertionIndex );
+	const viewportHeight = view.innerHeight;
+	if ( viewportHeight <= KEYBOARD_SCROLL_MARGIN_PX * 2 ) {
+		return;
+	}
+
+	const lowerBound = KEYBOARD_SCROLL_MARGIN_PX;
+	const upperBound = viewportHeight - KEYBOARD_SCROLL_MARGIN_PX;
+	const relevant = nextY === null ? [ currentY ] : [ currentY, nextY ];
+	const minY = Math.min( ...relevant );
+	const maxY = Math.max( ...relevant );
+	let delta = 0;
+
+	if ( maxY - minY <= upperBound - lowerBound ) {
+		if ( minY < lowerBound ) {
+			delta = minY - lowerBound;
+		} else if ( maxY > upperBound ) {
+			delta = maxY - upperBound;
+		}
+	} else if ( currentY < lowerBound ) {
+		delta = currentY - lowerBound;
+	} else if ( currentY > upperBound ) {
+		delta = currentY - upperBound;
+	} else if ( direction === 'down' && nextY !== null && nextY > upperBound ) {
+		delta = Math.min( nextY - upperBound, currentY - lowerBound );
+	} else if ( direction === 'up' && nextY !== null && nextY < lowerBound ) {
+		delta = Math.max( nextY - lowerBound, currentY - upperBound );
+	}
+
+	if ( Math.abs( delta ) >= 1 ) {
+		view.scrollBy( { behavior: 'auto', left: 0, top: delta } );
+	}
 };
 
 /**
@@ -276,24 +451,12 @@ export const createRowControls = (
 			}
 			flushSync( renderControl );
 		};
-		const onKeyDown = ( event: KeyboardEvent ) => {
-			if ( event.repeat ) {
-				return;
-			}
-			if ( event.key === 'Escape' ) {
-				setPressed( false );
-			} else if ( event.key === 'Enter' || event.key === ' ' ) {
-				setPressed( ! isPressed );
-			}
-		};
 		renderedControl.addEventListener( 'focus', onFocus );
 		renderedControl.addEventListener( 'blur', onBlur );
-		renderedControl.addEventListener( 'keydown', onKeyDown );
 
 		cleanupControlRoots.push( () => {
 			renderedControl.removeEventListener( 'focus', onFocus );
 			renderedControl.removeEventListener( 'blur', onBlur );
-			renderedControl.removeEventListener( 'keydown', onKeyDown );
 			root.unmount();
 			mount.remove();
 		} );
@@ -346,14 +509,12 @@ export const createRowMoveTargets = (
 	const table = tbody.closest( 'table' );
 	const buttons: HTMLButtonElement[] = [];
 	const cleanupListeners: Array< () => void > = [];
-	const guidance = document.createElement( 'div' );
-	guidance.className = POINTER_GUIDANCE_CLASS;
-	guidance.contentEditable = 'false';
-	const guidanceText = document.createElement( 'span' );
-	guidanceText.textContent = options.isTouch
-		? getTouchPointerActiveMessage()
-		: getPcPointerActiveMessage();
-	guidance.append( guidanceText );
+	const guidance = createReorderGuidance(
+		document,
+		tbody,
+		options.isTouch ? getTouchPointerActiveMessage() : getPcPointerActiveMessage(),
+		options.sourceControl
+	);
 
 	if ( options.isTouch ) {
 		const cancel = document.createElement( 'button' );
@@ -368,10 +529,8 @@ export const createRowMoveTargets = (
 		};
 		cancel.addEventListener( 'click', onCancel );
 		cleanupListeners.push( () => cancel.removeEventListener( 'click', onCancel ) );
-		guidance.append( cancel );
+		guidance.element.append( cancel );
 	}
-
-	document.body.append( guidance );
 
 	for ( const target of targets ) {
 		const button = document.createElement( 'button' );
@@ -445,9 +604,6 @@ export const createRowMoveTargets = (
 
 	const updatePositions = () => {
 		const tableRect = ( table ?? tbody ).getBoundingClientRect();
-		guidance.style.left = `${ Math.max( 8, tableRect.left ) }px`;
-		guidance.style.width = `${ Math.max( 0, tableRect.width ) }px`;
-
 		for ( const [ index, target ] of targets.entries() ) {
 			const button = buttons[ index ];
 			const nextRow = tbody.rows.item( target.insertionIndex );
@@ -475,7 +631,7 @@ export const createRowMoveTargets = (
 			for ( const button of buttons ) {
 				button.remove();
 			}
-			guidance.remove();
+			guidance.cleanup();
 		},
 	};
 };

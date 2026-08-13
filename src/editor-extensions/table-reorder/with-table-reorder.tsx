@@ -1,16 +1,20 @@
 /**
  * Table ReorderをGutenbergのBlockEditへ接続するcomposition / rendering adapter。
  *
- * core/table判定、元のBlockEdit、Table Reorder toolbar、Table探索用hidden anchorの描画だけを担当する。
- * React state / effectとcontroller lifecycleは`use-table-reorder.ts`へ委譲する。
+ * core/table判定、元のBlockEdit、Table Reorder toolbar、touch初回coachmark、Table探索用hidden anchorの
+ * 描画だけを担当する。React state / effectとcontroller lifecycleは`use-table-reorder.ts`へ委譲する。
  */
 
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
-import { ToolbarButton } from '@wordpress/components';
-import type { ComponentType } from '@wordpress/element';
+import { Popover, ToolbarButton } from '@wordpress/components';
+import { useRef, type ComponentType } from '@wordpress/element';
 
-import { getToolbarReorderName } from './messages';
+import {
+	getToolbarReorderDescription,
+	getToolbarReorderName,
+	getTouchCoachmarkMessage,
+} from './messages';
 import { useTableReorder } from './use-table-reorder';
 
 /** Core Table blockのbodyを含むattribute形。 */
@@ -42,10 +46,13 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			isSelected,
 			setAttributes,
 		} = props;
+		const toolbarButtonRef = useRef< HTMLButtonElement >( null );
 		const isTableBlock = props.name === 'core/table';
 		const {
 			anchorRef,
+			dismissTouchCoachmark,
 			isHoverCapable,
+			isTouchCoachmarkVisible,
 			isTouchReorderMode,
 			requestRowControlFocus,
 			toggleTouchReorderMode,
@@ -62,6 +69,8 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 		}
 
 		const toolbarLabel = getToolbarReorderName();
+		const toolbarDescription = getToolbarReorderDescription();
+		const toolbarDescriptionId = `yamabiko-table-reorder-toolbar-description-${ clientId }`;
 
 		return (
 			<>
@@ -69,12 +78,30 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 				{ isSelected && (
 					<BlockControls>
 						<ToolbarButton
+							aria-describedby={ toolbarDescriptionId }
 							icon="sort"
 							isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
 							label={ toolbarLabel }
 							onClick={ isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode }
+							ref={ toolbarButtonRef }
 							showTooltip
 						/>
+						<span
+							className="yamabiko-table-reorder-description"
+							id={ toolbarDescriptionId }
+						>
+							{ toolbarDescription }
+						</span>
+						{ isTouchCoachmarkVisible && toolbarButtonRef.current && (
+							<Popover
+								anchor={ toolbarButtonRef.current }
+								onClose={ dismissTouchCoachmark }
+							>
+								<p className="yamabiko-table-reorder-coachmark">
+									{ getTouchCoachmarkMessage() }
+								</p>
+							</Popover>
+						) }
 					</BlockControls>
 				) }
 				<span aria-hidden="true" hidden ref={ anchorRef } />
