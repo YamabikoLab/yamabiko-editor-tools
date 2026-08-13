@@ -80,9 +80,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 						<ToolbarButton
 							aria-describedby={ toolbarDescriptionId }
 							className={
-								isTouchCoachmarkVisible
-									? 'yamabiko-table-reorder-coachmark-target'
-									: undefined
+								isTouchCoachmarkVisible ? 'yamabiko-table-reorder-coachmark-target' : undefined
 							}
 							icon="sort"
 							isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
