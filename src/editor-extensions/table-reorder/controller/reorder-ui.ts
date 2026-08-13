@@ -218,7 +218,7 @@ export const createReorderGuidance = (
 				? Math.max(
 						GUIDANCE_VIEWPORT_OFFSET_PX,
 						viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
-					)
+				  )
 				: GUIDANCE_VIEWPORT_OFFSET_PX;
 		guidance.style.top = `${ top }px`;
 	};
