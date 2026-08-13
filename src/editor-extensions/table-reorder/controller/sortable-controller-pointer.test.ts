@@ -109,8 +109,6 @@ const createController = (
 		interactionMode,
 		nonMovableRowIndices: options.nonMovableRowIndices ?? [],
 		onCommit,
-		onNonMovableRowLongPress: jest.fn(),
-		onRequestTouchModeExit: jest.fn(),
 		rows: [ 'a', 'b', 'c', 'd' ],
 		runtimeUrl: '/sortable.js',
 	} );
