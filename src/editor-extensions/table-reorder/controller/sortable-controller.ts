@@ -50,8 +50,6 @@ export type SortableControllerOptions = {
 	interactionMode: ReorderInteractionMode;
 	nonMovableRowIndices: readonly number[];
 	onCommit: ( reorderedRows: unknown[], focusRowIndex?: number ) => void;
-	onNonMovableRowLongPress: () => void;
-	onRequestTouchModeExit: () => void;
 	rows: readonly unknown[] | null;
 	runtimeUrl: string;
 };
