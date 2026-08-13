@@ -1,5 +1,5 @@
 {
-	"translation-revision-date": "2026-08-13 10:07+0900",
+	"translation-revision-date": "2026-08-13 19:32+0900",
 	"generator": "Yamabiko Editor Tools",
 	"domain": "yamabiko-editor-tools",
 	"locale_data": {
@@ -11,28 +11,57 @@
 			},
 			"Empty row": [ "空の行" ],
 			"Drag to move this row, or click to choose a destination.": [
-				"ドラッグでこの行を移動するか、クリックして移動先を選択します。"
+				"ドラッグして行を移動できます。クリックすると移動先を選択できます。"
 			],
 			"Press Enter or Space to start moving this row.": [
-				"Enter または Space でこの行の移動を開始します。"
+				"EnterまたはSpaceキーで、この行の移動を開始します。"
+			],
+			"Use the Up and Down arrow keys to move the row. Press Enter or Space to confirm, or Escape to cancel.": [
+				"↑・↓キーで行を移動します。EnterまたはSpaceキーで確定し、Escキーでキャンセルできます。"
 			],
 			"Click where you want to move the row. Press Escape to cancel.": [
-				"移動先をクリックしてください。Escでキャンセルできます。"
+				"行を移動したい位置をクリックしてください。Escキーでキャンセルできます。"
 			],
-			"Tap where you want to move the row.": [ "移動先をタップしてください。" ],
-			"Reorder row %1$d: %2$s": [ "%1$d行目を並べ替え: %2$s" ],
+			"Drag a row handle to move the row. Or tap the handle and choose a destination. Tap a cell to edit it.": [
+				"行ハンドルをドラッグして行を移動するか、ハンドルをタップして移動先を選択します。セルはタップして編集できます。"
+			],
+			"Tap where you want to move the row.": [ "行を移動したい位置をタップしてください。" ],
+			"You can reorder the rows in this table with the keyboard. Select “Reorder rows” in the toolbar.": [
+				"キーボードで表の行を並べ替えられます。ツールバーの「行を並べ替え」を選択してください。"
+			],
+			"You can reorder the rows in this table. Tap “Reorder rows” in the toolbar to begin.": [
+				"この表は行を並べ替えられます。ツールバーの「行を並べ替え」をタップして始めます。"
+			],
+			"Reorder row %1$d: %2$s": [ "%1$d行目「%2$s」を並べ替え" ],
 			"Drag to move this row, or activate to choose a destination.": [
-				"ドラッグでこの行を移動するか、操作して移動先を選択します。"
+				"ドラッグして行を移動できます。実行すると移動先を選択できます。"
 			],
-			"Move before row %1$d: %2$s": [ "%1$d行目の前へ移動: %2$s" ],
-			"Move to the end of the table.": [ "テーブルの末尾へ移動" ],
+			"Move before row %1$d: %2$s": [ "%1$d行目「%2$s」の前へ移動" ],
+			"Move to the end of the table.": [ "表の末尾へ移動" ],
 			"Cancel": [ "キャンセル" ],
+			"Close guidance": [ "案内を閉じる" ],
 			"Reorder rows": [ "行を並べ替え" ],
+			"Move table rows using drag and drop, the keyboard, or destination selection.": [
+				"ドラッグ、キーボード、または移動先の選択で表の行を移動します。"
+			],
 			"This row cannot be moved because it is within a cell that spans multiple rows.": [
-				"この行は複数行にまたがるセルの範囲内にあるため移動できません。"
+				"この行は、複数行にまたがる結合セルの範囲内にあるため移動できません。"
 			],
 			"There are no rows that can be reordered in this table.": [
-				"このテーブルには並べ替え可能な行がありません。"
+				"この表には並べ替えできる行がありません。"
+			],
+			"Moving %1$s, row %2$d of %3$d.": [ "%1$s、全%3$d行中%2$d行目の移動を開始しました。" ],
+			"%1$s selected. Choose a destination.": [ "%1$sを選択しました。移動先を選んでください。" ],
+			"Move %1$s to position %2$d of %3$d.": [ "%1$sを全%3$d行中%2$d行目へ移動します。" ],
+			"Moved %1$s from position %2$d to %3$d.": [ "%1$sを%2$d行目から%3$d行目へ移動しました。" ],
+			"Canceled moving %1$s. It remains at position %2$d.": [
+				"%1$sの移動をキャンセルしました。位置は%2$d行目のままです。"
+			],
+			"up": [ "上" ],
+			"down": [ "下" ],
+			"%1$s cannot move any farther %2$s.": [ "%1$sは、これ以上%2$sへ移動できません。" ],
+			"%1$s cannot be moved because it is within a cell that spans multiple rows.": [
+				"%1$sは、複数行にまたがる結合セルの範囲内にあるため移動できません。"
 			]
 		}
 	}

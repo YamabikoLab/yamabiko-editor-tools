@@ -37,7 +37,7 @@ Touch の DnD は #246 で行ハンドル操作へ統一する。並べ替えモ
 - rowspan制約を共有する移動先計算とcommit境界
 - 行の並べ替えUIと移動先UIの名前・役割・状態、フォーカス表示、Target Size
 - 基本設計8章を正本とする操作案内、状態・結果・移動不能理由の支援技術向け通知、操作UIの名前・説明
-- タッチ端末での初回コーチマークと、閉じた後の自動再表示抑制
+- PCキーボード利用時とタッチ端末での初回コーチマーク、閉じた後の自動再表示抑制、入力方式ごとに分離したdismiss状態
 - 利用者向け文言を一元管理するメッセージモジュールとWordPress標準i18n
 - 確定・キャンセル後のフォーカス維持 / 復元
 - キーボード・単一ポインター操作時の縦スクロール追従と Focus Not Obscured
@@ -60,14 +60,15 @@ Touch の DnD は #246 で行ハンドル操作へ統一する。並べ替えモ
 
 ### 1. React / Gutenberg境界は薄いまま維持する
 
-`with-table-reorder.tsx` は引き続き Gutenberg の描画境界とToolbar描画を担当し、行DOMやイベント処理を直接所有しない。タッチ初回コーチマークはToolbar入口に紐づくReact / Gutenberg側のUIとしてここで描画し、行DOM側へ責務を持ち込まない。
+`with-table-reorder.tsx` は引き続き Gutenberg の描画境界とToolbar描画を担当し、行DOMやイベント処理を直接所有しない。PCキーボード / タッチの初回コーチマークはToolbar入口に紐づくReact / Gutenberg側のUIとしてここで描画し、行DOM側へ責務を持ち込まない。
 
 `use-table-reorder.ts` は現在の hover capability、タッチ並べ替えモード、Table context解決、controller lifecycleを維持しつつ、次の橋渡しだけを追加する。
 
 - Toolbarからcontrollerへ「行の並べ替えUIへフォーカスする」要求を渡す
 - controller instanceをrefで保持する
 - `setAttributes()` による再描画をまたぐフォーカス復元要求を一時保持する
-- タッチ初回コーチマークのdismiss済み状態をWordPress側で永続化する境界を提供する
+- PCキーボード / タッチの初回コーチマークのdismiss済み状態を別々にWordPress側で永続化する境界を提供する
+- PCでキーボード操作が行われていることをiframe / non-iframe双方の対象documentから検知し、コーチマーク表示のためにフォーカスを移動しない
 - WordPress notice APIやGutenberg callbackは現在と同様に狭いcallbackとして下位へ渡す
 
 キーボード並べ替え中・単一ポインター移動先選択中という命令的なDOM操作状態はReact stateへ持ち上げない。controller内の一時sessionとして保持し、body更新でcontrollerが再生成される境界だけhookが橋渡しする。
@@ -138,7 +139,7 @@ PC・タッチとも SortableJS の drag start は共通の行ハンドルに限
 
 タッチモードの案内は、行長押しではなく「行ハンドルをドラッグしてDnD」「行ハンドルをタップして移動先選択」「セルをタップして編集」という現在の操作へ揃える。
 
-iframe / non-iframeの差を上位へ漏らさないため、行control、target UI、インライン案内、status nodeは `TableContext.document` / `window` を使って生成する。Toolbarに紐づく一時通知とタッチ初回コーチマークはReact / Gutenberg側で表示し、同じ `messages.ts` の定義を利用する。
+iframe / non-iframeの差を上位へ漏らさないため、行control、target UI、インライン案内、status nodeは `TableContext.document` / `window` を使って生成する。Toolbarに紐づく一時通知とPCキーボード / タッチの初回コーチマークはReact / Gutenberg側で表示し、同じ `messages.ts` の定義を利用する。PCキーボードの初回コーチマーク表示判定に必要な入力方式は、対象Tableのowning documentを含む編集環境のkeydown / pointer入力から判定する。
 
 支援技術向け通知は新しいnpm依存を追加せず、`reorder-ui.ts` がowning documentへ一つのlive status nodeを作成し、controllerが基本設計8章で定義された状態変化・操作結果に対応するイベントと可変値だけを渡す。直前と同じ通知の抑制も基本設計のルールに従ってcontroller / UI境界で行う。
 
@@ -152,8 +153,8 @@ JavaScript翻訳はJSON生成だけで完了とせず、既存の `npm run i18n`
 |---|---|
 | `index.tsx` | `editor.scss` のimportだけを追加する。登録責務は変更しない。 |
 | `yamabiko-editor-tools.php` | Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持する。script enqueue後、同じhandle `yamabiko-editor-tools-table-reorder-index` に `wp_set_script_translations()` で `yamabiko-editor-tools` text domainと `__DIR__ . '/languages'` 相当の実ファイルシステム上のディレクトリを関連付ける。生成された `build/editor-extensions/table-reorder/index.css` が存在する場合は `enqueue_block_assets` + `is_admin()` でeditor content向けstyleとしてenqueueする。 |
-| `with-table-reorder.tsx` | PC / タッチのToolbar入口を基本設計に合わせて描画し、controllerへのfocus要求をhook経由で呼ぶ。PCではモードを新設しない。タッチ初回コーチマークをToolbar入口に紐づけて表示する。 |
-| `use-table-reorder.ts` | controller ref、Toolbar focus bridge、commit後のpending focus復元、タッチ初回コーチマークのdismiss済み状態の永続化境界を追加する。既存hover / touch mode lifecycleとrowspan制約算出は維持する。 |
+| `with-table-reorder.tsx` | PC / タッチのToolbar入口を基本設計に合わせて描画し、controllerへのfocus要求をhook経由で呼ぶ。PCではモードを新設しない。PCキーボード / タッチの初回コーチマークをToolbar入口に紐づけて表示する。 |
+| `use-table-reorder.ts` | controller ref、Toolbar focus bridge、commit後のpending focus復元、入力方式検知、PCキーボード / タッチ初回コーチマークの分離したdismiss済み状態の永続化境界を追加する。既存hover / touch mode lifecycleとrowspan制約算出は維持する。 |
 | `messages.ts` | 基本設計8章のメッセージIDと実装定義を対応付け、`yamabiko-editor-tools` text domainのWordPress i18n / `sprintf()` による画面表示・動的通知・アクセシブルな名前 / 説明の文言生成を一元管理する。表示状態やDOMは所有しない。 |
 | `table-context.ts` | iframe / non-iframeのowning document / window解決をそのまま再利用する。追加が必要でもcontext解決の範囲に限定する。 |
 | `rowspan.ts` | rowspan range、移動不能行、禁止挿入位置の正本としてそのまま再利用する。入力方式別ロジックを追加しない。 |
@@ -208,6 +209,10 @@ PC・タッチで同じdrag開始境界を利用する。Touchで行そのもの
 #### Keyboard
 
 ```text
+PC keyboard input
+        ↓
+【初回のみ】Toolbar「行を並べ替え」のcoachmark + icon強調
+        ↓
 Toolbar「行を並べ替え」
         ↓
 with-table-reorder.tsx
@@ -234,6 +239,8 @@ pending focusを保存してsetAttributes()
         ↓
 再生成controllerが移動後の同じ行controlへfocus
 ```
+
+初回coachmarkの表示だけではfocusを移動しない。PC pointer inputでは初回coachmarkを表示しない。
 
 #### Single pointer
 
@@ -354,21 +361,28 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - controller、`reorder-ui.ts`、React側のToolbar / coachmark描画から利用者向け文字列の直書きを除き、すべて `messages.ts` を利用する。
   - タッチモード案内を「行ハンドルdrag / 行ハンドルtap / セルtap」の操作へ揃え、長押し案内を残さない。
   - 基本設計8章で定義された表示形式・表示契機・消える契機・競合時の優先関係に従って、Tooltip、インライン案内、WordPress一時通知を実装する。
-  - タッチ端末の初回コーチマークをToolbar入口に紐づけて実装し、閉じた後はページ再読み込みや投稿を開き直しても自動再表示しない状態をWordPress側で永続化する。PCには追加しない。
+  - PCキーボード利用時の初回コーチマークをToolbar入口に紐づけ、Toolbarアイコンを視覚的に強調する。表示のためにfocusを移動せず、PCポインター操作では表示しない。
+  - タッチ端末の初回コーチマークをToolbar入口に紐づけて実装する。PCキーボード版とタッチ版はdismiss状態を分け、どちらも閉じた後はページ再読み込みや投稿を開き直しても自動再表示しない状態をWordPress側で永続化する。
+  - Toolbar入口の実行や行controlへの到達など実際の操作へ進んだ場合はPCキーボードcoachmarkを閉じ、現在状態の通常案内へ置き換える。
   - single-pointer session中は、PCでは `Escape`、touchでは案内に併設するキャンセル操作という基本設計のキャンセル経路を案内とUIへ反映する。
   - owning document内のlive status nodeと基本設計8章の重複通知抑制を実装する。
   - row controlに現在の操作対象であることを表す状態を付与し、focus表示とは区別する。
-  - keyboard候補変更時に現在候補と移動方向側の次の有効位置を可能な範囲で見えるようscrollを補助する。
+  - keyboard候補が実際に変更された場合だけ、現在候補と移動方向側の次の有効位置を可能な範囲で見えるよう必要最小限のscrollを補助する。先頭・末尾など候補が変化しない操作ではscrollしない。
   - pointer target表示中も元のrow controlをTable Reorder自身のUIで完全に隠さない。
 - Validation:
   - 基本設計8章で定義された開始、候補変更、確定、キャンセル、移動不能等の画面表示 / 動的通知が、定義された契機と優先関係で一つだけ提示される。
+  - PCポインター操作では初回コーチマークが表示されない。
+  - PCキーボード利用時は初回だけToolbar入口のコーチマークとアイコン強調が表示され、表示のためにfocusが移動しない。閉じた後は自動再表示されず、Toolbar入口の実行後はrow controlの通常案内へ置き換わる。
   - タッチの初回コーチマークが初回利用時だけ表示され、閉じた後は自動再表示されず、モード開始後は通常案内へ置き換わる。
+  - PCキーボード版とタッチ版のdismiss状態が相互に影響しない。
   - touch reorder mode中に、cell tap / handle tap / handle dragの違いを画面上から再確認できる。
   - single-pointer session中に、PC / touchそれぞれのキャンセル経路を画面上または操作UIから確認できる。
   - key repeatや同じ無効操作で同一通知を連続発火しない。
   - 利用者向け文言が一つの `messages.ts` に集約され、controller / UI処理へ直書きされていない。
   - row control / targetのhit areaがWCAG 2.2 2.5.8の最低要件を満たす。
   - focusされたcontrolがTable Reorderの案内 / target UIによって完全に隠れない。
+  - keyboard候補が可視領域外へ進んだ場合も縦scrollが追従し、現在候補と移動方向側の次の有効位置を可能な範囲で継続して確認できる。
+  - 先頭・末尾など候補が変化しない操作では不要なscrollが発生せず、候補変更時の追従量も操作文脈を保つための必要最小限に留まる。
 
 ### Phase 6: 編集環境と既存操作の回帰確認を完了する
 
@@ -377,6 +391,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - controller / reorder UI / messageのfocused unit testを追加・更新する。
   - Playwrightで安定して再現できるkeyboard / pointer / coachmark経路を追加する。支援技術固有挙動は手動確認へ残す。
   - iframe / non-iframeの両環境でfocus、target位置、live statusがowning document内にあることを確認する。
+  - iframe / non-iframeの両環境でPCキーボード入力方式を検知でき、coachmark表示だけではfocusを移動しないことを確認する。
   - iframe / non-iframeの両環境で `index.css` がeditorへ配信され、row control / target / 案内のstyleが適用されることを確認する。
   - 既存PC handle drag、Touch handle drag、rowspan制約、DOM restore before commit、Undo、セル編集、通常スクロールを回帰確認する。
   - WordPress i18n用の翻訳データを既存のリポジトリ手順に従って更新する。`i18n:json` をsource → build mapping対応へ拡張し、`wp i18n make-json --use-map` 等で `src/editor-extensions/table-reorder/messages.ts` の翻訳元を `build/editor-extensions/table-reorder/index.js` に対応付けたJSONを生成する。
@@ -401,9 +416,10 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - 行control / target /案内 / live statusは `reorder-ui.ts` に集約し、drag専用UIは `drag-ui.ts` に残す。
 - `touch-press.ts` は廃止し、Touch専用の長押しtimer、開始threshold、セル短tap判定を持たない。
 - persistentなaccessibility UIの見た目は `editor.scss` に置く。Table ReorderのJS / runtime configは既存 `enqueue_block_editor_assets` を維持し、`yamabiko-editor-tools.php` の追加責務は生成された `build/editor-extensions/table-reorder/index.css` の `enqueue_block_assets` + `is_admin()` によるeditor content配信と、Table Reorder script handleへの `wp_set_script_translations()` による翻訳関連付けに限定する。
-- JavaScript翻訳JSONは既存i18n手順にsource → build mappingだけを追加し、`messages.ts` の翻訳元を実際にenqueueされる `build/editor-extensions/table-reorder/index.js` に対応付けて生成する。新しい汎用翻訳基盤は作らない。
+- JavaScript翻訳JSONは既存i18n手順のsource → build mappingだけを追加し、`messages.ts` の翻訳元を実際にenqueueされる `build/editor-extensions/table-reorder/index.js` に対応付けて生成する。新しい汎用翻訳基盤は作らない。
 - single-pointer sessionのcancelは、PCでは `Escape`、touchでは案内に併設する明示的なキャンセル操作を主経路とする。touch reorder modeをOFFにする場合もactive sessionをcancelしてからcleanupする。
-- タッチ初回コーチマークは本実装に含め、Toolbar入口に紐づけて初回利用時だけ表示し、閉じた後の自動再表示を永続的に抑制する。PCには追加しない。
+- PCポインター操作には初回コーチマークを設けない。PCキーボード利用時にはToolbar入口へ初回コーチマークを表示し、アイコンを強調するが、表示のためのfocus移動は行わない。
+- PCキーボード版とタッチ版の初回コーチマークは本実装に含め、Toolbar入口に紐づける。dismiss状態は別々に永続化し、一方を閉じても他方の初回表示を抑制しない。
 - 基本設計8章の画面表示・動的通知・アクセシブルな名前 / 説明は `messages.ts` に集約し、`yamabiko-editor-tools` text domainのWordPress i18n / `sprintf()` を使用する。controllerやUIへ利用者向け文字列を直書きしない。
 - 支援技術向けstatusはowning document内へTable Reorder自身が一つだけ生成し、新規npm dependencyを追加しない。
 
@@ -420,7 +436,8 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - keyboard scroll追従を `scrollIntoView()` 中心で満たせるか、次の有効位置を見せるための追加 `scrollBy()` が必要か。
 - row accessible nameに採用する代表的内容の長さ、空行fallback、重複行の区別が支援技術で実用的か。
 - live statusの `role` / `aria-live` / `aria-atomic` の組み合わせと、重複抑制がChrome + 主要screen readerで過不足ないか。
-- タッチ初回コーチマークのdismiss済み状態を、追加依存を最小にしつつWordPress内で確実に永続化できる保存境界。
+- PCキーボード / タッチの初回コーチマークのdismiss済み状態を、追加依存を最小にしつつWordPress内で別々に確実に永続化できる保存境界。
+- iframe / non-iframe双方でキーボード / pointer入力方式を取り違えず、PC pointer操作だけではcoachmarkを表示しない検知境界。
 - 基本設計8章の表示形式をWordPress標準component / UI patternで実現したとき、iframe / non-iframeとToolbar / editor contentの境界をまたいでも表示優先度と関連付けを保てるか。
 
 検証で実装差が必要になっても、要件・基本設計で確定した利用者向け意味は変更しない。意味の変更が必要と判明した場合は実装側だけで調整せず、#189 / #213の正本へ戻して判断する。
@@ -452,12 +469,14 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - whitespace errorがない。
 - focused Jest
   - `row-order.test.ts`: 共通移動可否、次の有効移動先、rowspan越え、no-op
-  - `messages.test.ts`: 基本設計8章のmessage ID対応、可変文言、`yamabiko-editor-tools` text domainのWordPress i18n / `sprintf()` 境界
+  - `messages.test.ts`: 基本設計8章のmessage ID対応、可変文言、PC keyboard / touch coachmark、`yamabiko-editor-tools` text domainのWordPress i18n / `sprintf()` 境界
   - `reorder-ui.test.ts`: control / target / accessible name / cancel UI / cleanup / live status / message優先表示
   - `sortable-controller.test.ts`: keyboard / pointer session、共通commit、PC / Touchのhandle設定、drag後click / tap抑制、focus request、PC Escape cancel
   - `table-context.test.ts` / `sortable-runtime.test.ts` / `drag-ui.test.ts` / `rowspan.test.ts` の回帰
 - Playwright
-  - PC Toolbar → keyboard row control → move → confirm / cancel
+  - PC keyboard input → 初回coachmark → Toolbar → keyboard row control → move → confirm / cancel
+  - PC pointer inputでは初回coachmarkが表示されないこと
+  - PC keyboard coachmarkの終了、再表示抑制、focus非移動
   - PC handle dragとhandle clickの共存
   - Touch handle dragとhandle tapの共存
   - Touchで行そのものの長押しからDnDが始まらないこと
@@ -465,21 +484,25 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - PC single-pointer開始 → `Escape` cancel
   - touch single-pointer開始 → 案内に併設したキャンセル操作によるcancel
   - タッチ初回コーチマークの初回表示、終了、再表示抑制
+  - PC keyboard / touchのdismiss状態が分離していること
   - iframe環境を基準にし、non-iframeは対応するwp-dev環境でも確認する
 
 ### Manual acceptance
 
 - PC hover-capable環境
   - Table選択だけでfocusが移らない。
-  - Toolbarから現在行、fallbackで先頭移動可能行へfocusできる。
+  - ポインター操作でTableを選択した場合は初回コーチマークを表示しない。
+  - キーボード操作中の初回利用ではToolbar「行を並べ替え」にコーチマークと視覚的強調が表示され、表示のためにfocusを移動しない。
+  - PCキーボードcoachmarkを閉じた後は、ページ再読み込みや投稿を開き直しても自動再表示されない。
+  - Toolbarから現在行、fallbackで先頭移動可能行へfocusでき、coachmarkは閉じてrow controlの通常案内へ置き換わる。
   - `Tab` / `Shift + Tab` が論理順で動き、端でTable Reorder外へ出られる。
   - keyboard開始 / 上下移動 / 確定 / cancelが仕様どおり。
   - handleをdragすれば既存DnD、clickすればsingle-pointer選択になる。
   - single-pointer選択中に `Escape` を押すとcancelでき、行順を変更しない。
   - cell clickは従来どおり編集になる。
-  - PCでは初回コーチマークを表示しない。
 - Touch環境
   - 初回利用時にToolbar入口へコーチマークが表示され、閉じた後はページ再読み込みや投稿を開き直しても自動再表示されない。
+  - PC keyboard coachmarkを閉じた状態でも、touch coachmarkの初回表示は独立して成立する。
   - reorder mode開始だけでは特定行を自動選択しない。
   - reorder mode中に、cell tapは通常編集、handle tapはdrag不要の移動先選択、handle dragはDnDであることを確認できる。
   - 行そのものを長押ししてもDnDを開始しない。
@@ -502,6 +525,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - row controlのfocus ring、Target Size、選択状態、pointer target、操作案内に `editor.scss` のstyleが実際に適用される。
 - Messages / i18n
   - 基本設計8章の画面表示・動的通知・アクセシブルな名前 / 説明が `messages.ts` を経由し、controller / UIへ利用者向け文字列が直書きされていない。
+  - PC keyboard coachmarkとtouch coachmarkの文言が `messages.ts` と翻訳JSONを経由している。
   - タッチ案内に行長押しDnDの文言が残っていない。
   - `messages.ts` のWordPress i18n関数が `yamabiko-editor-tools` text domainを使用している。
   - source → build mappingにより `src/editor-extensions/table-reorder/messages.ts` の翻訳元を `build/editor-extensions/table-reorder/index.js` に対応付けたJSONが生成され、そのJSON翻訳がTable Reorderのscript handle `yamabiko-editor-tools-table-reorder-index` へ実際にロードされる。
@@ -524,12 +548,13 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
 - PC / Touchとも行ハンドルをSortableJSのdrag開始境界とし、Touchの行長押しDnDと専用 `touch-press.ts` を廃止する計画になっている。
 - PCではhandle drag / click、Touchではcell tap / handle tap / handle dragの競合と、PC `Escape` / touch明示的cancelによるsingle-pointerの確定しないcancel経路を実装・検証する順序が明確である。
 - Touchでセルの通常編集と行ハンドル外からの通常スクロールを妨げない実装・検証計画がある。
-- タッチ初回コーチマークを初回だけ表示し、閉じた後の自動再表示を抑制する実装・検証計画がある。
+- PCポインター操作では初回コーチマークを表示せず、PCキーボード利用時はToolbar入口へ初回だけコーチマークとアイコン強調を表示し、表示のためにfocusを移動しない実装・検証計画がある。
+- PCキーボード版とタッチ版の初回コーチマークをそれぞれ初回だけ表示し、閉じた後の自動再表示を別々のdismiss状態で抑制する実装・検証計画がある。
 - 基本設計8章の利用者向け文言を `messages.ts` に一元管理し、`yamabiko-editor-tools` text domainのWordPress標準i18nを利用する実装・検証計画がある。
 - JavaScript翻訳JSONを既存i18n手順のsource → build mappingで `build/editor-extensions/table-reorder/index.js` に対応付け、Table Reorderのscript handleへ関連付けて日本語localeの実ブラウザーで翻訳が適用されることを検証する計画がある。
 - `wp_set_script_translations()` の翻訳ディレクトリへ実ファイルシステム上の `languages` パスを渡す計画がある。
 - touch reorder mode中に必要な操作案内を実装・確認する計画がある。
-- iframe / non-iframeの両方でTable Reorderの生成CSS配信を検証する計画がある。
+- iframe / non-iframeの両方でTable Reorderの生成CSS配信とPC keyboard入力方式検知を検証する計画がある。
 - unit test、Playwright、手動accessibility確認、iframe / non-iframe回帰の役割分担が明確である。
 - 各実装Phaseを単独レビュー可能なIssueへ分割できる。
 

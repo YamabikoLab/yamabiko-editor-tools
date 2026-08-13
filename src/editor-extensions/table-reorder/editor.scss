@@ -108,6 +108,14 @@
 	border-inline-start-width: 4px;
 	border-radius: 6px;
 	box-shadow: 0 4px 12px rgb(0 0 0 / 16%);
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+body:has(.sortable-chosen) .yamabiko-table-reorder-pointer-guidance {
+	display: none;
 }
 
 .yamabiko-table-reorder-pointer-cancel {
@@ -140,4 +148,29 @@
 	border: 0;
 	clip: rect(0, 0, 0, 0);
 	clip-path: inset(50%);
+}
+
+.yamabiko-table-reorder-coachmark {
+	position: relative;
+	box-sizing: border-box;
+	width: 260px;
+	max-width: calc(100vw - 32px);
+	padding-inline-end: 28px;
+
+	p {
+		margin: 0;
+	}
+}
+
+.yamabiko-table-reorder-coachmark-close {
+	position: absolute;
+	top: -4px;
+	inset-inline-end: -4px;
+}
+
+.yamabiko-table-reorder-coachmark-target {
+	border-radius: 4px;
+	outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 4px rgb(56 88 233 / 16%);
 }
