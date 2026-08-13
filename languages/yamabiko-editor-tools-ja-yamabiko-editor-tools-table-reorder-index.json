@@ -1,5 +1,5 @@
 {
-	"translation-revision-date": "2026-08-13 15:15+0900",
+	"translation-revision-date": "2026-08-13 18:54+0900",
 	"generator": "Yamabiko Editor Tools",
 	"domain": "yamabiko-editor-tools",
 	"locale_data": {
@@ -36,6 +36,7 @@
 			"Move before row %1$d: %2$s": [ "%1$d行目「%2$s」の前へ移動" ],
 			"Move to the end of the table.": [ "表の末尾へ移動" ],
 			"Cancel": [ "キャンセル" ],
+			"Close guidance": [ "案内を閉じる" ],
 			"Reorder rows": [ "行を並べ替え" ],
 			"Move table rows using drag and drop, the keyboard, or destination selection.": [
 				"ドラッグ、キーボード、または移動先の選択で表の行を移動します。"

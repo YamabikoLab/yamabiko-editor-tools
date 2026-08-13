@@ -7,10 +7,11 @@
 
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
-import { Popover, ToolbarButton } from '@wordpress/components';
+import { Button, Popover, ToolbarButton } from '@wordpress/components';
 import { useState, type ComponentType } from '@wordpress/element';
 
 import {
+	getCloseGuidanceName,
 	getToolbarReorderDescription,
 	getToolbarReorderName,
 	getTouchCoachmarkMessage,
@@ -94,7 +95,16 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 						</span>
 						{ isTouchCoachmarkVisible && toolbarButton && (
 							<Popover anchor={ toolbarButton } onClose={ dismissTouchCoachmark }>
-								<p className="yamabiko-table-reorder-coachmark">{ getTouchCoachmarkMessage() }</p>
+								<div className="yamabiko-table-reorder-coachmark">
+									<p>{ getTouchCoachmarkMessage() }</p>
+									<Button
+										className="yamabiko-table-reorder-coachmark-close"
+										icon="no-alt"
+										label={ getCloseGuidanceName() }
+										onClick={ dismissTouchCoachmark }
+										size="small"
+									/>
+								</div>
 							</Popover>
 						) }
 					</BlockControls>

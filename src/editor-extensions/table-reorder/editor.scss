@@ -108,6 +108,14 @@
 	border-inline-start-width: 4px;
 	border-radius: 6px;
 	box-shadow: 0 4px 12px rgb(0 0 0 / 16%);
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+body:has(.sortable-chosen) .yamabiko-table-reorder-pointer-guidance {
+	display: none;
 }
 
 .yamabiko-table-reorder-pointer-cancel {
@@ -143,9 +151,21 @@
 }
 
 .yamabiko-table-reorder-coachmark {
+	position: relative;
 	box-sizing: border-box;
 	width: 260px;
 	max-width: calc(100vw - 32px);
+	padding-inline-end: 28px;
+
+	p {
+		margin: 0;
+	}
+}
+
+.yamabiko-table-reorder-coachmark-close {
+	position: absolute;
+	top: -4px;
+	inset-inline-end: -4px;
 }
 
 .yamabiko-table-reorder-coachmark-target {

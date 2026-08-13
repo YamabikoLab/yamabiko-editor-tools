@@ -79,6 +79,9 @@ export const getDestinationEndName = (): string =>
 /** touch単一ポインター操作のキャンセルbutton名を返す。 */
 export const getCancelName = (): string => __( 'Cancel', 'yamabiko-editor-tools' );
 
+/** 操作案内を閉じるbutton名を返す。 */
+export const getCloseGuidanceName = (): string => __( 'Close guidance', 'yamabiko-editor-tools' );
+
 /** Block ToolbarのTable Reorder入口名を返す。 */
 export const getToolbarReorderName = (): string => __( 'Reorder rows', 'yamabiko-editor-tools' );
 
@@ -213,5 +216,5 @@ export const getRowspanBlockedAnnouncement = ( rowLabel: string ): string => {
 	return sprintf( template, rowLabel );
 };
 
-/** 移動可能な本文行がないことを支援技術へ伝える文言を返す。 */
+/** 移動可能な本文行がないことを支援技術へ伝える。 */
 export const getNoMovableRowsAnnouncement = (): string => getNoMovableRowsMessage();
