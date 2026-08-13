@@ -8,7 +8,7 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { Popover, ToolbarButton } from '@wordpress/components';
-import { useRef, type ComponentType } from '@wordpress/element';
+import { useState, type ComponentType } from '@wordpress/element';
 
 import {
 	getToolbarReorderDescription,
@@ -46,7 +46,7 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 			isSelected,
 			setAttributes,
 		} = props;
-		const toolbarButtonRef = useRef< HTMLButtonElement >( null );
+		const [ toolbarButton, setToolbarButton ] = useState< HTMLButtonElement | null >( null );
 		const isTableBlock = props.name === 'core/table';
 		const {
 			anchorRef,
@@ -79,18 +79,23 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 					<BlockControls>
 						<ToolbarButton
 							aria-describedby={ toolbarDescriptionId }
+							className={
+								isTouchCoachmarkVisible
+									? 'yamabiko-table-reorder-coachmark-target'
+									: undefined
+							}
 							icon="sort"
 							isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
 							label={ toolbarLabel }
 							onClick={ isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode }
-							ref={ toolbarButtonRef }
+							ref={ setToolbarButton }
 							showTooltip
 						/>
 						<span className="yamabiko-table-reorder-description" id={ toolbarDescriptionId }>
 							{ toolbarDescription }
 						</span>
-						{ isTouchCoachmarkVisible && toolbarButtonRef.current && (
-							<Popover anchor={ toolbarButtonRef.current } onClose={ dismissTouchCoachmark }>
+						{ isTouchCoachmarkVisible && toolbarButton && (
+							<Popover anchor={ toolbarButton } onClose={ dismissTouchCoachmark }>
 								<p className="yamabiko-table-reorder-coachmark">{ getTouchCoachmarkMessage() }</p>
 							</Popover>
 						) }

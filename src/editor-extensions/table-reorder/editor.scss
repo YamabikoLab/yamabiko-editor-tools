@@ -141,3 +141,16 @@
 	clip: rect(0, 0, 0, 0);
 	clip-path: inset(50%);
 }
+
+.yamabiko-table-reorder-coachmark {
+	box-sizing: border-box;
+	width: 260px;
+	max-width: calc(100vw - 32px);
+}
+
+.yamabiko-table-reorder-coachmark-target {
+	border-radius: 4px;
+	outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 4px rgb(56 88 233 / 16%);
+}
