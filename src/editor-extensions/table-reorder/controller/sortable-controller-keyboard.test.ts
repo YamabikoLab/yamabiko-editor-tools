@@ -90,8 +90,6 @@ describe( 'createSortableController keyboard reorder', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c', 'd' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -116,8 +114,6 @@ describe( 'createSortableController keyboard reorder', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [ 1 ],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c', 'd' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -141,8 +137,6 @@ describe( 'createSortableController keyboard reorder', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c', 'd' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -166,8 +160,6 @@ describe( 'createSortableController keyboard reorder', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit,
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c', 'd' ],
 			runtimeUrl: '/sortable.js',
 		} );
@@ -191,8 +183,6 @@ describe( 'createSortableController keyboard reorder', () => {
 			interactionMode: 'hover',
 			nonMovableRowIndices: [],
 			onCommit: jest.fn(),
-			onNonMovableRowLongPress: jest.fn(),
-			onRequestTouchModeExit: jest.fn(),
 			rows: [ 'a', 'b', 'c', 'd' ],
 			runtimeUrl: '/sortable.js',
 		} );

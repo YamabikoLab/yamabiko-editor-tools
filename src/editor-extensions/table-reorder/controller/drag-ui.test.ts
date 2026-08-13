@@ -1,10 +1,4 @@
-import {
-	createInsertionLine,
-	createTouchDragUi,
-	fixFallbackRowCellWidths,
-	NON_MOVABLE_ROW_CLASS,
-	TOUCH_CHOSEN_CLASS,
-} from './drag-ui';
+import { createInsertionLine, fixFallbackRowCellWidths } from './drag-ui';
 
 const createTable = ( rowCount = 3 ) => {
 	const table = document.createElement( 'table' );
@@ -76,30 +70,6 @@ describe( 'drag-ui', () => {
 
 		expect( insertionLine.element.style.top ).toBe( '50px' );
 		insertionLine.cleanup();
-	} );
-
-	it( 'restores touch-mode DOM changes on cleanup', () => {
-		const { tbody } = createTable( 2 );
-		const editable = tbody.rows.item( 0 )?.cells.item( 0 );
-		if ( ! editable ) {
-			throw new Error( 'Expected editable table cell' );
-		}
-		editable.setAttribute( 'contenteditable', 'true' );
-		editable.style.pointerEvents = 'auto';
-		tbody.style.userSelect = 'text';
-
-		const touchUi = createTouchDragUi( document, tbody, [ 1 ] );
-		expect( editable.style.pointerEvents ).toBe( 'none' );
-		expect( tbody.style.userSelect ).toBe( 'none' );
-		expect( tbody.rows.item( 1 )?.classList.contains( NON_MOVABLE_ROW_CLASS ) ).toBe( true );
-		expect( document.head.querySelector( `style` )?.textContent ).toContain( TOUCH_CHOSEN_CLASS );
-
-		touchUi.cleanup();
-
-		expect( editable.style.pointerEvents ).toBe( 'auto' );
-		expect( tbody.style.userSelect ).toBe( 'text' );
-		expect( tbody.rows.item( 1 )?.classList.contains( NON_MOVABLE_ROW_CLASS ) ).toBe( false );
-		expect( document.head.querySelector( 'style' ) ).toBeNull();
 	} );
 
 	it( 'restores fallback cell width styles', () => {
