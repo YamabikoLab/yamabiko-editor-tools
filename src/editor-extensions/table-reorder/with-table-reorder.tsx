@@ -98,12 +98,13 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 								<div className="yamabiko-table-reorder-coachmark">
 									<p>{ getTouchCoachmarkMessage() }</p>
 									<Button
+										aria-label={ getCloseGuidanceName() }
 										className="yamabiko-table-reorder-coachmark-close"
-										icon="no-alt"
-										label={ getCloseGuidanceName() }
 										onClick={ dismissTouchCoachmark }
 										size="small"
-									/>
+									>
+										<span aria-hidden="true">×</span>
+									</Button>
 								</div>
 							</Popover>
 						) }

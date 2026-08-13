@@ -216,5 +216,5 @@ export const getRowspanBlockedAnnouncement = ( rowLabel: string ): string => {
 	return sprintf( template, rowLabel );
 };
 
-/** 移動可能な本文行がないことを支援技術へ伝える。 */
+/** 移動可能な本文行がないことを支援技術へ伝える文言を返す。 */
 export const getNoMovableRowsAnnouncement = (): string => getNoMovableRowsMessage();
