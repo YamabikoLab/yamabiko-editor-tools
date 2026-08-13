@@ -358,7 +358,7 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - single-pointer session中は、PCでは `Escape`、touchでは案内に併設するキャンセル操作という基本設計のキャンセル経路を案内とUIへ反映する。
   - owning document内のlive status nodeと基本設計8章の重複通知抑制を実装する。
   - row controlに現在の操作対象であることを表す状態を付与し、focus表示とは区別する。
-  - keyboard候補変更時に現在候補と移動方向側の次の有効位置を可能な範囲で見えるようscrollを補助する。
+  - keyboard候補が実際に変更された場合だけ、現在候補と移動方向側の次の有効位置を可能な範囲で見えるよう必要最小限のscrollを補助する。先頭・末尾など候補が変化しない操作ではscrollしない。
   - pointer target表示中も元のrow controlをTable Reorder自身のUIで完全に隠さない。
 - Validation:
   - 基本設計8章で定義された開始、候補変更、確定、キャンセル、移動不能等の画面表示 / 動的通知が、定義された契機と優先関係で一つだけ提示される。
@@ -369,6 +369,8 @@ Touchでは「行を並び替え」モードをOFFにした場合も、activeな
   - 利用者向け文言が一つの `messages.ts` に集約され、controller / UI処理へ直書きされていない。
   - row control / targetのhit areaがWCAG 2.2 2.5.8の最低要件を満たす。
   - focusされたcontrolがTable Reorderの案内 / target UIによって完全に隠れない。
+  - keyboard候補が可視領域外へ進んだ場合も縦scrollが追従し、現在候補と移動方向側の次の有効位置を可能な範囲で継続して確認できる。
+  - 先頭・末尾など候補が変化しない操作では不要なscrollが発生せず、候補変更時の追従量も操作文脈を保つための必要最小限に留まる。
 
 ### Phase 6: 編集環境と既存操作の回帰確認を完了する
 
