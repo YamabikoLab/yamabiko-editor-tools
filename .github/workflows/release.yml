@@ -1,9 +1,17 @@
 name: Release
+run-name: Release v${{ inputs.version }}
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (x.y.z)
+        required: true
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -12,11 +20,23 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::Release workflow must be run from main. Current ref: ${GITHUB_REF}."
+            exit 1
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -26,7 +46,10 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Verify npm version
+        shell: bash
         run: |
+          set -euo pipefail
+
           expected_npm_version="11.5.1"
           actual_npm_version="$(npm --version)"
 
@@ -38,34 +61,137 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify release version
+      - name: Verify release metadata
+        id: release
         env:
-          TAG_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        shell: bash
         run: |
-          tag_version="${TAG_NAME#v}"
+          set -euo pipefail
+
+          plugin_version="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' yamabiko-editor-tools.php | head -n 1)"
+
+          if [[ ! "${plugin_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Plugin Version must be a stable x.y.z version. Found: ${plugin_version:-<missing>}."
+            exit 1
+          fi
+
+          if [ "${INPUT_VERSION}" != "${plugin_version}" ]; then
+            echo "::error::Input version ${INPUT_VERSION} does not match plugin Version ${plugin_version}."
+            exit 1
+          fi
+
           package_version="$(node -p "require('./package.json').version")"
+          lock_version="$(node -p "require('./package-lock.json').version")"
+          lock_root_version="$(node -p "require('./package-lock.json').packages[''].version")"
 
-          if [ "${TAG_NAME}" = "${tag_version}" ]; then
-            echo "::error::Release tag must start with v."
+          for npm_version in "${package_version}" "${lock_version}" "${lock_root_version}"; do
+            if [ "${npm_version}" != "0.0.0" ]; then
+              echo "::error::npm package metadata versions must stay fixed at 0.0.0."
+              exit 1
+            fi
+          done
+
+          stable_tag="$(sed -nE 's/^Stable tag:[[:space:]]*([^[:space:]]+).*/\1/p' readme.txt | head -n 1)"
+
+          if [ "${stable_tag}" != "${plugin_version}" ]; then
+            echo "::error::readme.txt Stable tag ${stable_tag:-<missing>} does not match plugin Version ${plugin_version}."
             exit 1
           fi
 
-          if [ "${tag_version}" != "${package_version}" ]; then
-            echo "::error::Tag ${TAG_NAME} does not match package version ${package_version}."
+          if ! awk -v version="${plugin_version}" '
+            $0 == "== Changelog ==" { in_changelog = 1; next }
+            in_changelog && /^== / { exit }
+            in_changelog && $0 == "= " version " =" { found = 1; next }
+            found && /^= [^=]+ =$/ { exit }
+            found { print }
+            END { if (!found) exit 1 }
+          ' readme.txt > release-notes.md; then
+            echo "::error::readme.txt Changelog does not contain a section for ${plugin_version}."
             exit 1
           fi
 
-          npm run version:check
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::Changelog section for ${plugin_version} is empty."
+            exit 1
+          fi
+
+          echo "version=${plugin_version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${plugin_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify tag and release do not exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+            echo "::error::Tag ${TAG_NAME} already exists."
+            exit 1
+          fi
+
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "::error::GitHub Release ${TAG_NAME} already exists."
+            exit 1
+          fi
+
+      - name: Run tests
+        run: npm test
 
       - name: Build release ZIP
         run: npm run plugin-zip
 
+      - name: Verify release artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -f yamabiko-editor-tools.zip ]; then
+            echo "::error::yamabiko-editor-tools.zip was not generated."
+            exit 1
+          fi
+
+          if ! unzip -Z1 yamabiko-editor-tools.zip | grep -Eq '(^|/)readme\.txt$'; then
+            echo "::error::Release ZIP does not contain readme.txt."
+            exit 1
+          fi
+
+      - name: Create release tag
+        env:
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_sha="$(git rev-parse HEAD)"
+
+          if [ "${current_sha}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Checked-out commit ${current_sha} does not match GITHUB_SHA ${GITHUB_SHA}."
+            exit 1
+          fi
+
+          git tag "${TAG_NAME}" "${GITHUB_SHA}"
+          git push origin "refs/tags/${TAG_NAME}"
+
+          remote_tag_sha="$(git ls-remote origin "refs/tags/${TAG_NAME}" | cut -f 1)"
+
+          if [ "${remote_tag_sha}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Remote tag ${TAG_NAME} does not point to ${GITHUB_SHA}."
+            exit 1
+          fi
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        shell: bash
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
+          set -euo pipefail
+
+          gh release create "${TAG_NAME}" \
             yamabiko-editor-tools.zip \
             --verify-tag \
-            --generate-notes \
-            --title "${GITHUB_REF_NAME}"
+            --notes-file release-notes.md \
+            --title "${TAG_NAME}"
