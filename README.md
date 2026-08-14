@@ -11,7 +11,7 @@ Gutenbergの編集体験をより直感的にするエディター拡張を開�
 
 Core Table ブロックの本文行をドラッグ＆ドロップで並べ替える機能です。
 
-<img width="1244" height="726" alt="demo" src="https://github.com/user-attachments/assets/c93641e7-54f7-4545-901b-4630f0aa1e5d" />
+<img width="1240" height="724" alt="demo" src="https://github.com/user-attachments/assets/09adfced-6d43-46a1-97d4-adb1ac2eba18" />
 
 ### ブラウザで試す
 
