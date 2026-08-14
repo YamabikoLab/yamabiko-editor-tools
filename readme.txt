@@ -1,0 +1,50 @@
+=== Yamabiko Editor Tools ===
+Tags: block editor, gutenberg, table
+Requires at least: 6.8
+Tested up to: 7.0
+Requires PHP: 8.1
+Stable tag: 0.1.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Editor tools for intuitive content structure editing in WordPress.
+
+== Description ==
+
+Yamabiko Editor Tools improves the Gutenberg editing experience for site creators.
+
+The current focus is Table Reorder, which lets you reorder body rows in the Core Table block while preserving the block's content structure.
+
+Features include:
+
+* Drag-and-drop row reordering with a dedicated handle.
+* Touch interaction for row reordering.
+* Support for iframe and non-iframe editors.
+* Protection against invalid moves across vertically merged cells (`rowspan`).
+* Synchronization of the reordered table back to Gutenberg block attributes.
+
+This plugin is under active development. Behavior and specifications may change in future releases.
+
+Source code and development documentation are available on GitHub:
+https://github.com/YamabikoLab/yamabiko-editor-tools
+
+To install dependencies and build a release ZIP from source:
+
+`npm ci`
+`npm run plugin-zip`
+
+The generated archive is `yamabiko-editor-tools.zip`.
+
+== Installation ==
+
+1. Download `yamabiko-editor-tools.zip` from the GitHub Releases page.
+2. In WordPress, go to Plugins > Add New Plugin > Upload Plugin.
+3. Upload the ZIP file and install it.
+4. Activate Yamabiko Editor Tools.
+
+== Changelog ==
+
+= 0.1.0 =
+
+* Initial release of Yamabiko Editor Tools.
+* Add Table Reorder for reordering Core Table body rows in the block editor.

@@ -1,19 +1,18 @@
 {
 	"name": "yamabiko-editor-tools",
-	"version": "0.1.0",
+	"version": "0.0.0",
 	"private": true,
 	"files": [
 		"build/",
 		"languages/",
 		"THIRD_PARTY_NOTICES.md",
+		"readme.txt",
 		"yamabiko-editor-tools.php"
 	],
 	"scripts": {
 		"start": "wp-scripts start --hot",
 		"build": "wp-scripts build",
 		"plugin-zip": "npm run build && wp-scripts plugin-zip",
-		"version:check": "node scripts/version.mjs check",
-		"version:set": "node scripts/version.mjs set",
 		"format": "wp-scripts format \"**/*.{js,jsx,mjs,ts,tsx,json,yml,yaml}\"",
 		"format:check": "prettier --check \"**/*.{js,jsx,mjs,ts,tsx,json,yml,yaml}\"",
 		"lint:js": "wp-scripts lint-js . --max-warnings=0",
