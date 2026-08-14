@@ -11,6 +11,12 @@ Gutenbergの編集体験をより直感的にするエディター拡張を開�
 
 Core Table ブロックの本文行をドラッグ＆ドロップで並べ替える機能です。
 
+### ブラウザで試す
+
+WordPress Playground で、インストール不要で行の並べ替えを体験できます。
+
+[▶ 行の並べ替えを試す](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/YamabikoLab/yamabiko-editor-tools/main/demo/blueprint.json)
+
 - PCでは行の左端に表示されるハンドルからドラッグして並べ替え
 - タッチ端末では並べ替えモード中の行ハンドルをドラッグして並べ替え、タップで移動先を選択
 - SortableJSによる自然な並べ替え
