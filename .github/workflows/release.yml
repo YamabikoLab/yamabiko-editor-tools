@@ -116,9 +116,6 @@ jobs:
           echo "version=${plugin_version}" >> "${GITHUB_OUTPUT}"
           echo "tag=v${plugin_version}" >> "${GITHUB_OUTPUT}"
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Verify tag and release do not exist
         env:
           GH_TOKEN: ${{ github.token }}
@@ -136,6 +133,9 @@ jobs:
             echo "::error::GitHub Release ${TAG_NAME} already exists."
             exit 1
           fi
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run tests
         run: npm test
