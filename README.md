@@ -58,7 +58,7 @@ composer install
 npm start
 ```
 
-ローカルのWordPress開発環境では `SCRIPT_DEBUG` が有効になり、`wp-scripts start --hot` が `src/` 以下を監視してブロックを再ビルドします。
+ローカルのWordPress開発環境では `SCRIPT_DEBUG` が有効になり、`wp-scripts start --hot` が Table Reorder のソースを監視して再ビルドします。
 
 ローカルWordPress開発環境の設定、起動手順、プラグイン配置は、別リポジトリの [YamabikoLab/wp-dev](https://github.com/YamabikoLab/wp-dev) で管理しています。
 
@@ -68,7 +68,7 @@ npm start
 npm run build
 ```
 
-ビルド結果は `build/` に出力されます。生成されたブロックマニフェストは `yamabiko-editor-tools.php` から読み込まれます。
+ビルド結果は `build/` に出力され、Table Reorder の JavaScript / CSS と SortableJS ランタイムが生成されます。
 
 ### コードを検証
 
@@ -104,21 +104,6 @@ wp plugin check yamabiko-editor-tools
 ```
 
 Plugin Checkは、上記のコーディング標準チェックの代替ではありません。
-
-### ブロックを追加
-
-各ブロックは `src/blocks/` 以下の専用ディレクトリに配置し、`block.json` を含めます。
-
-```text
-src/blocks/
-└── notice/
-    ├── block.json
-    └── index.tsx
-```
-
-ビルドコマンドは `src/` 以下のブロックメタデータを検出し、登録に必要なファイルを生成します。
-
-ビルド後にWordPressで **Yamabiko Editor Tools** を有効化し、ブロックエディターで対象ブロックを利用できることを確認します。
 
 ### 開発ドキュメント
 

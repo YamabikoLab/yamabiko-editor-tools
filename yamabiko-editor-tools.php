@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Initializes the plugin and registers its blocks.
+ * Initializes the plugin.
  */
 final class Plugin {
 
@@ -30,7 +30,6 @@ final class Plugin {
 	 * Registers plugin hooks.
 	 */
 	public static function init(): void {
-		add_action( 'init', array( self::class, 'register_blocks' ) );
 		add_action(
 			'enqueue_block_editor_assets',
 			array( self::class, 'enqueue_table_reorder_editor_assets' )
@@ -38,23 +37,6 @@ final class Plugin {
 		add_action(
 			'enqueue_block_assets',
 			array( self::class, 'enqueue_table_reorder_editor_styles' )
-		);
-	}
-
-	/**
-	 * Registers blocks from the generated block manifest.
-	 */
-	public static function register_blocks(): void {
-		$blocks_path   = __DIR__ . '/build/blocks';
-		$manifest_path = __DIR__ . '/build/blocks-manifest.php';
-
-		if ( ! is_readable( $manifest_path ) || ! is_dir( $blocks_path ) ) {
-			return;
-		}
-
-		wp_register_block_types_from_metadata_collection(
-			$blocks_path,
-			$manifest_path
 		);
 	}
 

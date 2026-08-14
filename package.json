@@ -9,8 +9,8 @@
 		"yamabiko-editor-tools.php"
 	],
 	"scripts": {
-		"start": "wp-scripts start --hot --blocks-manifest",
-		"build": "wp-scripts build --blocks-manifest",
+		"start": "wp-scripts start --hot",
+		"build": "wp-scripts build",
 		"plugin-zip": "npm run build && wp-scripts plugin-zip",
 		"version:check": "node scripts/version.mjs check",
 		"version:set": "node scripts/version.mjs set",
