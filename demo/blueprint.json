@@ -1,55 +1,51 @@
 {
-  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-  "meta": {
-    "title": "Yamabiko Table Reorder v0.1.0 Demo",
-    "description": "Yamabiko Editor Tools v0.1.0 の Table Reorder を、日本の山30座のCore Tableで体験するデモ。",
-    "author": "YamabikoLab",
-    "categories": [
-      "demo",
-      "table",
-      "accessibility"
-    ]
-  },
-  "preferredVersions": {
-    "php": "8.3",
-    "wp": "7.0"
-  },
-  "features": {
-    "networking": true
-  },
-  "login": true,
-  "landingPage": "/",
-  "steps": [
-    {
-      "step": "setSiteLanguage",
-      "language": "ja"
-    },
-    {
-      "step": "setSiteOptions",
-      "options": {
-        "blogname": "Yamabiko Table Reorder Demo",
-        "blogdescription": "Yamabiko Editor Tools v0.1.0 の Table Reorder 体験デモ"
-      }
-    },
-    {
-      "step": "installPlugin",
-      "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/YamabikoLab/yamabiko-editor-tools/releases/download/v0.1.0/yamabiko-editor-tools.zip"
-      },
-      "options": {
-        "activate": true
-      },
-      "progress": {
-        "caption": "Yamabiko Editor Tools v0.1.0 をインストール中..."
-      }
-    },
-    {
-      "step": "runPHP",
-      "code": "<?php\nrequire_once '/wordpress/wp-load.php';\n\n$page_id = 100;\n\nif ( get_post( $page_id ) ) {\n\twp_delete_post( $page_id, true );\n}\n\n$rows = [\n\t[1, '富士山', '3,776 m', '山梨県・静岡県'],\n\t[2, '北岳', '3,193 m', '山梨県'],\n\t[3, '奥穂高岳', '3,190 m', '長野県・岐阜県'],\n\t[4, '間ノ岳', '3,190 m', '山梨県・静岡県'],\n\t[5, '槍ヶ岳', '3,180 m', '長野県・岐阜県'],\n\t[6, '赤石岳', '3,121 m', '長野県・静岡県'],\n\t[7, '涸沢岳', '3,110 m', '長野県・岐阜県'],\n\t[8, '北穂高岳', '3,106 m', '長野県・岐阜県'],\n\t[9, '大喰岳', '3,101 m', '長野県・岐阜県'],\n\t[10, '前穂高岳', '3,090 m', '長野県'],\n\t[11, '中岳', '3,084 m', '長野県・岐阜県'],\n\t[12, '荒川中岳', '3,084 m', '静岡県'],\n\t[13, '御嶽山', '3,067 m', '長野県・岐阜県'],\n\t[14, '塩見岳', '3,052 m', '長野県・静岡県'],\n\t[15, '南岳', '3,033 m', '長野県・岐阜県'],\n\t[16, '仙丈ヶ岳', '3,033 m', '山梨県・長野県'],\n\t[17, '乗鞍岳', '3,026 m', '長野県・岐阜県'],\n\t[18, '農鳥岳', '3,026 m', '山梨県・静岡県'],\n\t[19, '立山（大汝山）', '3,015 m', '富山県'],\n\t[20, '聖岳', '3,013 m', '長野県・静岡県'],\n\t[21, '剱岳', '2,999 m', '富山県'],\n\t[22, '水晶岳', '2,986 m', '富山県'],\n\t[23, '甲斐駒ヶ岳', '2,967 m', '山梨県・長野県'],\n\t[24, '木曽駒ヶ岳', '2,956 m', '長野県'],\n\t[25, '白馬岳', '2,932 m', '長野県・富山県'],\n\t[26, '薬師岳', '2,926 m', '富山県'],\n\t[27, '鷲羽岳', '2,924 m', '長野県・富山県'],\n\t[28, '大天井岳', '2,922 m', '長野県'],\n\t[29, '西穂高岳', '2,909 m', '長野県・岐阜県'],\n\t[30, '鹿島槍ヶ岳', '2,889 m', '長野県・富山県']\n];\n\n$table_rows = '';\n\nforeach ( $rows as $row ) {\n\t[ $number, $mountain, $height, $location ] = $row;\n\n\t// 縦結合: 7〜8行目の所在地を2行結合。\n\tif ( 7 === $number ) {\n\t\t$table_rows .= '<tr><td>7</td><td>涸沢岳</td><td>3,110 m</td><td rowspan=\"2\">長野県・岐阜県</td><td>縦結合（所在地）</td></tr>';\n\t\tcontinue;\n\t}\n\n\tif ( 8 === $number ) {\n\t\t$table_rows .= '<tr><td>8</td><td>北穂高岳</td><td>3,106 m</td><td>縦結合（所在地）</td></tr>';\n\t\tcontinue;\n\t}\n\n\t// 横結合: 14行目の「山名」と「標高」を2列結合。\n\tif ( 14 === $number ) {\n\t\t$table_rows .= '<tr><td>14</td><td colspan=\"2\"><strong>塩見岳</strong> / 3,052 m</td><td>長野県・静岡県</td><td>横結合（山名＋標高）</td></tr>';\n\t\tcontinue;\n\t}\n\n\t$table_rows .= sprintf(\n\t\t'<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td></td></tr>',\n\t\t$number,\n\t\tesc_html( $mountain ),\n\t\tesc_html( $height ),\n\t\tesc_html( $location )\n\t);\n}\n\n$edit_url = '/wp-admin/post.php?post=' . $page_id . '&action=edit';\n\n$content =\n\t'<!-- wp:paragraph -->' .\n\t'<p>マウス・タッチ・キーボードで、表の行を並べ替えられます。</p>' .\n\t'<!-- /wp:paragraph -->' .\n\t'<!-- wp:paragraph -->' .\n\t'<p>下のボタンから編集画面を開いて、行の並べ替えを試してみてください。7〜8行目には縦結合、14行目には横結合があります。</p>' .\n\t'<!-- /wp:paragraph -->' .\n\t'<!-- wp:buttons -->' .\n\t'<div class=\"wp-block-buttons\">' .\n\t'<!-- wp:button -->' .\n\t'<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"' . esc_url( $edit_url ) . '\">行の並べ替えを試す</a></div>' .\n\t'<!-- /wp:button -->' .\n\t'</div>' .\n\t'<!-- /wp:buttons -->' .\n\t'<!-- wp:separator -->' .\n\t'<hr class=\"wp-block-separator has-alpha-channel-opacity\"/>' .\n\t'<!-- /wp:separator -->' .\n\t'<!-- wp:table {\"align\":\"wide\"} -->' .\n\t'<figure class=\"wp-block-table alignwide\"><table class=\"has-fixed-layout\">' .\n\t'<thead><tr><th scope=\"col\">No.</th><th scope=\"col\">山名</th><th scope=\"col\">標高</th><th scope=\"col\">主な所在地</th><th scope=\"col\">備考</th></tr></thead>' .\n\t'<tbody>' . $table_rows . '</tbody>' .\n\t'</table><figcaption class=\"wp-element-caption\">日本の山 30座 / Table Reorder v0.1.0 デモ</figcaption></figure>' .\n\t'<!-- /wp:table -->' .\n\t'<!-- wp:paragraph -->' .\n\t'<p>不具合や気づいた点があれば、<a href=\"https://github.com/YamabikoLab/yamabiko-editor-tools/issues\">GitHub Issues</a> からお知らせください。</p>' .\n\t'<!-- /wp:paragraph -->';\n\n$result = wp_insert_post(\n\t[\n\t\t'import_id'    => $page_id,\n\t\t'post_type'    => 'page',\n\t\t'post_status'  => 'publish',\n\t\t'post_title'   => 'Table Reorder Demo：日本の山 30座',\n\t\t'post_name'    => 'table-reorder-demo',\n\t\t'post_content' => $content,\n\t\t'post_author'  => 1,\n\t],\n\ttrue\n);\n\nif ( is_wp_error( $result ) ) {\n\tthrow new RuntimeException( $result->get_error_message() );\n}\n\nupdate_option( 'show_on_front', 'page' );\nupdate_option( 'page_on_front', $page_id );\n",
-      "progress": {
-        "caption": "日本の山30座のデモページを作成中..."
-      }
-    }
-  ]
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Yamabiko Table Reorder v0.1.0 Demo",
+		"description": "Yamabiko Editor Tools v0.1.0 の Table Reorder を、日本の山30座のCore Tableで体験するデモ。",
+		"author": "YamabikoLab",
+		"categories": [ "demo", "table", "accessibility" ]
+	},
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "7.0"
+	},
+	"features": {
+		"networking": true
+	},
+	"login": true,
+	"landingPage": "/",
+	"steps": [
+		{
+			"step": "setSiteLanguage",
+			"language": "ja"
+		},
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"blogname": "Yamabiko Table Reorder Demo",
+				"blogdescription": "Yamabiko Editor Tools v0.1.0 の Table Reorder 体験デモ"
+			}
+		},
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "url",
+				"url": "https://github.com/YamabikoLab/yamabiko-editor-tools/releases/download/v0.1.0/yamabiko-editor-tools.zip"
+			},
+			"options": {
+				"activate": true
+			},
+			"progress": {
+				"caption": "Yamabiko Editor Tools v0.1.0 をインストール中..."
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire_once '/wordpress/wp-load.php';\n\n$page_id = 100;\n\nif ( get_post( $page_id ) ) {\n\twp_delete_post( $page_id, true );\n}\n\n$rows = [\n\t[1, '富士山', '3,776 m', '山梨県・静岡県'],\n\t[2, '北岳', '3,193 m', '山梨県'],\n\t[3, '奥穂高岳', '3,190 m', '長野県・岐阜県'],\n\t[4, '間ノ岳', '3,190 m', '山梨県・静岡県'],\n\t[5, '槍ヶ岳', '3,180 m', '長野県・岐阜県'],\n\t[6, '赤石岳', '3,121 m', '長野県・静岡県'],\n\t[7, '涸沢岳', '3,110 m', '長野県・岐阜県'],\n\t[8, '北穂高岳', '3,106 m', '長野県・岐阜県'],\n\t[9, '大喰岳', '3,101 m', '長野県・岐阜県'],\n\t[10, '前穂高岳', '3,090 m', '長野県'],\n\t[11, '中岳', '3,084 m', '長野県・岐阜県'],\n\t[12, '荒川中岳', '3,084 m', '静岡県'],\n\t[13, '御嶽山', '3,067 m', '長野県・岐阜県'],\n\t[14, '塩見岳', '3,052 m', '長野県・静岡県'],\n\t[15, '南岳', '3,033 m', '長野県・岐阜県'],\n\t[16, '仙丈ヶ岳', '3,033 m', '山梨県・長野県'],\n\t[17, '乗鞍岳', '3,026 m', '長野県・岐阜県'],\n\t[18, '農鳥岳', '3,026 m', '山梨県・静岡県'],\n\t[19, '立山（大汝山）', '3,015 m', '富山県'],\n\t[20, '聖岳', '3,013 m', '長野県・静岡県'],\n\t[21, '剱岳', '2,999 m', '富山県'],\n\t[22, '水晶岳', '2,986 m', '富山県'],\n\t[23, '甲斐駒ヶ岳', '2,967 m', '山梨県・長野県'],\n\t[24, '木曽駒ヶ岳', '2,956 m', '長野県'],\n\t[25, '白馬岳', '2,932 m', '長野県・富山県'],\n\t[26, '薬師岳', '2,926 m', '富山県'],\n\t[27, '鷲羽岳', '2,924 m', '長野県・富山県'],\n\t[28, '大天井岳', '2,922 m', '長野県'],\n\t[29, '西穂高岳', '2,909 m', '長野県・岐阜県'],\n\t[30, '鹿島槍ヶ岳', '2,889 m', '長野県・富山県']\n];\n\n$table_rows = '';\n\nforeach ( $rows as $row ) {\n\t[ $number, $mountain, $height, $location ] = $row;\n\n\t// 縦結合: 7〜8行目の所在地を2行結合。\n\tif ( 7 === $number ) {\n\t\t$table_rows .= '<tr><td>7</td><td>涸沢岳</td><td>3,110 m</td><td rowspan=\"2\">長野県・岐阜県</td><td>縦結合（所在地）</td></tr>';\n\t\tcontinue;\n\t}\n\n\tif ( 8 === $number ) {\n\t\t$table_rows .= '<tr><td>8</td><td>北穂高岳</td><td>3,106 m</td><td>縦結合（所在地）</td></tr>';\n\t\tcontinue;\n\t}\n\n\t// 横結合: 14行目の「山名」と「標高」を2列結合。\n\tif ( 14 === $number ) {\n\t\t$table_rows .= '<tr><td>14</td><td colspan=\"2\"><strong>塩見岳</strong> / 3,052 m</td><td>長野県・静岡県</td><td>横結合（山名＋標高）</td></tr>';\n\t\tcontinue;\n\t}\n\n\t$table_rows .= sprintf(\n\t\t'<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td></td></tr>',\n\t\t$number,\n\t\tesc_html( $mountain ),\n\t\tesc_html( $height ),\n\t\tesc_html( $location )\n\t);\n}\n\n$edit_url = '/wp-admin/post.php?post=' . $page_id . '&action=edit';\n\n$content =\n\t'<!-- wp:paragraph -->' .\n\t'<p>マウス・タッチ・キーボードで、表の行を並べ替えられます。</p>' .\n\t'<!-- /wp:paragraph -->' .\n\t'<!-- wp:paragraph -->' .\n\t'<p>下のボタンから編集画面を開いて、行の並べ替えを試してみてください。7〜8行目には縦結合、14行目には横結合があります。</p>' .\n\t'<!-- /wp:paragraph -->' .\n\t'<!-- wp:buttons -->' .\n\t'<div class=\"wp-block-buttons\">' .\n\t'<!-- wp:button -->' .\n\t'<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"' . esc_url( $edit_url ) . '\">行の並べ替えを試す</a></div>' .\n\t'<!-- /wp:button -->' .\n\t'</div>' .\n\t'<!-- /wp:buttons -->' .\n\t'<!-- wp:separator -->' .\n\t'<hr class=\"wp-block-separator has-alpha-channel-opacity\"/>' .\n\t'<!-- /wp:separator -->' .\n\t'<!-- wp:table {\"align\":\"wide\"} -->' .\n\t'<figure class=\"wp-block-table alignwide\"><table class=\"has-fixed-layout\">' .\n\t'<thead><tr><th scope=\"col\">No.</th><th scope=\"col\">山名</th><th scope=\"col\">標高</th><th scope=\"col\">主な所在地</th><th scope=\"col\">備考</th></tr></thead>' .\n\t'<tbody>' . $table_rows . '</tbody>' .\n\t'</table><figcaption class=\"wp-element-caption\">日本の山 30座 / Table Reorder v0.1.0 デモ</figcaption></figure>' .\n\t'<!-- /wp:table -->' .\n\t'<!-- wp:paragraph -->' .\n\t'<p>不具合や気づいた点があれば、<a href=\"https://github.com/YamabikoLab/yamabiko-editor-tools/issues\">GitHub Issues</a> からお知らせください。</p>' .\n\t'<!-- /wp:paragraph -->';\n\n$result = wp_insert_post(\n\t[\n\t\t'import_id'    => $page_id,\n\t\t'post_type'    => 'page',\n\t\t'post_status'  => 'publish',\n\t\t'post_title'   => '行の並べ替えデモ：日本の山 30座',\n\t\t'post_name'    => 'table-reorder-demo',\n\t\t'post_content' => $content,\n\t\t'post_author'  => 1,\n\t],\n\ttrue\n);\n\nif ( is_wp_error( $result ) ) {\n\tthrow new RuntimeException( $result->get_error_message() );\n}\n\nupdate_option( 'show_on_front', 'page' );\nupdate_option( 'page_on_front', $page_id );\n",
+			"progress": {
+				"caption": "日本の山30座のデモページを作成中..."
+			}
+		}
+	]
 }
