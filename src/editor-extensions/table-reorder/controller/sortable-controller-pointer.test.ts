@@ -78,6 +78,16 @@ const clickPointerControl = ( control: HTMLButtonElement ) => {
 	);
 };
 
+const pressKey = ( control: HTMLButtonElement, key: string ) => {
+	const event = new KeyboardEvent( 'keydown', {
+		bubbles: true,
+		cancelable: true,
+		key,
+	} );
+	control.dispatchEvent( event );
+	return event;
+};
+
 const dispatchTouchPointer = (
 	target: Element,
 	type: string,
@@ -264,5 +274,142 @@ describe( 'createSortableController single-pointer reorder', () => {
 
 		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
 		controller.destroy();
+	} );
+
+	it( 'ignores keyboard start while a pointer session is active', () => {
+		const { controller, onCommit, tbody } = createController( 'hover' );
+		const pointerControl = getControl( tbody, 1 );
+		const otherControl = getControl( tbody, 2 );
+		clickPointerControl( pointerControl );
+		const destination = document.querySelector( '.yamabiko-table-reorder-destination' );
+
+		otherControl.focus();
+		pressKey( otherControl, 'Enter' );
+
+		expect( pointerControl.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBe( destination );
+		expect( otherControl.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( onCommit ).not.toHaveBeenCalled();
+		controller.destroy();
+	} );
+
+	it( 'ignores pointer start while a drag is active', async () => {
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
+		ensureSortableRuntimeMock.mockResolvedValue(
+			createRuntime( ( options ) => {
+				runtimeOptionsRef.current = options;
+			} )
+		);
+		const { controller, tbody } = createController( 'hover' );
+		await Promise.resolve();
+		const runtimeOptions = runtimeOptionsRef.current;
+		if ( ! runtimeOptions ) {
+			throw new Error( 'Expected Sortable runtime options' );
+		}
+
+		runtimeOptions.onStart();
+		clickPointerControl( getControl( tbody, 1 ) );
+
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
+		expect( getControl( tbody, 1 ).getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
+		controller.destroy();
+	} );
+
+	it( 'cleans up pointer UI when a drag starts from a pointer session', async () => {
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
+		ensureSortableRuntimeMock.mockResolvedValue(
+			createRuntime( ( options ) => {
+				runtimeOptionsRef.current = options;
+			} )
+		);
+		const { controller, onCommit, tbody } = createController( 'hover' );
+		await Promise.resolve();
+		const runtimeOptions = runtimeOptionsRef.current;
+		const control = getControl( tbody, 1 );
+		if ( ! runtimeOptions ) {
+			throw new Error( 'Expected Sortable runtime options' );
+		}
+		clickPointerControl( control );
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).not.toBeNull();
+
+		runtimeOptions.onStart();
+
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
+		expect( onCommit ).not.toHaveBeenCalled();
+		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
+		controller.destroy();
+	} );
+
+	it( 'allows keyboard and pointer sessions to restart after a drag ends', async () => {
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
+		ensureSortableRuntimeMock.mockResolvedValue(
+			createRuntime( ( options ) => {
+				runtimeOptionsRef.current = options;
+			} )
+		);
+		const { controller, tbody } = createController( 'hover' );
+		await Promise.resolve();
+		const runtimeOptions = runtimeOptionsRef.current;
+		const control = getControl( tbody, 1 );
+		if ( ! runtimeOptions ) {
+			throw new Error( 'Expected Sortable runtime options' );
+		}
+
+		runtimeOptions.onStart();
+		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
+		control.focus();
+		pressKey( control, 'Enter' );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		pressKey( control, 'Escape' );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+
+		clickPointerControl( control );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).not.toBeNull();
+		controller.destroy();
+	} );
+
+	it( 'cleans up drag snapshot state when destroyed after onChoose', async () => {
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
+		ensureSortableRuntimeMock.mockResolvedValue(
+			createRuntime( ( options ) => {
+				runtimeOptionsRef.current = options;
+			} )
+		);
+		const { controller, tbody } = createController( 'hover' );
+		await Promise.resolve();
+		const runtimeOptions = runtimeOptionsRef.current;
+		const row = tbody.rows.item( 1 );
+		const cell = row?.cells.item( 0 );
+		if ( ! runtimeOptions || ! row || ! cell ) {
+			throw new Error( 'Expected Sortable runtime options, row, and cell' );
+		}
+		Object.defineProperty( cell, 'getBoundingClientRect', {
+			configurable: true,
+			value: () => ( { width: 120 } ),
+		} );
+
+		runtimeOptions.onChoose( { item: row } );
+		tbody.append( row );
+		expect( Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent ) ).toEqual( [
+			'row-0',
+			'row-2',
+			'row-3',
+			'row-1',
+		] );
+		expect( cell.style.width ).toBe( '120px' );
+
+		controller.destroy();
+
+		expect( Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent ) ).toEqual( [
+			'row-0',
+			'row-1',
+			'row-2',
+			'row-3',
+		] );
+		expect( cell.style.width ).toBe( '' );
+		expect( document.querySelector( '.yamabiko-table-reorder-insertion-line' ) ).toBeNull();
 	} );
 } );
