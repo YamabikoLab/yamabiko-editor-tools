@@ -193,6 +193,7 @@ SortableJS callback の境界ケースでは、既存テストの runtime option
 
 優先ケース #5 は `onStart` だけで終わらせず、可能な範囲で `onChoose -> onStart -> onMove -> onUnchoose -> onEnd` 相当まで通す。少なくとも次を固定する。
 
+- `onEnd` は有効かつ non-noop な index を与え、通常 drag の commit 経路へ誤って入っても no-op 判定で隠れないようにする。
 - `onCommit` が呼ばれない。
 - keyboard guidance / `aria-pressed` / focus が維持される。
 - keyboard insertion line が維持または復元される。
@@ -200,20 +201,20 @@ SortableJS callback の境界ケースでは、既存テストの runtime option
 
 ## Implementation order
 
-実装は次の checkpoint ごとに区切る。検証自体はユーザーが行い、各 Green 確認後に次の段階へ進む前提とする。
+実装は次の checkpoint ごとに区切る。検証自体はユーザーが行い、既知の Red を確認する段階と Green を確認する段階を分けて進める。
 
 1. 現行の controller 関連テストを確認する。
 2. **Checkpoint: 現行テストが Green であることをユーザーが確認する。**
 3. Issue #269 の8ケースを現行実装のまま追加する。
-   - 優先ケース #5 は、拒否された SortableJS lifecycle 全体を可能な範囲で通す。
-4. **Checkpoint: 8ケースを含む controller 関連テストが Green であることをユーザーが確認する。**
+   - 優先ケース #5 は、拒否された SortableJS lifecycle 全体を通し、non-noop な `onEnd` でも `onCommit` が呼ばれない仕様を固定する。
+4. **Checkpoint: 優先ケース #5 が現行実装の未充足を検出する既知 Red になることをユーザーが確認する。その他の追加ケースに想定外の失敗がないことも確認する。**
 5. `ReorderSession` 型と `session = { kind: 'idle' }` を導入する。
 6. keyboard session の開始・移動・commit・cancel・blur・destroy を `session.kind === 'keyboard'` ベースへ移行する。
 7. pointer session の開始・commit・cancel・Escape・destroy を `session.kind === 'pointer'` ベースへ移行する。
 8. hover / active entry / input handler の排他条件を `session.kind` へ置き換える。
 9. SortableJS `onChoose` / `onStart` / `onMove` / `onUnchoose` / `onEnd` を `idle | pointer | keyboard | dragging` の遷移規則と、拒否された keyboard drag lifecycle の規則へ合わせる。
 10. 旧 `keyboardSession` / `keyboardGuidance` / `singlePointerSession` / `isDragging` を削除する。
-11. **Checkpoint: `ReorderSession` 移行後に全テストと typecheck が Green であることをユーザーが確認する。**
+11. **Checkpoint: 優先ケース #5 を含む全テストと typecheck が `ReorderSession` 移行後に Green であることをユーザーが確認する。**
 12. `DragSnapshot` を導入し、`dragRows` / `draggedRowLabel` を置き換える。
 13. `onUnchoose` と `onEnd` / `destroy()` の snapshot cleanup 責務を整理する。
 14. **Checkpoint: `DragSnapshot` 移行後に再度、全テストと typecheck が Green であることをユーザーが確認する。**
@@ -226,11 +227,11 @@ SortableJS callback の境界ケースでは、既存テストの runtime option
 実装PRではユーザーによる段階的な検証を前提とし、少なくとも次を確認する。
 
 - controller 関連の既存 Jest テストが通る。
-- Issue #269 の優先8ケースが追加され、すべて通る。
-- `ReorderSession` 移行後に全テストと typecheck が通る。
+- Issue #269 の優先8ケースを追加した時点で、ケース #5 が現行実装の未充足を検出する既知 Red になり、その他に想定外の失敗がない。
+- `ReorderSession` 移行後にケース #5 を含む全テストと typecheck が通る。
 - `DragSnapshot` 移行後に再度、全テストと typecheck が通る。
 - keyboard / pointer / drag の既存UI仕様が変わっていない。
-- keyboard 中に SortableJS `onChoose -> onStart -> onMove / onUnchoose -> onEnd` 相当が到達しても、`onCommit` が呼ばれず keyboard guidance / `aria-pressed` / focus / insertion line が維持または復元される。
+- keyboard 中に SortableJS `onChoose -> onStart -> onMove / onUnchoose -> onEnd` 相当が到達しても、non-noop な `onEnd` で `onCommit` が呼ばれず keyboard guidance / `aria-pressed` / focus / insertion line が維持または復元される。
 - 拒否された drag lifecycle の終了後も keyboard 操作をそのまま継続できる。
 - drag終了後に keyboard / pointer の両方を再開できる。
 - destroy 後に destination UI、guidance、fallback DOM、drag snapshot 相当の一時状態が残らない。
@@ -241,5 +242,5 @@ SortableJS callback の境界ケースでは、既存テストの runtime option
 - `DragSnapshot` の生成・参照・破棄責務が明確になっている。
 - Issue #269 の8つの優先回帰ケースが既存テストファイルへ対応付けられている。
 - `keyboard` 中の SortableJS drag 開始拒否が、`onStart` 単体ではなく拒否された callback lifecycle 全体の実装手順とテストで明示されている。
-- 8ケース追加後、`ReorderSession` 導入後、`DragSnapshot` 導入後の Green 確認 checkpoint が Implementation order に明示されている。
+- 8ケース追加後の既知 Red 確認、`ReorderSession` 導入後の Green 確認、`DragSnapshot` 導入後の Green 確認が Implementation order に明示されている。
 - controller の大規模分割や新規抽象化を前提にせず、段階的なリファクタリングとして実装できる。
