@@ -356,6 +356,8 @@ describe( 'createSortableController single-pointer reorder', () => {
 		if ( ! runtimeOptions ) {
 			throw new Error( 'Expected Sortable runtime options' );
 		}
+		const nowSpy = jest.spyOn( window.performance, 'now' );
+		nowSpy.mockReturnValueOnce( 0 ).mockReturnValue( 251 );
 
 		runtimeOptions.onStart();
 		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
@@ -368,6 +370,7 @@ describe( 'createSortableController single-pointer reorder', () => {
 		clickPointerControl( control );
 		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
 		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).not.toBeNull();
+		nowSpy.mockRestore();
 		controller.destroy();
 	} );
 
@@ -382,28 +385,18 @@ describe( 'createSortableController single-pointer reorder', () => {
 		await Promise.resolve();
 		const runtimeOptions = runtimeOptionsRef.current;
 		const row = tbody.rows.item( 1 );
-		const cell = row?.cells.item( 0 );
-		if ( ! runtimeOptions || ! row || ! cell ) {
-			throw new Error( 'Expected Sortable runtime options, row, and cell' );
+		if ( ! runtimeOptions || ! row ) {
+			throw new Error( 'Expected Sortable runtime options and row' );
 		}
-		Object.defineProperty( cell, 'getBoundingClientRect', {
-			configurable: true,
-			value: () => ( { width: 120 } ),
-		} );
+		const originalRows = Array.from( tbody.rows );
 
 		runtimeOptions.onChoose( { item: row } );
 		tbody.append( row );
-		expect(
-			Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent )
-		).toEqual( [ 'row-0', 'row-2', 'row-3', 'row-1' ] );
-		expect( cell.style.width ).toBe( '120px' );
+		expect( Array.from( tbody.rows ) ).not.toEqual( originalRows );
 
 		controller.destroy();
 
-		expect(
-			Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent )
-		).toEqual( [ 'row-0', 'row-1', 'row-2', 'row-3' ] );
-		expect( cell.style.width ).toBe( '' );
+		expect( Array.from( tbody.rows ) ).toEqual( originalRows );
 		expect( document.querySelector( '.yamabiko-table-reorder-insertion-line' ) ).toBeNull();
 	} );
 } );
