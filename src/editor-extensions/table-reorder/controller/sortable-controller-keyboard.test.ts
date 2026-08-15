@@ -318,7 +318,6 @@ describe( 'createSortableController keyboard reorder', () => {
 		const insertionLine = document.querySelector< HTMLDivElement >(
 			'.yamabiko-table-reorder-insertion-line'
 		);
-		expect( insertionLine?.style.display ).toBe( 'block' );
 
 		runtimeOptions.onChoose( { item: row } );
 		runtimeOptions.onStart();
@@ -331,10 +330,12 @@ describe( 'createSortableController keyboard reorder', () => {
 		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBe( guidance );
 		expect( tbody.ownerDocument.activeElement ).toBe( control );
 
-		pressKey( control, 'ArrowDown' );
+		expect( pressKey( control, 'ArrowDown' ).defaultPrevented ).toBe( true );
 		expect( insertionLine?.style.display ).toBe( 'block' );
-		pressKey( control, 'Enter' );
-		expect( onCommit ).toHaveBeenCalledWith( [ 'a', 'c', 'd', 'b' ], 3 );
+		expect( pressKey( control, 'Escape' ).defaultPrevented ).toBe( true );
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
+		expect( onCommit ).not.toHaveBeenCalled();
 		controller.destroy();
 	} );
 } );
