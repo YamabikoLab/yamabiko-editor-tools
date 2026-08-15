@@ -741,6 +741,7 @@ export const createSortableController = (
 					draggedRowLabel = null;
 					if ( session.kind === 'keyboard' ) {
 						showKeyboardCandidate( session );
+						session.entry.control.focus();
 					}
 					return;
 				}
