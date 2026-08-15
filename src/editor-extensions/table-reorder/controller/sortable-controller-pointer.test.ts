@@ -393,22 +393,16 @@ describe( 'createSortableController single-pointer reorder', () => {
 
 		runtimeOptions.onChoose( { item: row } );
 		tbody.append( row );
-		expect( Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent ) ).toEqual( [
-			'row-0',
-			'row-2',
-			'row-3',
-			'row-1',
-		] );
+		expect(
+			Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent )
+		).toEqual( [ 'row-0', 'row-2', 'row-3', 'row-1' ] );
 		expect( cell.style.width ).toBe( '120px' );
 
 		controller.destroy();
 
-		expect( Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent ) ).toEqual( [
-			'row-0',
-			'row-1',
-			'row-2',
-			'row-3',
-		] );
+		expect(
+			Array.from( tbody.rows ).map( ( current ) => current.cells.item( 0 )?.textContent )
+		).toEqual( [ 'row-0', 'row-1', 'row-2', 'row-3' ] );
 		expect( cell.style.width ).toBe( '' );
 		expect( document.querySelector( '.yamabiko-table-reorder-insertion-line' ) ).toBeNull();
 	} );
