@@ -134,6 +134,12 @@ type ReorderSession =
 	  }
 	| { kind: 'dragging' };
 
+/** SortableJS drag中だけ保持するDOM復元・announcement用snapshot。 */
+type DragSnapshot = {
+	rows: HTMLTableRowElement[];
+	rowLabel: string;
+};
+
 /**
  * 解決済みTable contextと制約からSortableJS controllerを生成する。
  *
@@ -181,8 +187,7 @@ export const createSortableController = (
 
 	let destroyed = false;
 	let sortable: SortableInstance | null = null;
-	let dragRows: HTMLTableRowElement[] | null = null;
-	let draggedRowLabel: string | null = null;
+	let dragSnapshot: DragSnapshot | null = null;
 	let activeEntry: RowControlEntry | null = null;
 	let session: ReorderSession = { kind: 'idle' };
 	let touchModeGuidance: ReorderGuidanceUi | null = useHoverMode
@@ -202,12 +207,11 @@ export const createSortableController = (
 		restoreFallbackCellWidths = () => undefined;
 	};
 	const restoreDragRows = () => {
-		if ( ! dragRows ) {
+		if ( ! dragSnapshot ) {
 			return;
 		}
 
-		restoreOriginalRowOrder( tbody, dragRows );
-		dragRows = null;
+		restoreOriginalRowOrder( tbody, dragSnapshot.rows );
 	};
 	const suppressBlockDrag = () => {
 		if ( blockDragSuppressed ) {
@@ -655,8 +659,10 @@ export const createSortableController = (
 				if ( session.kind !== 'keyboard' ) {
 					insertionLine.hide();
 				}
-				dragRows = Array.from( tbody.rows );
-				draggedRowLabel = getRowRepresentativeText( event.item as HTMLTableRowElement );
+				dragSnapshot = {
+					rows: Array.from( tbody.rows ),
+					rowLabel: getRowRepresentativeText( event.item as HTMLTableRowElement ),
+				};
 				restoreFallbackWidths();
 				restoreFallbackCellWidths = fixFallbackRowCellWidths( event.item );
 			},
@@ -682,7 +688,7 @@ export const createSortableController = (
 					}
 					return false;
 				}
-				if ( ! dragRows ) {
+				if ( ! dragSnapshot ) {
 					insertionLine.hide();
 					return;
 				}
@@ -692,7 +698,7 @@ export const createSortableController = (
 						insertAfter: event.willInsertAfter,
 						relatedElement: event.related,
 					},
-					dragRows
+					dragSnapshot.rows
 				);
 				if ( insertionIndex === null ) {
 					insertionLine.hide();
@@ -714,6 +720,7 @@ export const createSortableController = (
 			},
 			onEnd: ( event ) => {
 				const completedDrag = session.kind === 'dragging';
+				const completedSnapshot = dragSnapshot;
 				if ( completedDrag ) {
 					insertionLine.hide();
 					session = { kind: 'idle' };
@@ -723,6 +730,7 @@ export const createSortableController = (
 				}
 				restoreFallbackWidths();
 				restoreDragRows();
+				dragSnapshot = null;
 
 				if ( completedDrag ) {
 					if ( useHoverMode ) {
@@ -738,7 +746,6 @@ export const createSortableController = (
 				}
 
 				if ( ! completedDrag ) {
-					draggedRowLabel = null;
 					if ( session.kind === 'keyboard' ) {
 						showKeyboardCandidate( session );
 						session.entry.control.focus();
@@ -748,7 +755,6 @@ export const createSortableController = (
 
 				const { oldIndex, newIndex } = event;
 				if ( oldIndex === undefined || newIndex === undefined || ! rows ) {
-					draggedRowLabel = null;
 					return;
 				}
 
@@ -756,18 +762,22 @@ export const createSortableController = (
 					isNoopRowMove( oldIndex, newIndex ) ||
 					! isRowMoveAllowed( oldIndex, newIndex, constraints )
 				) {
-					draggedRowLabel = null;
 					return;
 				}
 
 				const reorderedRows = reorderRows( rows, oldIndex, newIndex );
 				if ( reorderedRows ) {
-					if ( draggedRowLabel ) {
-						announce( getMoveCommittedAnnouncement( draggedRowLabel, oldIndex + 1, newIndex + 1 ) );
+					if ( completedSnapshot?.rowLabel ) {
+						announce(
+							getMoveCommittedAnnouncement(
+								completedSnapshot.rowLabel,
+								oldIndex + 1,
+								newIndex + 1
+							)
+						);
 					}
 					onCommit( reorderedRows );
 				}
-				draggedRowLabel = null;
 			},
 			onUnchoose: () => {
 				if ( session.kind === 'keyboard' ) {
@@ -875,6 +885,7 @@ export const createSortableController = (
 			tbody.removeEventListener( 'focusin', rememberRowFromEvent );
 			tbody.removeEventListener( 'pointerdown', rememberRowFromEvent );
 			restoreDragRows();
+			dragSnapshot = null;
 			releaseEntry();
 			rowControls.cleanup();
 		},
