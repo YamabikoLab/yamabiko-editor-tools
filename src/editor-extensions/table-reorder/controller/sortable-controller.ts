@@ -242,10 +242,7 @@ export const createSortableController = (
 	const deactivateEntry = ( entry: RowControlEntry ) => {
 		const sessionEntry =
 			session.kind === 'keyboard' || session.kind === 'pointer' ? session.entry : null;
-		if (
-			( session.kind === 'dragging' || sessionEntry === entry ) &&
-			activeEntry === entry
-		) {
+		if ( ( session.kind === 'dragging' || sessionEntry === entry ) && activeEntry === entry ) {
 			return;
 		}
 
@@ -483,11 +480,7 @@ export const createSortableController = (
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
 		if ( entry && session.kind === 'keyboard' && session.entry === entry ) {
 			queueMicrotask( () => {
-				if (
-					! destroyed &&
-					session.kind === 'keyboard' &&
-					session.entry === entry
-				) {
+				if ( ! destroyed && session.kind === 'keyboard' && session.entry === entry ) {
 					entry.control.focus();
 				}
 			} );
@@ -769,9 +762,7 @@ export const createSortableController = (
 				const reorderedRows = reorderRows( rows, oldIndex, newIndex );
 				if ( reorderedRows ) {
 					if ( draggedRowLabel ) {
-						announce(
-							getMoveCommittedAnnouncement( draggedRowLabel, oldIndex + 1, newIndex + 1 )
-						);
+						announce( getMoveCommittedAnnouncement( draggedRowLabel, oldIndex + 1, newIndex + 1 ) );
 					}
 					onCommit( reorderedRows );
 				}
