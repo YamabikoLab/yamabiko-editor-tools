@@ -113,22 +113,26 @@ type SortableOptions = {
 	scrollSpeed: number;
 };
 
-/** キーボード並べ替え中だけ保持する一時状態。 */
-type KeyboardSession = {
-	currentIndex: number;
-	entry: RowControlEntry;
-	lastBoundaryDirection: RowMoveDirection | null;
-	oldIndex: number;
-	rowLabel: string;
-};
-
-/** 単一ポインターで移動先を選択中だけ保持する一時状態。 */
-type SinglePointerSession = {
-	entry: RowControlEntry;
-	oldIndex: number;
-	rowLabel: string;
-	targetsUi: RowMoveTargetsUi;
-};
+/** controllerが保持する排他的な並べ替え操作状態。 */
+type ReorderSession =
+	| { kind: 'idle' }
+	| {
+			kind: 'keyboard';
+			currentIndex: number;
+			entry: RowControlEntry;
+			lastBoundaryDirection: RowMoveDirection | null;
+			oldIndex: number;
+			rowLabel: string;
+			guidance: ReorderGuidanceUi;
+	  }
+	| {
+			kind: 'pointer';
+			entry: RowControlEntry;
+			oldIndex: number;
+			rowLabel: string;
+			targetsUi: RowMoveTargetsUi;
+	  }
+	| { kind: 'dragging' };
 
 /**
  * 解決済みTable contextと制約からSortableJS controllerを生成する。
@@ -180,16 +184,13 @@ export const createSortableController = (
 	let dragRows: HTMLTableRowElement[] | null = null;
 	let draggedRowLabel: string | null = null;
 	let activeEntry: RowControlEntry | null = null;
-	let keyboardSession: KeyboardSession | null = null;
-	let keyboardGuidance: ReorderGuidanceUi | null = null;
-	let singlePointerSession: SinglePointerSession | null = null;
+	let session: ReorderSession = { kind: 'idle' };
 	let touchModeGuidance: ReorderGuidanceUi | null = useHoverMode
 		? null
 		: createReorderGuidance( document, tbody, getTouchModeMessage() );
 	let lastActiveRowIndex: number | null = getRowIndexFromElement(
 		tbody.ownerDocument.activeElement
 	);
-	let isDragging = false;
 	let blockDragSuppressed = false;
 	let originalDraggable: string | null = null;
 	let suppressPointerClickUntil = 0;
@@ -239,8 +240,10 @@ export const createSortableController = (
 		rowControls.setVisible( entry, true );
 	};
 	const deactivateEntry = ( entry: RowControlEntry ) => {
+		const sessionEntry =
+			session.kind === 'keyboard' || session.kind === 'pointer' ? session.entry : null;
 		if (
-			( isDragging || keyboardSession?.entry === entry || singlePointerSession?.entry === entry ) &&
+			( session.kind === 'dragging' || sessionEntry === entry ) &&
 			activeEntry === entry
 		) {
 			return;
@@ -255,7 +258,6 @@ export const createSortableController = (
 		}
 	};
 	const releaseEntry = () => {
-		isDragging = false;
 		if ( activeEntry && ! activeEntry.control.matches( ':focus' ) ) {
 			rowControls.setVisible( activeEntry, false );
 		}
@@ -268,13 +270,18 @@ export const createSortableController = (
 			lastActiveRowIndex = rowIndex;
 		}
 	};
-	const showKeyboardCandidate = ( session: KeyboardSession ) => {
-		if ( session.currentIndex === session.oldIndex ) {
+	const showKeyboardCandidate = (
+		keyboardSession: Extract< ReorderSession, { kind: 'keyboard' } >
+	) => {
+		if ( keyboardSession.currentIndex === keyboardSession.oldIndex ) {
 			insertionLine.hide();
 			return;
 		}
 
-		const insertionIndex = getRowMoveInsertionIndex( session.oldIndex, session.currentIndex );
+		const insertionIndex = getRowMoveInsertionIndex(
+			keyboardSession.oldIndex,
+			keyboardSession.currentIndex
+		);
 		if ( insertionIndex <= 0 ) {
 			const firstRow = tbody.rows.item( 0 );
 			if ( firstRow ) {
@@ -297,64 +304,73 @@ export const createSortableController = (
 		}
 	};
 	const finishKeyboardSession = ( commit: boolean ) => {
-		const session = keyboardSession;
-		if ( ! session ) {
+		if ( session.kind !== 'keyboard' ) {
 			return;
 		}
+		const keyboardSession = session;
 
-		keyboardSession = null;
-		keyboardGuidance?.cleanup();
-		keyboardGuidance = null;
+		keyboardSession.guidance.cleanup();
 		insertionLine.hide();
-		session.entry.setPressed( false );
+		keyboardSession.entry.setPressed( false );
+		session = { kind: 'idle' };
 		releaseEntry();
 		if (
 			commit &&
 			rows &&
-			! isNoopRowMove( session.oldIndex, session.currentIndex ) &&
-			isRowMoveAllowed( session.oldIndex, session.currentIndex, constraints )
+			! isNoopRowMove( keyboardSession.oldIndex, keyboardSession.currentIndex ) &&
+			isRowMoveAllowed( keyboardSession.oldIndex, keyboardSession.currentIndex, constraints )
 		) {
-			const reorderedRows = reorderRows( rows, session.oldIndex, session.currentIndex );
+			const reorderedRows = reorderRows(
+				rows,
+				keyboardSession.oldIndex,
+				keyboardSession.currentIndex
+			);
 			if ( reorderedRows ) {
 				announce(
 					getMoveCommittedAnnouncement(
-						session.rowLabel,
-						session.oldIndex + 1,
-						session.currentIndex + 1
+						keyboardSession.rowLabel,
+						keyboardSession.oldIndex + 1,
+						keyboardSession.currentIndex + 1
 					)
 				);
-				onCommit( reorderedRows, session.currentIndex );
+				onCommit( reorderedRows, keyboardSession.currentIndex );
 				return;
 			}
 		}
 
 		if ( ! commit ) {
-			announce( getMoveCanceledAnnouncement( session.rowLabel, session.oldIndex + 1 ) );
+			announce(
+				getMoveCanceledAnnouncement( keyboardSession.rowLabel, keyboardSession.oldIndex + 1 )
+			);
 		}
 		touchModeGuidance?.setHidden( false );
-		session.entry.control.focus();
+		keyboardSession.entry.control.focus();
 	};
 	const finishSinglePointerSession = ( newIndex?: number, announceCancellation = true ) => {
-		const session = singlePointerSession;
-		if ( ! session ) {
+		if ( session.kind !== 'pointer' ) {
 			return;
 		}
+		const pointerSession = session;
 
-		singlePointerSession = null;
-		session.targetsUi.cleanup();
-		session.entry.setPressed( false );
+		pointerSession.targetsUi.cleanup();
+		pointerSession.entry.setPressed( false );
+		session = { kind: 'idle' };
 		releaseEntry();
 
 		if (
 			newIndex !== undefined &&
 			rows &&
-			! isNoopRowMove( session.oldIndex, newIndex ) &&
-			isRowMoveAllowed( session.oldIndex, newIndex, constraints )
+			! isNoopRowMove( pointerSession.oldIndex, newIndex ) &&
+			isRowMoveAllowed( pointerSession.oldIndex, newIndex, constraints )
 		) {
-			const reorderedRows = reorderRows( rows, session.oldIndex, newIndex );
+			const reorderedRows = reorderRows( rows, pointerSession.oldIndex, newIndex );
 			if ( reorderedRows ) {
 				announce(
-					getMoveCommittedAnnouncement( session.rowLabel, session.oldIndex + 1, newIndex + 1 )
+					getMoveCommittedAnnouncement(
+						pointerSession.rowLabel,
+						pointerSession.oldIndex + 1,
+						newIndex + 1
+					)
 				);
 				onCommit( reorderedRows, newIndex );
 				return;
@@ -362,13 +378,15 @@ export const createSortableController = (
 		}
 
 		if ( announceCancellation ) {
-			announce( getMoveCanceledAnnouncement( session.rowLabel, session.oldIndex + 1 ) );
+			announce(
+				getMoveCanceledAnnouncement( pointerSession.rowLabel, pointerSession.oldIndex + 1 )
+			);
 		}
 		touchModeGuidance?.setHidden( false );
-		session.entry.control.focus();
+		pointerSession.entry.control.focus();
 	};
 	const startSinglePointerSession = ( entry: RowControlEntry ) => {
-		if ( isDragging || keyboardSession || singlePointerSession || ! rows ) {
+		if ( session.kind !== 'idle' || ! rows ) {
 			return;
 		}
 
@@ -394,11 +412,11 @@ export const createSortableController = (
 			onSelect: ( newIndex ) => finishSinglePointerSession( newIndex ),
 			sourceControl: entry.control,
 		} );
-		singlePointerSession = { entry, oldIndex, rowLabel, targetsUi };
+		session = { kind: 'pointer', entry, oldIndex, rowLabel, targetsUi };
 		announce( getDestinationRequestedAnnouncement( rowLabel ) );
 	};
 	const onRowPointerEnter = ( event: PointerEvent ) => {
-		if ( event.pointerType !== 'mouse' || isDragging || keyboardSession || singlePointerSession ) {
+		if ( event.pointerType !== 'mouse' || session.kind !== 'idle' ) {
 			return;
 		}
 
@@ -418,7 +436,7 @@ export const createSortableController = (
 		}
 	};
 	const onControlPointerDown = ( event: PointerEvent ) => {
-		if ( event.pointerType !== 'mouse' || keyboardSession || singlePointerSession ) {
+		if ( event.pointerType !== 'mouse' || session.kind !== 'idle' ) {
 			return;
 		}
 
@@ -434,7 +452,7 @@ export const createSortableController = (
 		}
 	};
 	const onControlClick = ( event: MouseEvent ) => {
-		if ( event.detail === 0 || keyboardSession || isDragging ) {
+		if ( event.detail === 0 || session.kind === 'keyboard' || session.kind === 'dragging' ) {
 			return;
 		}
 		if ( view.performance.now() < suppressPointerClickUntil ) {
@@ -449,7 +467,7 @@ export const createSortableController = (
 		}
 		event.preventDefault();
 		event.stopPropagation();
-		if ( singlePointerSession?.entry === entry ) {
+		if ( session.kind === 'pointer' && session.entry === entry ) {
 			return;
 		}
 		startSinglePointerSession( entry );
@@ -463,9 +481,13 @@ export const createSortableController = (
 	};
 	const onControlBlur = ( event: FocusEvent ) => {
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
-		if ( entry && keyboardSession?.entry === entry ) {
+		if ( entry && session.kind === 'keyboard' && session.entry === entry ) {
 			queueMicrotask( () => {
-				if ( ! destroyed && keyboardSession?.entry === entry ) {
+				if (
+					! destroyed &&
+					session.kind === 'keyboard' &&
+					session.entry === entry
+				) {
 					entry.control.focus();
 				}
 			} );
@@ -477,7 +499,7 @@ export const createSortableController = (
 	};
 	const onControlKeyDown = ( event: KeyboardEvent ) => {
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
-		if ( ! entry || isDragging || singlePointerSession ) {
+		if ( ! entry || session.kind === 'dragging' || session.kind === 'pointer' ) {
 			return;
 		}
 
@@ -485,7 +507,7 @@ export const createSortableController = (
 			return;
 		}
 
-		if ( ! keyboardSession ) {
+		if ( session.kind === 'idle' ) {
 			if ( event.key !== 'Enter' && event.key !== ' ' ) {
 				return;
 			}
@@ -500,25 +522,28 @@ export const createSortableController = (
 			const rowLabel = getRowRepresentativeText( entry.row );
 			activateEntry( entry );
 			touchModeGuidance?.setHidden( true );
-			keyboardSession = {
-				currentIndex: rowIndex,
-				entry,
-				lastBoundaryDirection: null,
-				oldIndex: rowIndex,
-				rowLabel,
-			};
 			entry.setPressed( true );
-			keyboardGuidance = createReorderGuidance(
+			const guidance = createReorderGuidance(
 				document,
 				tbody,
 				getKeyboardActiveMessage(),
 				entry.control
 			);
+			session = {
+				kind: 'keyboard',
+				currentIndex: rowIndex,
+				entry,
+				lastBoundaryDirection: null,
+				oldIndex: rowIndex,
+				rowLabel,
+				guidance,
+			};
 			announce( getMoveStartedAnnouncement( rowLabel, rowIndex + 1, constraints.rowCount ) );
 			entry.control.focus();
 			return;
 		}
 
+		const keyboardSession = session;
 		if ( keyboardSession.entry !== entry ) {
 			return;
 		}
@@ -589,7 +614,7 @@ export const createSortableController = (
 		);
 	};
 	const onDocumentKeyDown = ( event: KeyboardEvent ) => {
-		if ( event.key === 'Escape' && useHoverMode && singlePointerSession ) {
+		if ( event.key === 'Escape' && useHoverMode && session.kind === 'pointer' ) {
 			event.preventDefault();
 			event.stopPropagation();
 			finishSinglePointerSession();
@@ -634,18 +659,23 @@ export const createSortableController = (
 			forceFallback: true,
 			handle: `.${ HANDLE_ZONE_CLASS }`,
 			onChoose: ( event ) => {
-				insertionLine.hide();
+				if ( session.kind !== 'keyboard' ) {
+					insertionLine.hide();
+				}
 				dragRows = Array.from( tbody.rows );
 				draggedRowLabel = getRowRepresentativeText( event.item as HTMLTableRowElement );
 				restoreFallbackWidths();
 				restoreFallbackCellWidths = fixFallbackRowCellWidths( event.item );
 			},
 			onStart: () => {
-				if ( singlePointerSession ) {
+				if ( session.kind === 'keyboard' ) {
+					return;
+				}
+				if ( session.kind === 'pointer' ) {
 					finishSinglePointerSession( undefined, false );
 				}
 				insertionLine.hide();
-				isDragging = true;
+				session = { kind: 'dragging' };
 				suppressPointerClickUntil = Number.POSITIVE_INFINITY;
 				suppressBlockDrag();
 				if ( activeEntry ) {
@@ -653,6 +683,12 @@ export const createSortableController = (
 				}
 			},
 			onMove: ( event ) => {
+				if ( session.kind !== 'dragging' ) {
+					if ( session.kind !== 'keyboard' ) {
+						insertionLine.hide();
+					}
+					return false;
+				}
 				if ( ! dragRows ) {
 					insertionLine.hide();
 					return;
@@ -684,21 +720,36 @@ export const createSortableController = (
 				insertionLine.show( relatedRow, event.willInsertAfter );
 			},
 			onEnd: ( event ) => {
-				insertionLine.hide();
-				isDragging = false;
-				suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
+				const completedDrag = session.kind === 'dragging';
+				if ( completedDrag ) {
+					insertionLine.hide();
+					session = { kind: 'idle' };
+				}
+				if ( completedDrag ) {
+					suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
+				}
 				restoreFallbackWidths();
 				restoreDragRows();
 
-				if ( useHoverMode ) {
-					const hoveredAfterDrag = entries.find( ( entry ) => entry.row.matches( ':hover' ) );
-					if ( hoveredAfterDrag ) {
-						activateEntry( hoveredAfterDrag );
+				if ( completedDrag ) {
+					if ( useHoverMode ) {
+						const hoveredAfterDrag = entries.find( ( entry ) => entry.row.matches( ':hover' ) );
+						if ( hoveredAfterDrag ) {
+							activateEntry( hoveredAfterDrag );
+						} else {
+							releaseEntry();
+						}
 					} else {
-						releaseEntry();
+						restoreBlockDrag();
 					}
-				} else {
-					restoreBlockDrag();
+				}
+
+				if ( ! completedDrag ) {
+					draggedRowLabel = null;
+					if ( session.kind === 'keyboard' ) {
+						showKeyboardCandidate( session );
+					}
+					return;
 				}
 
 				const { oldIndex, newIndex } = event;
@@ -718,14 +769,20 @@ export const createSortableController = (
 				const reorderedRows = reorderRows( rows, oldIndex, newIndex );
 				if ( reorderedRows ) {
 					if ( draggedRowLabel ) {
-						announce( getMoveCommittedAnnouncement( draggedRowLabel, oldIndex + 1, newIndex + 1 ) );
+						announce(
+							getMoveCommittedAnnouncement( draggedRowLabel, oldIndex + 1, newIndex + 1 )
+						);
 					}
 					onCommit( reorderedRows );
 				}
 				draggedRowLabel = null;
 			},
 			onUnchoose: () => {
-				insertionLine.hide();
+				if ( session.kind === 'keyboard' ) {
+					showKeyboardCandidate( session );
+				} else {
+					insertionLine.hide();
+				}
 				if ( suppressPointerClickUntil === Number.POSITIVE_INFINITY ) {
 					suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
 				}
@@ -777,7 +834,6 @@ export const createSortableController = (
 					}
 					return 'current-row-not-movable';
 				}
-
 				if ( focusRowControlAt( lastActiveRowIndex ) ) {
 					return 'focused';
 				}
@@ -793,23 +849,15 @@ export const createSortableController = (
 			}
 
 			destroyed = true;
-			if ( keyboardSession ) {
-				keyboardSession.entry.setPressed( false );
-				keyboardSession = null;
+			if ( session.kind === 'keyboard' ) {
+				session.entry.setPressed( false );
+				session.guidance.cleanup();
+			} else if ( session.kind === 'pointer' ) {
+				announce( getMoveCanceledAnnouncement( session.rowLabel, session.oldIndex + 1 ) );
+				session.targetsUi.cleanup();
+				session.entry.setPressed( false );
 			}
-			keyboardGuidance?.cleanup();
-			keyboardGuidance = null;
-			if ( singlePointerSession ) {
-				announce(
-					getMoveCanceledAnnouncement(
-						singlePointerSession.rowLabel,
-						singlePointerSession.oldIndex + 1
-					)
-				);
-				singlePointerSession.targetsUi.cleanup();
-				singlePointerSession.entry.setPressed( false );
-				singlePointerSession = null;
-			}
+			session = { kind: 'idle' };
 			touchModeGuidance?.cleanup();
 			touchModeGuidance = null;
 			sortable?.destroy();
