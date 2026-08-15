@@ -18,12 +18,22 @@ const ensureSortableRuntimeMock = ensureSortableRuntime as jest.MockedFunction<
 	typeof ensureSortableRuntime
 >;
 
-const createRuntime = (): SortableRuntime => ( {
-	create: jest.fn(
-		(): SortableInstance => ( {
-			destroy: jest.fn(),
-		} )
-	),
+type RuntimeOptions = {
+	onChoose: ( event: { item: HTMLElement } ) => void;
+	onEnd: ( event: { oldIndex?: number; newIndex?: number } ) => void;
+	onMove: (
+		event: { related: HTMLElement; willInsertAfter: boolean },
+		originalEvent: Event
+	) => boolean | void;
+	onStart: () => void;
+	onUnchoose: () => void;
+};
+
+const createRuntime = ( capture?: ( options: RuntimeOptions ) => void ): SortableRuntime => ( {
+	create: jest.fn( ( _element: HTMLElement, options: unknown ): SortableInstance => {
+		capture?.( options as RuntimeOptions );
+		return { destroy: jest.fn() };
+	} ),
 } );
 
 const createContext = ( rowCount = 4 ) => {
@@ -71,6 +81,16 @@ const pressKey = ( control: HTMLButtonElement, key: string, shiftKey = false ) =
 	} );
 	control.dispatchEvent( event );
 	return event;
+};
+
+const clickPointerControl = ( control: HTMLButtonElement ) => {
+	control.dispatchEvent(
+		new MouseEvent( 'click', {
+			bubbles: true,
+			cancelable: true,
+			detail: 1,
+		} )
+	);
 };
 
 describe( 'createSortableController keyboard reorder', () => {
@@ -197,6 +217,127 @@ describe( 'createSortableController keyboard reorder', () => {
 		expect( pressKey( control, 'Tab' ).defaultPrevented ).toBe( true );
 		expect( pressKey( control, 'Tab', true ).defaultPrevented ).toBe( true );
 		expect( tbody.ownerDocument.activeElement ).toBe( control );
+		controller.destroy();
+	} );
+
+	it( 'ignores pointer start while a keyboard session is active', () => {
+		const { context, tbody } = createContext();
+		const onCommit = jest.fn();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit,
+			rows: [ 'a', 'b', 'c', 'd' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		const control = getControl( tbody, 1 );
+		control.focus();
+		pressKey( control, 'Enter' );
+		const guidance = document.querySelector( '.yamabiko-table-reorder-pointer-guidance' );
+
+		clickPointerControl( getControl( tbody, 2 ) );
+
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBe( guidance );
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
+		expect( tbody.ownerDocument.activeElement ).toBe( control );
+		pressKey( control, 'ArrowDown' );
+		pressKey( control, 'Enter' );
+		expect( onCommit ).toHaveBeenCalledWith( [ 'a', 'c', 'b', 'd' ], 2 );
+		controller.destroy();
+	} );
+
+	it( 'ignores keyboard start while a drag is active', async () => {
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
+		ensureSortableRuntimeMock.mockResolvedValue(
+			createRuntime( ( options ) => {
+				runtimeOptionsRef.current = options;
+			} )
+		);
+		const { context, tbody } = createContext();
+		const onCommit = jest.fn();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit,
+			rows: [ 'a', 'b', 'c', 'd' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await Promise.resolve();
+		const runtimeOptions = runtimeOptionsRef.current;
+		const control = getControl( tbody, 1 );
+		if ( ! runtimeOptions ) {
+			throw new Error( 'Expected Sortable runtime options' );
+		}
+
+		runtimeOptions.onStart();
+		control.focus();
+		pressKey( control, 'Enter' );
+
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
+		expect( onCommit ).not.toHaveBeenCalled();
+		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
+		controller.destroy();
+	} );
+
+	it( 'keeps the keyboard session through a rejected Sortable lifecycle', async () => {
+		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
+		ensureSortableRuntimeMock.mockResolvedValue(
+			createRuntime( ( options ) => {
+				runtimeOptionsRef.current = options;
+			} )
+		);
+		const { context, tbody } = createContext();
+		const onCommit = jest.fn();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit,
+			rows: [ 'a', 'b', 'c', 'd' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		await Promise.resolve();
+		const runtimeOptions = runtimeOptionsRef.current;
+		const control = getControl( tbody, 1 );
+		const row = tbody.rows.item( 1 );
+		const related = tbody.rows.item( 2 );
+		if ( ! runtimeOptions || ! row || ! related ) {
+			throw new Error( 'Expected Sortable runtime options and rows' );
+		}
+		control.focus();
+		pressKey( control, 'Enter' );
+		pressKey( control, 'ArrowDown' );
+		const guidance = document.querySelector( '.yamabiko-table-reorder-pointer-guidance' );
+		const insertionLine = document.querySelector< HTMLDivElement >(
+			'.yamabiko-table-reorder-insertion-line'
+		);
+		expect( insertionLine?.style.display ).toBe( 'block' );
+
+		runtimeOptions.onChoose( { item: row } );
+		runtimeOptions.onStart();
+		runtimeOptions.onMove(
+			{ related, willInsertAfter: true },
+			new Event( 'pointermove' )
+		);
+		runtimeOptions.onUnchoose();
+		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
+
+		expect( onCommit ).not.toHaveBeenCalled();
+		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBe( guidance );
+		expect( tbody.ownerDocument.activeElement ).toBe( control );
+
+		pressKey( control, 'ArrowDown' );
+		expect( insertionLine?.style.display ).toBe( 'block' );
+		pressKey( control, 'Enter' );
+		expect( onCommit ).toHaveBeenCalledWith( [ 'a', 'c', 'd', 'b' ], 3 );
 		controller.destroy();
 	} );
 } );
