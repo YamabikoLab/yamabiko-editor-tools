@@ -336,7 +336,12 @@ describe( 'createSortableController keyboard reorder', () => {
 
 		runtimeOptions.onChoose( { item: row } );
 		runtimeOptions.onStart();
-		runtimeOptions.onMove( { related, willInsertAfter: true }, new Event( 'pointermove' ) );
+		expect(
+			runtimeOptions.onMove(
+				{ related, willInsertAfter: true },
+				new Event( 'pointermove' )
+			)
+		).toBe( false );
 		runtimeOptions.onUnchoose();
 		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 2 } );
 
