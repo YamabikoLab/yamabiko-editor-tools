@@ -769,11 +769,7 @@ export const createSortableController = (
 				if ( reorderedRows ) {
 					if ( completedSnapshot?.rowLabel ) {
 						announce(
-							getMoveCommittedAnnouncement(
-								completedSnapshot.rowLabel,
-								oldIndex + 1,
-								newIndex + 1
-							)
+							getMoveCommittedAnnouncement( completedSnapshot.rowLabel, oldIndex + 1, newIndex + 1 )
 						);
 					}
 					onCommit( reorderedRows );
