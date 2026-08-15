@@ -93,6 +93,16 @@ const clickPointerControl = ( control: HTMLButtonElement ) => {
 	);
 };
 
+const pointerDownPointerControl = ( control: HTMLButtonElement ) => {
+	const event = new Event( 'pointerdown', { bubbles: true, cancelable: true } );
+	Object.defineProperties( event, {
+		button: { value: 0 },
+		pointerId: { value: 1 },
+		pointerType: { value: 'mouse' },
+	} );
+	control.dispatchEvent( event );
+};
+
 describe( 'createSortableController keyboard reorder', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
@@ -236,8 +246,11 @@ describe( 'createSortableController keyboard reorder', () => {
 		control.focus();
 		pressKey( control, 'Enter' );
 		const guidance = document.querySelector( '.yamabiko-table-reorder-pointer-guidance' );
+		const pointerControl = getControl( tbody, 2 );
+		expect( guidance ).not.toBeNull();
 
-		clickPointerControl( getControl( tbody, 2 ) );
+		pointerDownPointerControl( pointerControl );
+		clickPointerControl( pointerControl );
 
 		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
 		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBe( guidance );
@@ -318,6 +331,8 @@ describe( 'createSortableController keyboard reorder', () => {
 		const insertionLine = document.querySelector< HTMLDivElement >(
 			'.yamabiko-table-reorder-insertion-line'
 		);
+		expect( guidance ).not.toBeNull();
+		expect( insertionLine?.style.display ).toBe( 'block' );
 
 		runtimeOptions.onChoose( { item: row } );
 		runtimeOptions.onStart();
@@ -329,6 +344,7 @@ describe( 'createSortableController keyboard reorder', () => {
 		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
 		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBe( guidance );
 		expect( tbody.ownerDocument.activeElement ).toBe( control );
+		expect( insertionLine?.style.display ).toBe( 'block' );
 
 		expect( pressKey( control, 'ArrowDown' ).defaultPrevented ).toBe( true );
 		expect( insertionLine?.style.display ).toBe( 'block' );
