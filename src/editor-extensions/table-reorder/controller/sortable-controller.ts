@@ -213,6 +213,10 @@ export const createSortableController = (
 
 		restoreOriginalRowOrder( tbody, dragSnapshot.rows );
 	};
+	const cleanupDragSnapshot = () => {
+		restoreDragRows();
+		dragSnapshot = null;
+	};
 	const suppressBlockDrag = () => {
 		if ( blockDragSuppressed ) {
 			return;
@@ -724,26 +728,10 @@ export const createSortableController = (
 				if ( completedDrag ) {
 					insertionLine.hide();
 					session = { kind: 'idle' };
-				}
-				if ( completedDrag ) {
 					suppressPointerClickUntil = view.performance.now() + DRAG_CLICK_SUPPRESSION_MS;
 				}
 				restoreFallbackWidths();
-				restoreDragRows();
-				dragSnapshot = null;
-
-				if ( completedDrag ) {
-					if ( useHoverMode ) {
-						const hoveredAfterDrag = entries.find( ( entry ) => entry.row.matches( ':hover' ) );
-						if ( hoveredAfterDrag ) {
-							activateEntry( hoveredAfterDrag );
-						} else {
-							releaseEntry();
-						}
-					} else {
-						restoreBlockDrag();
-					}
-				}
+				cleanupDragSnapshot();
 
 				if ( ! completedDrag ) {
 					if ( session.kind === 'keyboard' ) {
@@ -751,6 +739,17 @@ export const createSortableController = (
 						session.entry.control.focus();
 					}
 					return;
+				}
+
+				if ( useHoverMode ) {
+					const hoveredAfterDrag = entries.find( ( entry ) => entry.row.matches( ':hover' ) );
+					if ( hoveredAfterDrag ) {
+						activateEntry( hoveredAfterDrag );
+					} else {
+						releaseEntry();
+					}
+				} else {
+					restoreBlockDrag();
 				}
 
 				const { oldIndex, newIndex } = event;
@@ -880,8 +879,7 @@ export const createSortableController = (
 			}
 			tbody.removeEventListener( 'focusin', rememberRowFromEvent );
 			tbody.removeEventListener( 'pointerdown', rememberRowFromEvent );
-			restoreDragRows();
-			dragSnapshot = null;
+			cleanupDragSnapshot();
 			releaseEntry();
 			rowControls.cleanup();
 		},
