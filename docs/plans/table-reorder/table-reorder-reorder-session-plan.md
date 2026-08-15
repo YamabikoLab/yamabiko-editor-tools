@@ -26,7 +26,7 @@ UI仕様や操作仕様は変更せず、既存挙動を回帰テストで固定
 - `session.kind` を基準に、各イベントハンドラと SortableJS callback の排他条件を整理する。
 - `keyboard` 中の SortableJS drag 開始を拒否し、`onChoose` から `onEnd` まで拒否された lifecycle 全体で keyboard UI / guidance / focus / `aria-pressed` を維持する。
 - `pointer -> dragging` では pointer UI を cleanup してから `dragging` へ遷移する。
-- `onEnd` / controller cleanup / `destroy()` で session と drag snapshot を一貫して破棄する。
+- 通常の `dragging` の `onEnd` では session / drag snapshot を破棄し、拒否された `keyboard` drag lifecycle の `onEnd` では keyboard session を維持して drag snapshot のみ破棄する。`destroy()` では session / drag snapshot をまとめて cleanup する。
 - 既存挙動を固定する回帰テストを追加する。
 
 ### Not included
