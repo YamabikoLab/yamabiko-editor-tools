@@ -338,7 +338,7 @@ describe( 'createSortableController keyboard reorder', () => {
 		runtimeOptions.onStart();
 		runtimeOptions.onMove( { related, willInsertAfter: true }, new Event( 'pointermove' ) );
 		runtimeOptions.onUnchoose();
-		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 1 } );
+		runtimeOptions.onEnd( { oldIndex: 1, newIndex: 2 } );
 
 		expect( onCommit ).not.toHaveBeenCalled();
 		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
