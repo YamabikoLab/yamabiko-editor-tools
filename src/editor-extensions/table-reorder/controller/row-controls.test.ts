@@ -1,8 +1,4 @@
-import {
-	createRowControls,
-	getRowRepresentativeText,
-	HANDLE_ZONE_CLASS,
-} from './row-controls';
+import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './row-controls';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
