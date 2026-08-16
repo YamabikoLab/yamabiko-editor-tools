@@ -1,12 +1,8 @@
 import {
-	announceLiveStatus,
-	createReorderGuidance,
 	createRowControls,
-	createRowMoveTargets,
-	DESTINATION_CLASS,
 	getRowRepresentativeText,
 	HANDLE_ZONE_CLASS,
-} from './reorder-ui';
+} from './row-controls';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -29,22 +25,7 @@ const createTable = ( labels: string[] ) => {
 	return { tbody };
 };
 
-const dispatchTouchPointer = (
-	target: Element,
-	type: string,
-	{ x, y }: { x: number; y: number }
-) => {
-	const event = new Event( type, { bubbles: true, cancelable: true } );
-	Object.defineProperties( event, {
-		clientX: { value: x },
-		clientY: { value: y },
-		pointerId: { value: 1 },
-		pointerType: { value: 'touch' },
-	} );
-	target.dispatchEvent( event );
-};
-
-describe( 'reorder-ui', () => {
+describe( 'row-controls', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
 	} );
@@ -144,82 +125,5 @@ describe( 'reorder-ui', () => {
 		row.cells.item( 1 )!.textContent = 'Second cell';
 
 		expect( getRowRepresentativeText( row ) ).toBe( 'Second cell' );
-	} );
-
-	it( 'keeps the live status accessibility and visually-hidden contract', async () => {
-		announceLiveStatus( document, 'First announcement' );
-		announceLiveStatus( document, 'Second announcement' );
-		await Promise.resolve();
-
-		const statuses = document.querySelectorAll( '.yamabiko-table-reorder-live-status' );
-		expect( statuses ).toHaveLength( 1 );
-		expect( statuses[ 0 ].textContent ).toBe( 'Second announcement' );
-		expect( statuses[ 0 ].classList ).toContain( 'yamabiko-table-reorder-description' );
-		expect( statuses[ 0 ].getAttribute( 'role' ) ).toBe( 'status' );
-		expect( statuses[ 0 ].getAttribute( 'aria-live' ) ).toBe( 'polite' );
-		expect( statuses[ 0 ].getAttribute( 'aria-atomic' ) ).toBe( 'true' );
-	} );
-
-	it( 'creates and cleans up an inline operation guidance', () => {
-		const { tbody } = createTable( [ 'Alpha' ] );
-		const guidance = createReorderGuidance( document, tbody, 'Keyboard guidance' );
-
-		expect( guidance.element.textContent ).toBe( 'Keyboard guidance' );
-		guidance.setHidden( true );
-		expect( guidance.element.hidden ).toBe( true );
-		guidance.cleanup();
-		expect( guidance.element.isConnected ).toBe( false );
-	} );
-
-	it( 'keeps row move target labels and cleanup scoped to the target UI', () => {
-		const { tbody } = createTable( [ 'Alpha', 'Beta', 'Gamma' ] );
-		const sourceControl = document.createElement( 'button' );
-		const onCancel = jest.fn();
-		const onSelect = jest.fn();
-		const targets = createRowMoveTargets( document, tbody, [ { insertionIndex: 2, newIndex: 1 } ], {
-			isTouch: true,
-			onCancel,
-			onSelect,
-			sourceControl,
-		} );
-		const destination = document.querySelector< HTMLButtonElement >( `.${ DESTINATION_CLASS }` );
-		const cancel = document.querySelector< HTMLButtonElement >(
-			'.yamabiko-table-reorder-pointer-cancel'
-		);
-
-		expect( destination?.getAttribute( 'aria-label' ) ).toBe( 'Move before row 3: Gamma' );
-		expect( cancel?.getAttribute( 'aria-label' ) ).toBe( 'Cancel' );
-		cancel?.click();
-		expect( onCancel ).toHaveBeenCalledTimes( 1 );
-
-		targets.cleanup();
-
-		expect( document.querySelector( `.${ DESTINATION_CLASS }` ) ).toBeNull();
-		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
-	} );
-
-	it( 'selects a row move target once for a touch tap within the threshold', () => {
-		const { tbody } = createTable( [ 'Alpha', 'Beta', 'Gamma' ] );
-		const onSelect = jest.fn();
-		const targets = createRowMoveTargets( document, tbody, [ { insertionIndex: 2, newIndex: 1 } ], {
-			isTouch: true,
-			onCancel: jest.fn(),
-			onSelect,
-			sourceControl: document.createElement( 'button' ),
-		} );
-		const destination = document.querySelector< HTMLButtonElement >( `.${ DESTINATION_CLASS }` );
-		if ( ! destination ) {
-			throw new Error( 'Expected destination button' );
-		}
-
-		dispatchTouchPointer( destination, 'pointerdown', { x: 10, y: 10 } );
-		dispatchTouchPointer( destination, 'pointermove', { x: 13, y: 13 } );
-		dispatchTouchPointer( destination, 'pointerup', { x: 13, y: 13 } );
-		destination.click();
-
-		expect( onSelect ).toHaveBeenCalledTimes( 1 );
-		expect( onSelect ).toHaveBeenCalledWith( 1 );
-
-		targets.cleanup();
 	} );
 } );
