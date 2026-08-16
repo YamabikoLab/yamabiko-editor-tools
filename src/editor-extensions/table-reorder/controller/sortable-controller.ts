@@ -765,26 +765,19 @@ export const createSortableController = (
 				}
 
 				const { oldIndex, newIndex } = event;
-				if ( oldIndex === undefined || newIndex === undefined || ! rows ) {
-					return;
-				}
-
 				if (
-					isNoopRowMove( oldIndex, newIndex ) ||
-					! isRowMoveAllowed( oldIndex, newIndex, constraints )
+					oldIndex === undefined ||
+					newIndex === undefined ||
+					! completedSnapshot
 				) {
 					return;
 				}
 
-				const reorderedRows = reorderRows( rows, oldIndex, newIndex );
-				if ( reorderedRows ) {
-					if ( completedSnapshot?.rowLabel ) {
-						announce(
-							getMoveCommittedAnnouncement( completedSnapshot.rowLabel, oldIndex + 1, newIndex + 1 )
-						);
-					}
-					onCommit( reorderedRows );
-				}
+				commitRowMove( {
+					oldIndex,
+					newIndex,
+					rowLabel: completedSnapshot.rowLabel,
+				} );
 			},
 			onUnchoose: () => {
 				if ( session.kind === 'keyboard' ) {
