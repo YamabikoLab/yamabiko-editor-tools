@@ -2,8 +2,7 @@
  * Table ReorderのReact state / effect lifecycleとcontroller接続を管理する。
  *
  * hover capability、入力方式、touch並び替えmode、block選択解除時のreset、初回coachmarkの永続化を所有し、
- * 解決済みTable contextとrowspan制約からSortableJS controllerを生成・破棄する。DOM装飾やdrag sessionの
- * 命令的処理は下位モジュールへ委譲し、WordPress notice APIとsetAttributesは狭いcallbackへ変換する。
+ * controller lifecycleは専用hookへ委譲する。WordPress notice APIとsetAttributesは狭いcallbackへ変換する。
  */
 
 import { useDispatch, useSelect } from '@wordpress/data';
@@ -11,18 +10,15 @@ import { useEffect, useRef, useState, type RefObject } from '@wordpress/element'
 import { store as noticesStore } from '@wordpress/notices';
 
 import { announceLiveStatus, HANDLE_ZONE_CLASS } from './controller/reorder-ui';
-import {
-	createSortableController,
-	type ReorderInteractionMode,
-	type SortableController,
-} from './controller/sortable-controller';
+import type { ReorderInteractionMode } from './controller/sortable-controller';
 import {
 	getNoMovableRowsAnnouncement,
 	getNoMovableRowsMessage,
 	getRowspanErrorMessage,
 } from './messages';
-import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
+import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { resolveTableContext } from './table-context';
+import { useTableReorderController } from './use-table-reorder-controller';
 
 /** hover操作を利用できる端末を判定するmedia query。 */
 const HOVER_REORDER_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
@@ -47,13 +43,6 @@ type PreferencesSelector = {
 /** WordPress preferences actionsの利用部分。 */
 type PreferencesActions = {
 	set: ( scope: string, name: string, value: unknown ) => Promise< unknown > | unknown;
-};
-
-/** SortableJS runtime URLを公開するeditor windowの設定。 */
-type TableReorderConfigWindow = Window & {
-	yamabikoEditorToolsTableReorder?: {
-		runtimeUrl?: string;
-	};
 };
 
 /** custom hookへ渡すGutenberg側の入力。 */
@@ -87,8 +76,6 @@ export type TableReorderHookResult = {
 export const useTableReorder = ( options: UseTableReorderOptions ): TableReorderHookResult => {
 	const { body, clientId, enabled, isSelected, setAttributes } = options;
 	const anchorRef = useRef< HTMLSpanElement >( null );
-	const controllerRef = useRef< SortableController | null >( null );
-	const pendingFocusRowIndexRef = useRef< number | null >( null );
 	const { createNotice } = useDispatch( noticesStore );
 	const preferencesActions = useDispatch( 'core/preferences' ) as unknown as PreferencesActions;
 	const isKeyboardCoachmarkDismissed = useSelect( ( registrySelect ) => {
@@ -222,89 +209,16 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		setIsTouchCoachmarkVisible( ! isTouchCoachmarkDismissed );
 	}, [ enabled, isHoverCapable, isSelected, isTouchCoachmarkDismissed, isTouchReorderMode ] );
 
-	useEffect( () => {
-		controllerRef.current = null;
-		if ( ! enabled || ! interactionMode ) {
-			return;
-		}
-
-		const anchor = anchorRef.current;
-		if ( ! anchor ) {
-			return;
-		}
-
-		const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoEditorToolsTableReorder
-			?.runtimeUrl;
-		if ( ! runtimeUrl ) {
-			return;
-		}
-
-		const context = resolveTableContext( anchor, clientId );
-		if ( ! context ) {
-			return;
-		}
-
-		if (
-			interactionMode === 'hover' &&
-			! context.window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
-		) {
-			return;
-		}
-
-		const rowspanRanges = getRowspanRanges( body );
-		let controller: SortableController | null = null;
-		let disposed = false;
-
-		queueMicrotask( () => {
-			if ( disposed ) {
-				return;
-			}
-
-			const createdController = createSortableController( {
-				context,
-				forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
-				interactionMode,
-				nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
-				onCommit: ( reorderedBody, focusRowIndex ) => {
-					if ( focusRowIndex !== undefined ) {
-						pendingFocusRowIndexRef.current = focusRowIndex;
-					}
-					setAttributesRef.current( { body: reorderedBody } );
-				},
-				rows: Array.isArray( body ) ? body : null,
-				runtimeUrl,
-			} );
-
-			if ( disposed ) {
-				createdController.destroy();
-				return;
-			}
-
-			controller = createdController;
-			controllerRef.current = createdController;
-			const pendingFocusRowIndex = pendingFocusRowIndexRef.current;
-			if (
-				pendingFocusRowIndex !== null &&
-				createdController.focusRowControlAt( pendingFocusRowIndex )
-			) {
-				pendingFocusRowIndexRef.current = null;
-			}
-		} );
-
-		return () => {
-			disposed = true;
-			const controllerToDestroy = controller;
-			controller = null;
-			if ( controllerRef.current === controllerToDestroy ) {
-				controllerRef.current = null;
-			}
-			if ( controllerToDestroy ) {
-				queueMicrotask( () => {
-					controllerToDestroy.destroy();
-				} );
-			}
-		};
-	}, [ body, clientId, enabled, interactionMode ] );
+	const { focusRowControl } = useTableReorderController( {
+		anchorRef,
+		body,
+		clientId,
+		enabled,
+		interactionMode,
+		onBodyCommit: ( reorderedBody ) => {
+			setAttributesRef.current( { body: reorderedBody } );
+		},
+	} );
 
 	const dismissKeyboardCoachmark = () => {
 		setIsKeyboardCoachmarkVisible( false );
@@ -337,7 +251,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		isTouchReorderMode,
 		requestRowControlFocus: () => {
 			dismissKeyboardCoachmark();
-			const result = controllerRef.current?.focusRowControl();
+			const result = focusRowControl();
 			if ( result === 'current-row-not-movable' ) {
 				void createNoticeRef.current( 'error', getRowspanErrorMessage(), {
 					type: 'snackbar',
