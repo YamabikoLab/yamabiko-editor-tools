@@ -2,6 +2,8 @@ import {
 	announceLiveStatus,
 	createReorderGuidance,
 	createRowControls,
+	createRowMoveTargets,
+	DESTINATION_CLASS,
 	getRowRepresentativeText,
 	HANDLE_ZONE_CLASS,
 } from './reorder-ui';
@@ -129,7 +131,7 @@ describe( 'reorder-ui', () => {
 		expect( getRowRepresentativeText( row ) ).toBe( 'Second cell' );
 	} );
 
-	it( 'keeps a single live status node in the owning document', async () => {
+	it( 'keeps the live status accessibility and visually-hidden contract', async () => {
 		announceLiveStatus( document, 'First announcement' );
 		announceLiveStatus( document, 'Second announcement' );
 		await Promise.resolve();
@@ -137,7 +139,10 @@ describe( 'reorder-ui', () => {
 		const statuses = document.querySelectorAll( '.yamabiko-table-reorder-live-status' );
 		expect( statuses ).toHaveLength( 1 );
 		expect( statuses[ 0 ].textContent ).toBe( 'Second announcement' );
+		expect( statuses[ 0 ].classList ).toContain( 'yamabiko-table-reorder-description' );
 		expect( statuses[ 0 ].getAttribute( 'role' ) ).toBe( 'status' );
+		expect( statuses[ 0 ].getAttribute( 'aria-live' ) ).toBe( 'polite' );
+		expect( statuses[ 0 ].getAttribute( 'aria-atomic' ) ).toBe( 'true' );
 	} );
 
 	it( 'creates and cleans up an inline operation guidance', () => {
@@ -149,5 +154,32 @@ describe( 'reorder-ui', () => {
 		expect( guidance.element.hidden ).toBe( true );
 		guidance.cleanup();
 		expect( guidance.element.isConnected ).toBe( false );
+	} );
+
+	it( 'keeps row move target labels and cleanup scoped to the target UI', () => {
+		const { tbody } = createTable( [ 'Alpha', 'Beta', 'Gamma' ] );
+		const sourceControl = document.createElement( 'button' );
+		const onCancel = jest.fn();
+		const onSelect = jest.fn();
+		const targets = createRowMoveTargets(
+			document,
+			tbody,
+			[ { insertionIndex: 2, newIndex: 1 } ],
+			{ isTouch: true, onCancel, onSelect, sourceControl }
+		);
+		const destination = document.querySelector< HTMLButtonElement >( `.${ DESTINATION_CLASS }` );
+		const cancel = document.querySelector< HTMLButtonElement >(
+			'.yamabiko-table-reorder-pointer-cancel'
+		);
+
+		expect( destination?.getAttribute( 'aria-label' ) ).toBe( 'Move before row 3: Gamma' );
+		expect( cancel?.getAttribute( 'aria-label' ) ).toBe( 'Cancel' );
+		cancel?.click();
+		expect( onCancel ).toHaveBeenCalledTimes( 1 );
+
+		targets.cleanup();
+
+		expect( document.querySelector( `.${ DESTINATION_CLASS }` ) ).toBeNull();
+		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
 	} );
 } );
