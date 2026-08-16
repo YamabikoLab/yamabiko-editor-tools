@@ -54,9 +54,14 @@ src/editor-extensions/table-reorder/
 ├── table-context.ts
 ├── table-context.test.ts
 └── controller/
+    └── reorder-ui/
 ```
 
 The exact file set is driven by current responsibilities. New files or subdirectories should be added only when they make an existing responsibility clearer.
+
+`controller/reorder-ui/` is owned by the Table Reorder controller UI boundary. Its `index.ts` is the compatibility facade used by controller consumers, while the sibling modules inside that directory own focused row-control, guidance, row-move-target, and live-status UI lifecycles.
+
+Dependencies may flow from Table Reorder controller consumers into `controller/reorder-ui/index.ts`, and from `row-move-targets.ts` into `row-controls.ts` and `reorder-guidance.ts`. The focused UI modules may depend on lower-level Table Reorder modules such as `messages.ts` and `controller/row-order.ts`, but they must not depend back on the facade or on higher-level controller consumers.
 
 ## Entry files
 

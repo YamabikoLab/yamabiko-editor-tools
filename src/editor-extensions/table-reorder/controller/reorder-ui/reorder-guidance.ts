@@ -1,4 +1,4 @@
-import type { RowMoveDirection } from './row-order';
+import type { RowMoveDirection } from '../row-order';
 
 /** 操作中の案内に付与するclass。 */
 const GUIDANCE_CLASS = 'yamabiko-table-reorder-pointer-guidance';

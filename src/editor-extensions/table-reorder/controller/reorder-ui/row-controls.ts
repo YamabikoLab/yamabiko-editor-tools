@@ -9,7 +9,7 @@ import {
 	getRowControlKeyboardDescription,
 	getRowControlName,
 	getRowControlPointerDescription,
-} from '../messages';
+} from '../../messages';
 
 /** 行control本体に付与するclass。SortableJSのhandle selectorとしても利用する。 */
 export const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';

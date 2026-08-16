@@ -36,15 +36,16 @@ table-reorder/
 │  ├─ sortable-controller.test.ts
 │  ├─ sortable-controller-keyboard.test.ts
 │  ├─ sortable-controller-pointer.test.ts
-│  ├─ reorder-ui.ts
-│  ├─ row-controls.ts
-│  ├─ row-controls.test.ts
-│  ├─ reorder-guidance.ts
-│  ├─ reorder-guidance.test.ts
-│  ├─ row-move-targets.ts
-│  ├─ row-move-targets.test.ts
-│  ├─ live-status.ts
-│  ├─ live-status.test.ts
+│  ├─ reorder-ui/
+│  │  ├─ index.ts
+│  │  ├─ row-controls.ts
+│  │  ├─ row-controls.test.ts
+│  │  ├─ reorder-guidance.ts
+│  │  ├─ reorder-guidance.test.ts
+│  │  ├─ row-move-targets.ts
+│  │  ├─ row-move-targets.test.ts
+│  │  ├─ live-status.ts
+│  │  └─ live-status.test.ts
 │  ├─ drag-ui.ts
 │  ├─ drag-ui.test.ts
 │  ├─ row-order.ts
@@ -66,11 +67,11 @@ Responsibility boundaries:
 - `use-table-reorder-interaction.ts`: owns hover capability, input modality, touch reorder mode, coachmark preferences, and the interaction mode passed to the controller lifecycle.
 - `use-table-reorder-controller.ts`: owns controller creation / destruction / recreation, delayed lifecycle safety, and focus restoration after body commits.
 - `controller/sortable-controller.ts`: owns SortableJS callbacks, movable-row hover detection, keyboard / single-pointer sessions, mutable drag session state, temporary block-drag suppression, DOM ownership handoff, and controller cleanup. PC and touch both configure SortableJS with the shared row-control handle, so rows themselves are never drag-start areas.
-- `controller/reorder-ui.ts`: compatibility facade that re-exports the existing reorder UI API for current consumers. It owns no UI lifecycle logic.
-- `controller/row-controls.ts`: owns row-control creation and cleanup, representative row text, accessible descriptions / Tooltip state, visibility, pressed state, cell style restoration, and the row-control propagation boundary.
-- `controller/reorder-guidance.ts`: owns operation guidance positioning / cleanup and keyboard destination scrolling.
-- `controller/row-move-targets.ts`: owns pointer / touch destination buttons, touch cancellation, tap-vs-swipe handling, positioning, guidance integration, and cleanup.
-- `controller/live-status.ts`: owns document-scoped assistive-technology status announcements and their visually-hidden / ARIA contract.
+- `controller/reorder-ui/index.ts`: compatibility facade that re-exports the existing reorder UI API for current consumers. It owns no UI lifecycle logic.
+- `controller/reorder-ui/row-controls.ts`: owns row-control creation and cleanup, representative row text, accessible descriptions / Tooltip state, visibility, pressed state, cell style restoration, and the row-control propagation boundary.
+- `controller/reorder-ui/reorder-guidance.ts`: owns operation guidance positioning / cleanup and keyboard destination scrolling.
+- `controller/reorder-ui/row-move-targets.ts`: owns pointer / touch destination buttons, touch cancellation, tap-vs-swipe handling, positioning, guidance integration, and cleanup.
+- `controller/reorder-ui/live-status.ts`: owns document-scoped assistive-technology status announcements and their visually-hidden / ARIA contract.
 - `table-context.ts`: resolves the Table block and its owning `document`, `window`, `table`, and `tbody`, including iframe fallback.
 - `controller/sortable-runtime.ts`: loads or reuses the SortableJS runtime in the owning editor window.
 - `controller/drag-ui.ts`: owns short-lived drag UI and restoration, including the insertion line and fallback row widths.
@@ -81,7 +82,7 @@ Responsibility boundaries:
 
 The former `controller/touch-press.ts` long-press tracker is no longer needed. Touch DnD uses the same handle boundary as PC, so cell taps and normal table scrolling do not require a separate press tracker or touch-mode pointer-event suppression.
 
-The dependency direction stays from the Gutenberg / React boundary toward lower-level modules. Current consumers continue to import the reorder UI contract through `controller/reorder-ui.ts`; among the UI modules, `row-move-targets.ts` depends only on `row-controls.ts` and `reorder-guidance.ts`, and the lower-level UI modules do not depend back on the facade.
+The dependency direction stays from the Gutenberg / React boundary toward lower-level modules. Current consumers continue to import the reorder UI contract through `controller/reorder-ui`; among the UI modules, `row-move-targets.ts` depends only on `row-controls.ts` and `reorder-guidance.ts`, and the lower-level UI modules do not depend back on the facade.
 
 ## Build integration
 
