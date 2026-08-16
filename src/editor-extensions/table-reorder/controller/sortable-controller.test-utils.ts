@@ -1,9 +1,7 @@
 import type { TableContext } from '../table-context';
 import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
 
-export type SortableRuntime = NonNullable<
-	Awaited< ReturnType< typeof ensureSortableRuntime > >
->;
+export type SortableRuntime = NonNullable< Awaited< ReturnType< typeof ensureSortableRuntime > > >;
 
 export const createSortableRuntime = < TOptions = unknown >(
 	capture?: ( options: TOptions ) => void
