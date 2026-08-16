@@ -27,14 +27,16 @@ const BlockEdit = jest.fn( ( { name }: { name: string } ) => createElement( 'div
 const WithTableReorder = withTableReorder( BlockEdit );
 type WithTableReorderProps = Parameters< typeof WithTableReorder >[ 0 ];
 
-const createProps = ( name: string ): WithTableReorderProps =>
-	( {
+const createProps = ( name: string ): WithTableReorderProps => {
+	const props: Partial< WithTableReorderProps > = {
 		attributes: { body: [] },
 		clientId: 'block-client-id',
 		isSelected: false,
 		name,
 		setAttributes: jest.fn(),
-	} ) as WithTableReorderProps;
+	};
+	return props as WithTableReorderProps;
+};
 
 const render = ( props: WithTableReorderProps ) => {
 	const container = document.createElement( 'div' );
