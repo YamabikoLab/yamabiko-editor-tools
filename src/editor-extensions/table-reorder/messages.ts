@@ -188,7 +188,7 @@ export const getMoveCanceledAnnouncement = ( rowLabel: string, rowNumber: number
 };
 
 /** keyboard境界通知で利用する方向。 */
-export type MoveDirection = 'up' | 'down';
+type MoveDirection = 'up' | 'down';
 
 /**
  * 先頭・末尾でそれ以上移動できないことを支援技術へ伝える文言を返す。

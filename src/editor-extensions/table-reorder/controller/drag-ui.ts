@@ -12,8 +12,7 @@ const INSERTION_LINE_CLASS = 'yamabiko-table-reorder-insertion-line';
 const INSERTION_LINE_HEIGHT_PX = 2;
 
 /** insertion lineの表示制御とcleanupをまとめた一時UI。 */
-export type InsertionLine = {
-	element: HTMLDivElement;
+type InsertionLine = {
 	hide: () => void;
 	show: ( row: HTMLTableRowElement, willInsertAfter: boolean ) => void;
 	cleanup: () => void;
@@ -67,7 +66,6 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 	document.defaultView?.addEventListener( 'resize', onViewportChange );
 
 	return {
-		element: line,
 		hide: () => {
 			activeTarget = null;
 			line.style.display = 'none';

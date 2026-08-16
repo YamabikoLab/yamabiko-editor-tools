@@ -2,21 +2,20 @@
  * Table Reorderが利用する editor DOM contextを解決する。
  *
  * anchorのowning documentをrootとして優先し、対象blockがrootに存在しない場合だけ
- * `iframe[name="editor-canvas"]`へfallbackし、対象Table blockと同じdocument / window / table / tbodyを
+ * `iframe[name="editor-canvas"]`へfallbackし、対象Table blockと同じdocument / window / tbodyを
  * 一つのcontextとして返す。
  */
 
 /**
  * 解決済みTable blockが利用するDOM context。
  *
- * `blockElement`、`table`、`tbody`はすべて`document`に属し、`window`はその
+ * `blockElement`、`tbody`はすべて`document`に属し、`window`はその
  * `document.defaultView`であることを保証する。
  */
 export type TableContext = {
 	blockElement: HTMLElement;
 	document: Document;
 	window: Window;
-	table: HTMLTableElement;
 	tbody: HTMLTableSectionElement;
 };
 
@@ -29,10 +28,7 @@ export type TableContext = {
  * @param rootDocument 探索を開始するanchorのowning document。
  * @param clientId     解決対象となるGutenberg blockのclientId。
  */
-export const findBlockElement = (
-	rootDocument: Document,
-	clientId: string
-): HTMLElement | null => {
+const findBlockElement = ( rootDocument: Document, clientId: string ): HTMLElement | null => {
 	const selector = `[data-block="${ clientId }"]`;
 	const directBlock = rootDocument.querySelector< HTMLElement >( selector );
 	if ( directBlock ) {
@@ -69,7 +65,6 @@ export const resolveTableContext = ( anchor: Element, clientId: string ): TableC
 		blockElement,
 		document,
 		window: view,
-		table,
 		tbody,
 	};
 };

@@ -62,7 +62,7 @@ export type ReorderInteractionMode = 'hover' | 'touch';
 export type FocusRowControlResult = 'focused' | 'current-row-not-movable' | 'no-movable-rows';
 
 /** React / Gutenberg統合層からcontrollerへ渡す設定。 */
-export type SortableControllerOptions = {
+type SortableControllerOptions = {
 	context: TableContext;
 	forbiddenInsertionIndices: readonly number[];
 	interactionMode: ReorderInteractionMode;
@@ -427,7 +427,6 @@ export const createSortableController = (
 			isTouch: ! useHoverMode,
 			onCancel: () => finishSinglePointerSession(),
 			onSelect: ( newIndex ) => finishSinglePointerSession( newIndex ),
-			sourceControl: entry.control,
 		} );
 		session = { kind: 'pointer', entry, oldIndex, rowLabel, targetsUi };
 		announce( getDestinationRequestedAnnouncement( rowLabel ) );
@@ -460,7 +459,6 @@ export const createSortableController = (
 		const entry = entryByControl.get( event.currentTarget as HTMLButtonElement );
 		if ( entry ) {
 			activateEntry( entry );
-			suppressBlockDrag();
 		}
 	};
 	const onControlMouseDown = ( event: MouseEvent ) => {
@@ -536,12 +534,7 @@ export const createSortableController = (
 			activateEntry( entry );
 			touchModeGuidance?.setHidden( true );
 			entry.setPressed( true );
-			const guidance = createReorderGuidance(
-				document,
-				tbody,
-				getKeyboardActiveMessage(),
-				entry.control
-			);
+			const guidance = createReorderGuidance( document, tbody, getKeyboardActiveMessage() );
 			session = {
 				kind: 'keyboard',
 				currentIndex: rowIndex,
@@ -610,20 +603,10 @@ export const createSortableController = (
 				constraints.rowCount
 			)
 		);
-		const followingIndex = getNextValidRowMoveIndex(
-			keyboardSession.oldIndex,
-			nextIndex,
-			direction,
-			constraints
-		);
 		scrollKeyboardDestinationIntoView(
 			view,
 			tbody,
-			getRowMoveInsertionIndex( keyboardSession.oldIndex, nextIndex ),
-			direction,
-			followingIndex === null
-				? null
-				: getRowMoveInsertionIndex( keyboardSession.oldIndex, followingIndex )
+			getRowMoveInsertionIndex( keyboardSession.oldIndex, nextIndex )
 		);
 	};
 	const onDocumentKeyDown = ( event: KeyboardEvent ) => {

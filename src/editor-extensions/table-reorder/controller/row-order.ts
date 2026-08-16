@@ -13,7 +13,7 @@ type MoveInsertionTarget = {
 };
 
 /** 入力方式に依存しない行移動可否判定に必要な制約。 */
-export type RowMoveConstraints = {
+type RowMoveConstraints = {
 	forbiddenInsertionIndices: readonly number[];
 	nonMovableRowIndices: readonly number[];
 	rowCount: number;

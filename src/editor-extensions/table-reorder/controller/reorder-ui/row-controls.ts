@@ -32,20 +32,19 @@ let descriptionSequence = 0;
 /** 行control 1件を構成するDOM node。 */
 export type RowControlEntry = {
 	control: HTMLButtonElement;
-	handle: HTMLSpanElement;
 	row: HTMLTableRowElement;
 	setPressed: ( isPressed: boolean ) => void;
 };
 
 /** 行control群と、その表示・cleanupをまとめたUI。 */
-export type RowControls = {
+type RowControls = {
 	entries: RowControlEntry[];
 	setVisible: ( entry: RowControlEntry, isVisible: boolean ) => void;
 	cleanup: () => void;
 };
 
 /** 行control生成時の表示mode。 */
-export type RowControlOptions = {
+type RowControlOptions = {
 	showAll: boolean;
 };
 
@@ -247,7 +246,7 @@ export const createRowControls = (
 			root.unmount();
 			mount.remove();
 		} );
-		entries.push( { control: renderedControl, handle, row, setPressed } );
+		entries.push( { control: renderedControl, row, setPressed } );
 	}
 
 	const setVisible = ( entry: RowControlEntry, isVisible: boolean ) => {
