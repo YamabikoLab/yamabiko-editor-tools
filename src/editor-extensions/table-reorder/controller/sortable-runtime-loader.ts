@@ -136,6 +136,10 @@ export const ensureSortableRuntimeImpl = (
 
 /**
  * 既存controllerテストのmock境界を保ちながらloader実装へ委譲する公開入口。
+ *
+ * @param document   runtime scriptを探索・挿入するowning document。
+ * @param view       SortableJS runtimeが公開されるowning window。
+ * @param runtimeUrl 必要な場合に読み込むSortableJS runtime scriptのURL。
  */
 export const ensureSortableRuntime = (
 	document: Document,
