@@ -19,6 +19,7 @@
 		"lint:css": "wp-scripts lint-style \"src/**/*.{css,scss}\"",
 		"format:css": "wp-scripts lint-style \"src/**/*.{css,scss}\" --fix",
 		"typecheck": "tsc --noEmit",
+		"knip": "knip",
 		"test": "npm run format:check && npm run lint:js && npm run lint:css && npm run typecheck && npm run test:unit",
 		"test:unit": "wp-scripts test-unit-js",
 		"test:e2e": "playwright test",
@@ -38,6 +39,7 @@
 		"@wordpress/eslint-plugin": "^25.8.0",
 		"@wordpress/prettier-config": "^4.52.0",
 		"@wordpress/scripts": "^34.0.0",
+		"knip": "^6.32.2",
 		"prettier": "npm:wp-prettier@^3.0.3",
 		"typescript": "^6.0.3"
 	},
