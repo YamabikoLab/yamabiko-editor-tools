@@ -29,6 +29,21 @@ const createTable = ( labels: string[] ) => {
 	return { tbody };
 };
 
+const dispatchTouchPointer = (
+	target: Element,
+	type: string,
+	{ x, y }: { x: number; y: number }
+) => {
+	const event = new Event( type, { bubbles: true, cancelable: true } );
+	Object.defineProperties( event, {
+		clientX: { value: x },
+		clientY: { value: y },
+		pointerId: { value: 1 },
+		pointerType: { value: 'touch' },
+	} );
+	target.dispatchEvent( event );
+};
+
 describe( 'reorder-ui', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
@@ -181,5 +196,30 @@ describe( 'reorder-ui', () => {
 
 		expect( document.querySelector( `.${ DESTINATION_CLASS }` ) ).toBeNull();
 		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
+	} );
+
+	it( 'selects a row move target once for a touch tap within the threshold', () => {
+		const { tbody } = createTable( [ 'Alpha', 'Beta', 'Gamma' ] );
+		const onSelect = jest.fn();
+		const targets = createRowMoveTargets( document, tbody, [ { insertionIndex: 2, newIndex: 1 } ], {
+			isTouch: true,
+			onCancel: jest.fn(),
+			onSelect,
+			sourceControl: document.createElement( 'button' ),
+		} );
+		const destination = document.querySelector< HTMLButtonElement >( `.${ DESTINATION_CLASS }` );
+		if ( ! destination ) {
+			throw new Error( 'Expected destination button' );
+		}
+
+		dispatchTouchPointer( destination, 'pointerdown', { x: 10, y: 10 } );
+		dispatchTouchPointer( destination, 'pointermove', { x: 13, y: 13 } );
+		dispatchTouchPointer( destination, 'pointerup', { x: 13, y: 13 } );
+		destination.click();
+
+		expect( onSelect ).toHaveBeenCalledTimes( 1 );
+		expect( onSelect ).toHaveBeenCalledWith( 1 );
+
+		targets.cleanup();
 	} );
 } );
