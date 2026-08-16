@@ -233,16 +233,13 @@ beforeEach( () => {
 		store === 'core/preferences' ? preferencesActions : noticesActions
 	);
 	useSelectMock.mockImplementation(
-		(
-			selector: ( registrySelect: ( storeName: string ) => unknown ) => unknown
-		) =>
+		( selector: ( registrySelect: ( storeName: string ) => unknown ) => unknown ) =>
 			selector( ( storeName: string ) => {
 				if ( storeName !== 'core/preferences' ) {
 					return {};
 				}
 				return {
-					get: ( scope: string, name: string ) =>
-						preferenceValues.get( `${ scope }:${ name }` ),
+					get: ( scope: string, name: string ) => preferenceValues.get( `${ scope }:${ name }` ),
 				};
 			} )
 	);
@@ -427,9 +424,7 @@ describe( 'useTableReorder lifecycle', () => {
 
 		expect( getResult().isKeyboardCoachmarkVisible ).toBe( false );
 		act( () => {
-			document.dispatchEvent(
-				new KeyboardEvent( 'keydown', { bubbles: true, key: 'ArrowDown' } )
-			);
+			document.dispatchEvent( new KeyboardEvent( 'keydown', { bubbles: true, key: 'ArrowDown' } ) );
 		} );
 		expect( getResult().isKeyboardCoachmarkVisible ).toBe( true );
 
@@ -463,8 +458,14 @@ describe( 'useTableReorder lifecycle', () => {
 	} );
 
 	it( 'keeps preference mocks aligned with the production preference keys', () => {
-		preferenceValues.set( `${ PREFERENCES_SCOPE }:${ KEYBOARD_COACHMARK_DISMISSED_PREFERENCE }`, true );
-		preferenceValues.set( `${ PREFERENCES_SCOPE }:${ TOUCH_COACHMARK_DISMISSED_PREFERENCE }`, true );
+		preferenceValues.set(
+			`${ PREFERENCES_SCOPE }:${ KEYBOARD_COACHMARK_DISMISSED_PREFERENCE }`,
+			true
+		);
+		preferenceValues.set(
+			`${ PREFERENCES_SCOPE }:${ TOUCH_COACHMARK_DISMISSED_PREFERENCE }`,
+			true
+		);
 		installMatchMedia( true );
 		mountHook();
 
