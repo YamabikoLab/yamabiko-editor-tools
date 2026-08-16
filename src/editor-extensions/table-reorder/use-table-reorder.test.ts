@@ -1,6 +1,5 @@
 import { useDispatch, useSelect } from '@wordpress/data';
 import { createElement, createRoot } from '@wordpress/element';
-import { act } from 'react-dom/test-utils';
 
 import {
 	createSortableController,
@@ -13,6 +12,8 @@ import {
 	type TableReorderHookResult,
 	type UseTableReorderOptions,
 } from './use-table-reorder';
+
+const { act } = jest.requireActual< { act: ( callback: () => void ) => void } >( 'react' );
 
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn(),
