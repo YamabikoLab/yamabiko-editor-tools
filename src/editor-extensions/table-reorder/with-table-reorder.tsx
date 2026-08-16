@@ -1,8 +1,7 @@
 /**
  * Table ReorderをGutenbergのBlockEditへ接続するcomposition / rendering adapter。
  *
- * core/table判定、元のBlockEdit、Table Reorder toolbar、PC keyboard / touch初回coachmark、Table探索用hidden anchorの
- * 描画だけを担当する。React state / effectとcontroller lifecycleは`use-table-reorder.ts`へ委譲する。
+ * HOCは対応block判定だけを担当し、Table Reorder固有のhook / UI描画は専用componentへ委譲する。
  */
 
 import { BlockControls } from '@wordpress/block-editor';
@@ -29,6 +28,103 @@ type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
 
+/** 対応block専用componentへ渡すprops。 */
+type TableReorderEditProps = {
+	BlockEdit: ComponentType< TableBlockEditProps >;
+	props: TableBlockEditProps;
+};
+
+/**
+ * Table Reorderが対応するblockか判定する。
+ *
+ * @param blockName Gutenberg block name。
+ * @return Table Reorder対応blockならtrue。
+ */
+export const isTableReorderSupportedBlock = ( blockName: string ) => blockName === 'core/table';
+
+/**
+ * 対応block専用のTable Reorder描画component。
+ *
+ * @param componentProps Gutenbergから渡されるBlockEdit propsと元のBlockEdit component。
+ */
+const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
+	const { BlockEdit, props } = componentProps;
+	const {
+		attributes: { body },
+		clientId,
+		isSelected,
+		setAttributes,
+	} = props;
+	const [ toolbarButton, setToolbarButton ] = useState< HTMLButtonElement | null >( null );
+	const {
+		anchorRef,
+		dismissKeyboardCoachmark,
+		dismissTouchCoachmark,
+		isHoverCapable,
+		isKeyboardCoachmarkVisible,
+		isTouchCoachmarkVisible,
+		isTouchReorderMode,
+		requestRowControlFocus,
+		toggleTouchReorderMode,
+	} = useTableReorder( {
+		body,
+		clientId,
+		enabled: true,
+		isSelected,
+		setAttributes,
+	} );
+
+	const toolbarLabel = getToolbarReorderName();
+	const toolbarDescription = getToolbarReorderDescription();
+	const toolbarDescriptionId = `yamabiko-table-reorder-toolbar-description-${ clientId }`;
+	const isCoachmarkVisible = isKeyboardCoachmarkVisible || isTouchCoachmarkVisible;
+	const coachmarkMessage = isKeyboardCoachmarkVisible
+		? getKeyboardCoachmarkMessage()
+		: getTouchCoachmarkMessage();
+	const dismissCoachmark = isKeyboardCoachmarkVisible
+		? dismissKeyboardCoachmark
+		: dismissTouchCoachmark;
+
+	return (
+		<>
+			<BlockEdit { ...props } />
+			{ isSelected && (
+				<BlockControls>
+					<ToolbarButton
+						aria-describedby={ toolbarDescriptionId }
+						className={ isCoachmarkVisible ? 'yamabiko-table-reorder-coachmark-target' : undefined }
+						icon="sort"
+						isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
+						label={ toolbarLabel }
+						onClick={ isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode }
+						ref={ setToolbarButton }
+						showTooltip
+					/>
+					<span className="yamabiko-table-reorder-description" id={ toolbarDescriptionId }>
+						{ toolbarDescription }
+					</span>
+					{ isCoachmarkVisible && toolbarButton && (
+						<Popover anchor={ toolbarButton } focusOnMount={ false } onClose={ dismissCoachmark }>
+							<div className="yamabiko-table-reorder-coachmark">
+								<p>{ coachmarkMessage }</p>
+								<Button
+									aria-label={ getCloseGuidanceName() }
+									className="yamabiko-table-reorder-coachmark-close"
+									onClick={ dismissCoachmark }
+									size="small"
+								>
+									<span aria-hidden="true">×</span>
+								</Button>
+							</div>
+						</Popover>
+					) }
+				</BlockControls>
+			) }
+			<span aria-hidden="true" hidden ref={ anchorRef } />
+		</>
+	);
+};
+
 /**
  * BlockEditへTable Reorderの描画境界を追加するHOC。
  *
@@ -42,85 +138,9 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 	 * @param props Gutenbergから渡されるBlockEdit props。
 	 */
 	function WithTableReorder( props: TableBlockEditProps ) {
-		const {
-			attributes: { body },
-			clientId,
-			isSelected,
-			setAttributes,
-		} = props;
-		const [ toolbarButton, setToolbarButton ] = useState< HTMLButtonElement | null >( null );
-		const isTableBlock = props.name === 'core/table';
-		const {
-			anchorRef,
-			dismissKeyboardCoachmark,
-			dismissTouchCoachmark,
-			isHoverCapable,
-			isKeyboardCoachmarkVisible,
-			isTouchCoachmarkVisible,
-			isTouchReorderMode,
-			requestRowControlFocus,
-			toggleTouchReorderMode,
-		} = useTableReorder( {
-			body,
-			clientId,
-			enabled: isTableBlock,
-			isSelected,
-			setAttributes,
-		} );
-
-		if ( ! isTableBlock ) {
+		if ( ! isTableReorderSupportedBlock( props.name ) ) {
 			return <BlockEdit { ...props } />;
 		}
 
-		const toolbarLabel = getToolbarReorderName();
-		const toolbarDescription = getToolbarReorderDescription();
-		const toolbarDescriptionId = `yamabiko-table-reorder-toolbar-description-${ clientId }`;
-		const isCoachmarkVisible = isKeyboardCoachmarkVisible || isTouchCoachmarkVisible;
-		const coachmarkMessage = isKeyboardCoachmarkVisible
-			? getKeyboardCoachmarkMessage()
-			: getTouchCoachmarkMessage();
-		const dismissCoachmark = isKeyboardCoachmarkVisible
-			? dismissKeyboardCoachmark
-			: dismissTouchCoachmark;
-
-		return (
-			<>
-				<BlockEdit { ...props } />
-				{ isSelected && (
-					<BlockControls>
-						<ToolbarButton
-							aria-describedby={ toolbarDescriptionId }
-							className={
-								isCoachmarkVisible ? 'yamabiko-table-reorder-coachmark-target' : undefined
-							}
-							icon="sort"
-							isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
-							label={ toolbarLabel }
-							onClick={ isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode }
-							ref={ setToolbarButton }
-							showTooltip
-						/>
-						<span className="yamabiko-table-reorder-description" id={ toolbarDescriptionId }>
-							{ toolbarDescription }
-						</span>
-						{ isCoachmarkVisible && toolbarButton && (
-							<Popover anchor={ toolbarButton } focusOnMount={ false } onClose={ dismissCoachmark }>
-								<div className="yamabiko-table-reorder-coachmark">
-									<p>{ coachmarkMessage }</p>
-									<Button
-										aria-label={ getCloseGuidanceName() }
-										className="yamabiko-table-reorder-coachmark-close"
-										onClick={ dismissCoachmark }
-										size="small"
-									>
-										<span aria-hidden="true">×</span>
-									</Button>
-								</div>
-							</Popover>
-						) }
-					</BlockControls>
-				) }
-				<span aria-hidden="true" hidden ref={ anchorRef } />
-			</>
-		);
+		return <TableReorderEdit BlockEdit={ BlockEdit } props={ props } />;
 	};
