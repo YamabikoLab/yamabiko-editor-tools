@@ -765,11 +765,7 @@ export const createSortableController = (
 				}
 
 				const { oldIndex, newIndex } = event;
-				if (
-					oldIndex === undefined ||
-					newIndex === undefined ||
-					! completedSnapshot
-				) {
+				if ( oldIndex === undefined || newIndex === undefined || ! completedSnapshot ) {
 					return;
 				}
 
