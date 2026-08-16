@@ -6,7 +6,7 @@
  */
 
 import { useDispatch } from '@wordpress/data';
-import { useEffect, useRef, type RefObject } from '@wordpress/element';
+import { useRef, type RefObject } from '@wordpress/element';
 import { store as noticesStore } from '@wordpress/notices';
 
 import { announceLiveStatus } from './controller/reorder-ui';
@@ -52,8 +52,6 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 	const { body, clientId, enabled, isSelected, setAttributes } = options;
 	const anchorRef = useRef< HTMLSpanElement >( null );
 	const { createNotice } = useDispatch( noticesStore );
-	const createNoticeRef = useRef( createNotice );
-	const setAttributesRef = useRef( setAttributes );
 	const {
 		dismissKeyboardCoachmark,
 		dismissTouchCoachmark,
@@ -70,14 +68,6 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		isSelected,
 	} );
 
-	useEffect( () => {
-		createNoticeRef.current = createNotice;
-	}, [ createNotice ] );
-
-	useEffect( () => {
-		setAttributesRef.current = setAttributes;
-	}, [ setAttributes ] );
-
 	const { focusRowControl } = useTableReorderController( {
 		anchorRef,
 		body,
@@ -85,14 +75,18 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		enabled,
 		interactionMode,
 		onBodyCommit: ( reorderedBody ) => {
-			setAttributesRef.current( { body: reorderedBody } );
+			setAttributes( { body: reorderedBody } );
 		},
 	} );
 
-	const notifyTouchNoMovableRows = () => {
-		void createNoticeRef.current( 'warning', getNoMovableRowsMessage(), {
+	const createNoMovableRowsNotice = () => {
+		void createNotice( 'warning', getNoMovableRowsMessage(), {
 			type: 'snackbar',
 		} );
+	};
+
+	const notifyTouchNoMovableRows = () => {
+		createNoMovableRowsNotice();
 		const anchor = anchorRef.current;
 		const context = anchor ? resolveTableContext( anchor, clientId ) : null;
 		if ( context ) {
@@ -112,13 +106,11 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 			dismissKeyboardCoachmark();
 			const result = focusRowControl();
 			if ( result === 'current-row-not-movable' ) {
-				void createNoticeRef.current( 'error', getRowspanErrorMessage(), {
+				void createNotice( 'error', getRowspanErrorMessage(), {
 					type: 'snackbar',
 				} );
 			} else if ( result === 'no-movable-rows' ) {
-				void createNoticeRef.current( 'warning', getNoMovableRowsMessage(), {
-					type: 'snackbar',
-				} );
+				createNoMovableRowsNotice();
 			}
 		},
 		toggleTouchReorderMode: () => {
