@@ -5,8 +5,10 @@
 - Parent issue: #278
 - Parent refactoring: #275
 - Current implementation: `src/editor-extensions/table-reorder/controller/reorder-ui.ts`
-- Main consumer: `src/editor-extensions/table-reorder/controller/sortable-controller.ts`
-- React / Gutenberg consumer: `src/editor-extensions/table-reorder/use-table-reorder.ts`
+- Current consumers:
+  - `src/editor-extensions/table-reorder/controller/sortable-controller.ts`
+  - `src/editor-extensions/table-reorder/use-table-reorder.ts`
+  - `src/editor-extensions/table-reorder/use-table-reorder-interaction.ts`
 - Current focused tests: `src/editor-extensions/table-reorder/controller/reorder-ui.test.ts`
 - Source organization: `docs/development/source-organization.md`
 
@@ -14,7 +16,7 @@
 
 `controller/reorder-ui.ts` に集中している複数種類の UI / DOM lifecycle を、既存 API と既存挙動を維持したまま責務単位の module へ分割する。
 
-今回の目的はロジックの再設計ではなく、現在すでに独立している変更理由をファイル境界へ反映することである。`sortable-controller.ts` や `use-table-reorder.ts` から見える API は一度に変更せず、`reorder-ui.ts` を薄い facade として残して内部構造だけを整理する。
+今回の目的はロジックの再設計ではなく、現在すでに独立している変更理由をファイル境界へ反映することである。`sortable-controller.ts`、`use-table-reorder.ts`、`use-table-reorder-interaction.ts` から見える API は一度に変更せず、`reorder-ui.ts` を薄い facade として残して内部構造だけを整理する。
 
 最終的に、行 control、操作 guidance、single-pointer 移動先、live status をそれぞれ個別に変更・テストしやすい構造にする。
 
@@ -37,7 +39,7 @@
 - Table Reorder の UI / 操作仕様変更。
 - keyboard / pointer / touch / drag session logic の再設計。
 - `sortable-controller.ts` の interaction state や session state の再設計。
-- `useTableReorder` lifecycle / state の整理。
+- #276 で完了した `useTableReorder` lifecycle / state の整理を再度変更すること。
 - React renderer、ARIA helper、style helper などへの追加細分化。
 - touch gesture 判定アルゴリズムの変更。
 - keyboard scroll アルゴリズムの変更。
@@ -70,7 +72,7 @@ reorder-ui.ts
 └─ stopRowControlInteractionPropagation()
 ```
 
-`sortable-controller.ts` と `use-table-reorder.ts` は最初の分割ではこの facade を引き続き import する。内部 module への直接 import へ切り替えることは今回の完了条件にしない。
+`sortable-controller.ts`、`use-table-reorder.ts`、`use-table-reorder-interaction.ts` は最初の分割ではこの facade を引き続き import する。内部 module への直接 import へ切り替えることは今回の完了条件にしない。
 
 これにより、責務分割と consumer 側の依存整理を同時に行わず、変更の軸を一つに絞る。
 
@@ -306,16 +308,14 @@ controller/
 依存方向:
 
 ```text
-sortable-controller.ts
-        │
-        v
-   reorder-ui.ts
-   facade only
-        │
-        ├──────────────> row-controls.ts
-        ├──────────────> reorder-guidance.ts
-        ├──────────────> row-move-targets.ts
-        └──────────────> live-status.ts
+sortable-controller.ts ─────────────┐
+use-table-reorder.ts ───────────────┼─> reorder-ui.ts
+use-table-reorder-interaction.ts ───┘   facade only
+                                         │
+                                         ├──────────────> row-controls.ts
+                                         ├──────────────> reorder-guidance.ts
+                                         ├──────────────> row-move-targets.ts
+                                         └──────────────> live-status.ts
 
 row-move-targets.ts
    ├──────────────> row-controls.ts
@@ -334,7 +334,7 @@ Outcome:
 
 Tasks:
 
-- `sortable-controller.ts` / `use-table-reorder.ts` の `reorder-ui.ts` import を確認する。
+- `sortable-controller.ts` / `use-table-reorder.ts` / `use-table-reorder-interaction.ts` の `reorder-ui.ts` import を確認する。
 - `reorder-ui.test.ts` と controller tests の relevant assertions を確認する。
 - live status の visually-hidden class 契約を focused assertion で固定する。
 - row move target の tap / swipe / cleanup 契約が不足している場合のみ focused test を追加する。
@@ -362,7 +362,7 @@ Tasks:
 Validation:
 
 - row control / live status focused tests が Green になる。
-- `sortable-controller.ts` / `use-table-reorder.ts` の import を変更せず既存 tests が Green になる。
+- `sortable-controller.ts` / `use-table-reorder.ts` / `use-table-reorder-interaction.ts` の import を変更せず既存 tests が Green になる。
 
 ### Phase 3: split guidance and row move targets
 
@@ -460,7 +460,7 @@ Implementation 完了時の標準 validation:
 - `row-move-targets.ts` が pointer / touch destination UI lifecycle を所有している。
 - `live-status.ts` が document-scoped live status lifecycle を所有している。
 - `reorder-ui.ts` は既存 API を再 export する薄い facade になっている。
-- `sortable-controller.ts` / `use-table-reorder.ts` から見える既存 import contract が維持されている。
+- `sortable-controller.ts` / `use-table-reorder.ts` / `use-table-reorder-interaction.ts` から見える既存 import contract が維持されている。
 - hover / keyboard / pointer / touch の UI・操作仕様が変わっていない。
 - Tooltip / ARIA / focus / live status の既存挙動が維持されている。
 - live status node が `yamabiko-table-reorder-description` class を維持している。
@@ -472,5 +472,5 @@ Implementation 完了時の標準 validation:
 ## Notes
 
 - #278 の Issue 本文をこの計画の要件上の正本とする。
-- #276 の `useTableReorder` lifecycle / state 整理とは独立して進める。双方が同時進行しても、今回の変更は `controller/reorder-ui.ts` の内部 module boundary に限定する。
+- #276 の `useTableReorder` lifecycle / state 整理は完了済みであり、本計画はその現在構造を前提とする。#276 で追加された `use-table-reorder-interaction.ts` も `reorder-ui.ts` の既存 consumer として扱い、今回の変更は引き続き `controller/reorder-ui.ts` の内部 module boundary に限定する。
 - `sortable-controller.ts` 側の session refactoring を同時に行わない。責務分割の PR で interaction logic の変更が混ざると回帰原因を切り分けにくくなるためである。
