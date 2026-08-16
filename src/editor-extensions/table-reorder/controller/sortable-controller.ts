@@ -384,22 +384,14 @@ export const createSortableController = (
 
 		if (
 			newIndex !== undefined &&
-			rows &&
-			! isNoopRowMove( pointerSession.oldIndex, newIndex ) &&
-			isRowMoveAllowed( pointerSession.oldIndex, newIndex, constraints )
+			commitRowMove( {
+				oldIndex: pointerSession.oldIndex,
+				newIndex,
+				rowLabel: pointerSession.rowLabel,
+				focusRowIndex: newIndex,
+			} )
 		) {
-			const reorderedRows = reorderRows( rows, pointerSession.oldIndex, newIndex );
-			if ( reorderedRows ) {
-				announce(
-					getMoveCommittedAnnouncement(
-						pointerSession.rowLabel,
-						pointerSession.oldIndex + 1,
-						newIndex + 1
-					)
-				);
-				onCommit( reorderedRows, newIndex );
-				return;
-			}
+			return;
 		}
 
 		if ( announceCancellation ) {
