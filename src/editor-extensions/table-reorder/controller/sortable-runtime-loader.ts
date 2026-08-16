@@ -141,4 +141,5 @@ export const ensureSortableRuntime = (
 	document: Document,
 	view: Window,
 	runtimeUrl: string
-): Promise< SortableRuntime | null > => legacyRuntime.ensureSortableRuntime( document, view, runtimeUrl );
+): Promise< SortableRuntime | null > =>
+	legacyRuntime.ensureSortableRuntime( document, view, runtimeUrl );
