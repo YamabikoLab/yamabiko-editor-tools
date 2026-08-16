@@ -1,8 +1,10 @@
 import { createSortableController } from './sortable-controller';
-import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
-import type { TableContext } from '../table-context';
-
-type SortableRuntime = NonNullable< Awaited< ReturnType< typeof ensureSortableRuntime > > >;
+import {
+	createSortableRuntime as createRuntime,
+	createTableContext as createContext,
+	getRowControl as getControl,
+} from './sortable-controller.test-utils';
+import { ensureSortableRuntime } from './sortable-runtime';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -25,48 +27,6 @@ type RuntimeOptions = {
 	) => boolean | void;
 	onStart: () => void;
 	onUnchoose: () => void;
-};
-
-const createRuntime = ( capture?: ( options: RuntimeOptions ) => void ): SortableRuntime => ( {
-	create: jest.fn( ( _element: HTMLElement, options: unknown ): SortableInstance => {
-		capture?.( options as RuntimeOptions );
-		return { destroy: jest.fn() };
-	} ),
-} );
-
-const createContext = ( rowCount = 4 ) => {
-	const blockElement = document.createElement( 'div' );
-	const table = document.createElement( 'table' );
-	const tbody = document.createElement( 'tbody' );
-	table.append( tbody );
-	blockElement.append( table );
-	document.body.append( blockElement );
-
-	for ( let index = 0; index < rowCount; index++ ) {
-		const row = document.createElement( 'tr' );
-		const cell = document.createElement( 'td' );
-		cell.textContent = `row-${ index }`;
-		row.append( cell );
-		tbody.append( row );
-	}
-
-	const context: TableContext = {
-		blockElement,
-		document,
-		tbody,
-		window,
-	};
-	return { context, tbody };
-};
-
-const getControl = ( tbody: HTMLTableSectionElement, rowIndex: number ): HTMLButtonElement => {
-	const control = tbody.rows
-		.item( rowIndex )
-		?.querySelector< HTMLButtonElement >( '.yamabiko-table-reorder-handle-zone' );
-	if ( ! control ) {
-		throw new Error( `Expected row control for row ${ rowIndex }` );
-	}
-	return control;
 };
 
 const pressKey = ( control: HTMLButtonElement, key: string, shiftKey = false ) => {
@@ -278,7 +238,7 @@ describe( 'createSortableController keyboard reorder', () => {
 	it( 'ignores keyboard start while a drag is active', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
@@ -314,7 +274,7 @@ describe( 'createSortableController keyboard reorder', () => {
 	it( 'keeps the keyboard session through a rejected Sortable lifecycle', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
