@@ -161,12 +161,12 @@ describe( 'reorder-ui', () => {
 		const sourceControl = document.createElement( 'button' );
 		const onCancel = jest.fn();
 		const onSelect = jest.fn();
-		const targets = createRowMoveTargets(
-			document,
-			tbody,
-			[ { insertionIndex: 2, newIndex: 1 } ],
-			{ isTouch: true, onCancel, onSelect, sourceControl }
-		);
+		const targets = createRowMoveTargets( document, tbody, [ { insertionIndex: 2, newIndex: 1 } ], {
+			isTouch: true,
+			onCancel,
+			onSelect,
+			sourceControl,
+		} );
 		const destination = document.querySelector< HTMLButtonElement >( `.${ DESTINATION_CLASS }` );
 		const cancel = document.querySelector< HTMLButtonElement >(
 			'.yamabiko-table-reorder-pointer-cancel'
