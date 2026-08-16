@@ -1,15 +1,24 @@
 /**
  * Table Reorderのdrag中だけ存在する一時DOM装飾を管理する。
  *
- * insertion line、fallback drag時のcell width固定など、drag中だけ必要な
- * 表示と操作補助の生成・復元、および一時DOM状態のcleanupをここで扱う。
+ * insertion line、fallback drag時のcell width固定、drop時の短い着地animationなど、
+ * drag中と直後だけ必要な表示と操作補助の生成・復元、および一時DOM状態のcleanupをここで扱う。
  */
 
 /** insertion lineに付与するclass。 */
 const INSERTION_LINE_CLASS = 'yamabiko-table-reorder-insertion-line';
 
+/** drop animation用overlayに付与するclass。 */
+const DROP_ANIMATION_CLASS = 'yamabiko-table-reorder-drop-animation';
+
 /** insertion lineの高さ。 */
 const INSERTION_LINE_HEIGHT_PX = 2;
+
+/** drop animationの継続時間。 */
+const DROP_ANIMATION_DURATION_MS = 180;
+
+/** drop位置へ落ち着く際の短い移動量。 */
+const DROP_ANIMATION_OFFSET_PX = 8;
 
 /** insertion lineの表示制御とcleanupをまとめた一時UI。 */
 type InsertionLine = {
@@ -84,7 +93,95 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 };
 
 /**
+ * SortableJSが移動済みのrowを短時間だけfixed overlayとして保持する。
+ *
+ * controllerが直後に元DOM順へ復元してGutenbergへcommitしても、drop位置のrowを視覚的に残して
+ * 短く収束させることで、drag中の見た目と確定後のrow位置をつなぐ。
+ *
+ * @param row           drag対象row。
+ * @param originalIndex drag開始時のrow index。
+ */
+const startDropAnimation = ( row: HTMLTableRowElement, originalIndex: number ) => {
+	const tbody = row.parentElement;
+	const document = row.ownerDocument;
+	const view = document.defaultView;
+	if ( ! view || ! tbody?.matches( 'tbody' ) ) {
+		return;
+	}
+
+	const currentIndex = Array.from( tbody.children ).indexOf( row );
+	if ( currentIndex < 0 || currentIndex === originalIndex ) {
+		return;
+	}
+
+	if ( view.matchMedia?.( '(prefers-reduced-motion: reduce)' ).matches ) {
+		return;
+	}
+
+	const table = row.closest< HTMLTableElement >( 'table' );
+	const rect = row.getBoundingClientRect();
+	if ( ! table || rect.width <= 0 || rect.height <= 0 ) {
+		return;
+	}
+
+	const overlay = table.cloneNode( false ) as HTMLTableElement;
+	const overlayBody = document.createElement( 'tbody' );
+	const overlayRow = row.cloneNode( true ) as HTMLTableRowElement;
+	overlay.classList.add( DROP_ANIMATION_CLASS );
+	overlay.removeAttribute( 'id' );
+	overlay.setAttribute( 'aria-hidden', 'true' );
+	overlayRow.removeAttribute( 'id' );
+	for ( const element of overlayRow.querySelectorAll< HTMLElement >( '[id]' ) ) {
+		element.removeAttribute( 'id' );
+	}
+	overlayBody.append( overlayRow );
+	overlay.append( overlayBody );
+
+	const tableStyle = view.getComputedStyle( table );
+	overlay.style.borderCollapse = tableStyle.borderCollapse;
+	overlay.style.borderSpacing = tableStyle.borderSpacing;
+	overlay.style.tableLayout = tableStyle.tableLayout;
+	const sourceCells = Array.from( row.cells );
+	const overlayCells = Array.from( overlayRow.cells );
+	for ( const [ index, sourceCell ] of sourceCells.entries() ) {
+		const overlayCell = overlayCells[ index ];
+		if ( ! overlayCell ) {
+			continue;
+		}
+		const width = `${ sourceCell.getBoundingClientRect().width }px`;
+		overlayCell.style.boxSizing = 'border-box';
+		overlayCell.style.width = width;
+		overlayCell.style.minWidth = width;
+		overlayCell.style.maxWidth = width;
+	}
+
+	const offset = currentIndex > originalIndex ? -DROP_ANIMATION_OFFSET_PX : DROP_ANIMATION_OFFSET_PX;
+	overlay.style.position = 'fixed';
+	overlay.style.left = `${ rect.left }px`;
+	overlay.style.top = `${ rect.top }px`;
+	overlay.style.width = `${ rect.width }px`;
+	overlay.style.margin = '0';
+	overlay.style.pointerEvents = 'none';
+	overlay.style.zIndex = '100001';
+	overlay.style.opacity = '1';
+	overlay.style.transform = `translateY(${ offset }px)`;
+	overlay.style.transition = `transform ${ DROP_ANIMATION_DURATION_MS }ms cubic-bezier(0.2, 0, 0, 1), opacity ${ DROP_ANIMATION_DURATION_MS }ms ease-out`;
+	document.body.append( overlay );
+
+	view.requestAnimationFrame( () => {
+		if ( ! overlay.isConnected ) {
+			return;
+		}
+		overlay.style.transform = 'translateY(0)';
+		overlay.style.opacity = '0';
+	} );
+	view.setTimeout( () => overlay.remove(), DROP_ANIMATION_DURATION_MS );
+};
+
+/**
  * fallback drag中のrow cell幅を実測値へ固定する。
+ *
+ * restore時にrowが別indexへ移動していれば、DOM順を戻す直前のdrop位置を短いoverlay animationで保持する。
  *
  * @param row 幅を固定するdrag対象row。
  * @return 元のinline styleへ戻す関数。
@@ -94,6 +191,11 @@ export const fixFallbackRowCellWidths = ( row: HTMLElement ): ( () => void ) => 
 		return () => undefined;
 	}
 
+	const tableRow = row as HTMLTableRowElement;
+	const tbody = tableRow.parentElement;
+	const originalIndex = tbody?.matches( 'tbody' )
+		? Array.from( tbody.children ).indexOf( tableRow )
+		: -1;
 	const cells = Array.from( row.querySelectorAll< HTMLElement >( ':scope > td, :scope > th' ) );
 	const originalStyles = cells.map( ( cell ) => ( {
 		boxSizing: cell.style.boxSizing,
@@ -112,6 +214,9 @@ export const fixFallbackRowCellWidths = ( row: HTMLElement ): ( () => void ) => 
 	}
 
 	return () => {
+		if ( originalIndex >= 0 ) {
+			startDropAnimation( tableRow, originalIndex );
+		}
 		for ( const { boxSizing, cell, maxWidth, minWidth, width } of originalStyles ) {
 			cell.style.boxSizing = boxSizing;
 			cell.style.width = width;
