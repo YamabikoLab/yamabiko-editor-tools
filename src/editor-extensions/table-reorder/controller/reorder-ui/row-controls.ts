@@ -23,6 +23,9 @@ const DESCRIPTION_CLASS = 'yamabiko-table-reorder-description';
 /** 行control用に先頭cellへ確保するinline方向の幅。 */
 const HANDLE_GUTTER_PX = 32;
 
+/** touch reorder modeで先頭cell本文に確保する最小幅。 */
+const MIN_FIRST_COLUMN_CONTENT_WIDTH_PX = 32;
+
 /** accessible nameへ含める代表情報の最大文字数。 */
 const MAX_ROW_LABEL_LENGTH = 80;
 
@@ -104,6 +107,25 @@ export const createRowControls = (
 	} > = [];
 	const view = document.defaultView;
 	const nonMovableRows = new Set( nonMovableRowIndices );
+	const table = tbody.closest< HTMLTableElement >( 'table' );
+	const wrapper = table?.closest< HTMLElement >( '.wp-block-table' ) ?? null;
+	const sizingCell = table?.rows.item( 0 )?.cells.item( 0 ) ?? null;
+	const originalTableMinWidth = table?.style.minWidth ?? '';
+	const originalSizingCellWidth = sizingCell?.style.width ?? '';
+	const originalWrapperOverflowX = wrapper?.style.overflowX ?? '';
+
+	if ( options.showAll && table && wrapper && sizingCell ) {
+		const tableWidth = table.getBoundingClientRect().width;
+		const firstColumnWidth = sizingCell.getBoundingClientRect().width;
+		const requiredFirstColumnWidth = HANDLE_GUTTER_PX + MIN_FIRST_COLUMN_CONTENT_WIDTH_PX;
+		const extraWidth = Math.max( 0, requiredFirstColumnWidth - firstColumnWidth );
+
+		if ( extraWidth > 0 ) {
+			wrapper.style.overflowX = 'auto';
+			table.style.minWidth = `${ tableWidth + extraWidth }px`;
+			sizingCell.style.width = `${ firstColumnWidth + extraWidth }px`;
+		}
+	}
 
 	for ( const [ rowIndex, row ] of Array.from( tbody.rows ).entries() ) {
 		if ( nonMovableRows.has( rowIndex ) ) {
@@ -267,6 +289,15 @@ export const createRowControls = (
 		for ( const { cell, paddingInlineStart, position } of changedCells ) {
 			cell.style.paddingInlineStart = paddingInlineStart;
 			cell.style.position = position;
+		}
+		if ( table ) {
+			table.style.minWidth = originalTableMinWidth;
+		}
+		if ( sizingCell ) {
+			sizingCell.style.width = originalSizingCellWidth;
+		}
+		if ( wrapper ) {
+			wrapper.style.overflowX = originalWrapperOverflowX;
 		}
 	};
 
