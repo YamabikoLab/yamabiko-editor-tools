@@ -122,7 +122,7 @@ const createController = (
 		rows: [ 'a', 'b', 'c', 'd' ],
 		runtimeUrl: '/sortable.js',
 	} );
-	return { controller, onCommit, tbody };
+	return { context, controller, onCommit, tbody };
 };
 
 describe( 'createSortableController single-pointer reorder', () => {
@@ -133,12 +133,19 @@ describe( 'createSortableController single-pointer reorder', () => {
 	} );
 
 	it( 'moves a row by clicking the existing PC control and a destination', () => {
-		const { controller, onCommit, tbody } = createController( 'hover' );
+		const { context, controller, onCommit, tbody } = createController( 'hover' );
+		context.blockElement.setAttribute( 'draggable', 'true' );
 		const control = getControl( tbody, 1 );
+		onCommit.mockImplementation( () => {
+			expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
+			expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+			expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
+		} );
 
 		clickPointerControl( control );
 
 		expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
 		const destination = document.querySelector< HTMLButtonElement >(
 			'.yamabiko-table-reorder-destination[data-new-index="2"]'
 		);
