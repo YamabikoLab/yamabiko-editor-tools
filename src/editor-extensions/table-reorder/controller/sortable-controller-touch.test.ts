@@ -1,8 +1,10 @@
 import { createSortableController } from './sortable-controller';
-import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
-import type { TableContext } from '../table-context';
-
-type SortableRuntime = NonNullable< Awaited< ReturnType< typeof ensureSortableRuntime > > >;
+import {
+	createSortableRuntime as createRuntime,
+	createTableContext as createContext,
+	type SortableRuntime,
+} from './sortable-controller.test-utils';
+import { ensureSortableRuntime } from './sortable-runtime';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -23,32 +25,6 @@ type TouchSortableOptions = {
 	touchStartThreshold?: number;
 };
 
-const createContext = () => {
-	const blockElement = document.createElement( 'div' );
-	const table = document.createElement( 'table' );
-	const tbody = document.createElement( 'tbody' );
-	table.append( tbody );
-	blockElement.append( table );
-	document.body.append( blockElement );
-
-	for ( let index = 0; index < 2; index++ ) {
-		const row = document.createElement( 'tr' );
-		const cell = document.createElement( 'td' );
-		cell.contentEditable = 'true';
-		cell.textContent = `row-${ index }`;
-		row.append( cell );
-		tbody.append( row );
-	}
-
-	const context: TableContext = {
-		blockElement,
-		document,
-		tbody,
-		window,
-	};
-	return { context, tbody };
-};
-
 describe( 'createSortableController touch handle DnD', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
@@ -56,15 +32,15 @@ describe( 'createSortableController touch handle DnD', () => {
 	} );
 
 	it( 'uses the shared row control as the touch drag handle without long-press settings', async () => {
-		const runtime: SortableRuntime = {
-			create: jest.fn(
-				(): SortableInstance => ( {
-					destroy: jest.fn(),
-				} )
-			),
-		};
+		const runtime = createRuntime();
 		ensureSortableRuntimeMock.mockResolvedValue( runtime );
-		const { context, tbody } = createContext();
+		const { context, tbody } = createContext( 2 );
+		for ( const row of Array.from( tbody.rows ) ) {
+			const cell = row.cells.item( 0 );
+			if ( cell ) {
+				cell.contentEditable = 'true';
+			}
+		}
 		const firstCell = tbody.rows.item( 0 )?.cells.item( 0 );
 		if ( ! firstCell ) {
 			throw new Error( 'Expected first table cell' );

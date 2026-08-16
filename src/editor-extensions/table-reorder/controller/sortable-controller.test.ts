@@ -1,8 +1,10 @@
 import { createSortableController } from './sortable-controller';
-import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
-import type { TableContext } from '../table-context';
-
-type SortableRuntime = NonNullable< Awaited< ReturnType< typeof ensureSortableRuntime > > >;
+import {
+	createSortableRuntime as createRuntime,
+	createTableContext,
+	type SortableRuntime,
+} from './sortable-controller.test-utils';
+import { ensureSortableRuntime } from './sortable-runtime';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -24,38 +26,12 @@ type TestSortableOptions = {
 };
 
 const createContext = () => {
-	const blockElement = document.createElement( 'div' );
-	const table = document.createElement( 'table' );
-	const tbody = document.createElement( 'tbody' );
-	table.append( tbody );
-	blockElement.append( table );
-	document.body.append( blockElement );
-
-	for ( let index = 0; index < 3; index++ ) {
-		const row = document.createElement( 'tr' );
+	const fixture = createTableContext( 3 );
+	Array.from( fixture.tbody.rows ).forEach( ( row, index ) => {
 		row.dataset.index = String( index );
-		const cell = document.createElement( 'td' );
-		cell.textContent = `row-${ index }`;
-		row.append( cell );
-		tbody.append( row );
-	}
-
-	const context: TableContext = {
-		blockElement,
-		document,
-		tbody,
-		window,
-	};
-	return { context, tbody };
+	} );
+	return fixture;
 };
-
-const createRuntime = (): SortableRuntime => ( {
-	create: jest.fn(
-		(): SortableInstance => ( {
-			destroy: jest.fn(),
-		} )
-	),
-} );
 
 const getCreatedOptions = ( runtime: SortableRuntime ): TestSortableOptions => {
 	const createMock = runtime.create as jest.MockedFunction< SortableRuntime[ 'create' ] >;
