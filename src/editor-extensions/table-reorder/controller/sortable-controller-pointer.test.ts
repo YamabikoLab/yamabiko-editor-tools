@@ -1,8 +1,10 @@
 import { createSortableController } from './sortable-controller';
-import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
-import type { TableContext } from '../table-context';
-
-type SortableRuntime = NonNullable< Awaited< ReturnType< typeof ensureSortableRuntime > > >;
+import {
+	createSortableRuntime as createRuntime,
+	createTableContext as createContext,
+	getRowControl as getControl,
+} from './sortable-controller.test-utils';
+import { ensureSortableRuntime } from './sortable-runtime';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -21,48 +23,6 @@ type RuntimeOptions = {
 	onEnd: ( event: { oldIndex?: number; newIndex?: number } ) => void;
 	onStart: () => void;
 	onUnchoose: () => void;
-};
-
-const createRuntime = ( capture?: ( options: RuntimeOptions ) => void ): SortableRuntime => ( {
-	create: jest.fn( ( _element: HTMLElement, options: unknown ): SortableInstance => {
-		capture?.( options as RuntimeOptions );
-		return { destroy: jest.fn() };
-	} ),
-} );
-
-const createContext = ( rowCount = 4 ) => {
-	const blockElement = document.createElement( 'div' );
-	const table = document.createElement( 'table' );
-	const tbody = document.createElement( 'tbody' );
-	table.append( tbody );
-	blockElement.append( table );
-	document.body.append( blockElement );
-
-	for ( let index = 0; index < rowCount; index++ ) {
-		const row = document.createElement( 'tr' );
-		const cell = document.createElement( 'td' );
-		cell.textContent = `row-${ index }`;
-		row.append( cell );
-		tbody.append( row );
-	}
-
-	const context: TableContext = {
-		blockElement,
-		document,
-		tbody,
-		window,
-	};
-	return { context, tbody };
-};
-
-const getControl = ( tbody: HTMLTableSectionElement, rowIndex: number ): HTMLButtonElement => {
-	const control = tbody.rows
-		.item( rowIndex )
-		?.querySelector< HTMLButtonElement >( '.yamabiko-table-reorder-handle-zone' );
-	if ( ! control ) {
-		throw new Error( `Expected row control for row ${ rowIndex }` );
-	}
-	return control;
 };
 
 const clickPointerControl = ( control: HTMLButtonElement ) => {
@@ -236,7 +196,7 @@ describe( 'createSortableController single-pointer reorder', () => {
 	it( 'does not suppress a PC click when Sortable unchooses without starting a drag', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
@@ -260,7 +220,7 @@ describe( 'createSortableController single-pointer reorder', () => {
 	it( 'suppresses the click emitted immediately after a PC drag', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
@@ -300,7 +260,7 @@ describe( 'createSortableController single-pointer reorder', () => {
 	it( 'ignores pointer start while a drag is active', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
@@ -323,7 +283,7 @@ describe( 'createSortableController single-pointer reorder', () => {
 	it( 'cleans up pointer UI when a drag starts from a pointer session', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
@@ -349,7 +309,7 @@ describe( 'createSortableController single-pointer reorder', () => {
 	it( 'allows keyboard and pointer sessions to restart after a drag ends', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
@@ -381,7 +341,7 @@ describe( 'createSortableController single-pointer reorder', () => {
 	it( 'cleans up drag snapshot state when destroyed after onChoose', async () => {
 		const runtimeOptionsRef: { current: RuntimeOptions | null } = { current: null };
 		ensureSortableRuntimeMock.mockResolvedValue(
-			createRuntime( ( options ) => {
+			createRuntime< RuntimeOptions >( ( options ) => {
 				runtimeOptionsRef.current = options;
 			} )
 		);
