@@ -35,6 +35,14 @@
 	}
 }
 
+@media (max-width: 782px) {
+	tbody > tr > :first-child:has(
+			.yamabiko-table-reorder-handle-zone[data-visible='true']
+		) {
+		min-width: 80px;
+	}
+}
+
 .yamabiko-table-reorder-handle {
 	display: flex;
 	align-items: center;
