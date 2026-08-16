@@ -1,10 +1,4 @@
-import {
-	announceLiveStatus,
-	createReorderGuidance,
-	createRowControls,
-	getRowRepresentativeText,
-	HANDLE_ZONE_CLASS,
-} from './reorder-ui';
+import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './row-controls';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -27,7 +21,7 @@ const createTable = ( labels: string[] ) => {
 	return { tbody };
 };
 
-describe( 'reorder-ui', () => {
+describe( 'row-controls', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
 	} );
@@ -127,27 +121,5 @@ describe( 'reorder-ui', () => {
 		row.cells.item( 1 )!.textContent = 'Second cell';
 
 		expect( getRowRepresentativeText( row ) ).toBe( 'Second cell' );
-	} );
-
-	it( 'keeps a single live status node in the owning document', async () => {
-		announceLiveStatus( document, 'First announcement' );
-		announceLiveStatus( document, 'Second announcement' );
-		await Promise.resolve();
-
-		const statuses = document.querySelectorAll( '.yamabiko-table-reorder-live-status' );
-		expect( statuses ).toHaveLength( 1 );
-		expect( statuses[ 0 ].textContent ).toBe( 'Second announcement' );
-		expect( statuses[ 0 ].getAttribute( 'role' ) ).toBe( 'status' );
-	} );
-
-	it( 'creates and cleans up an inline operation guidance', () => {
-		const { tbody } = createTable( [ 'Alpha' ] );
-		const guidance = createReorderGuidance( document, tbody, 'Keyboard guidance' );
-
-		expect( guidance.element.textContent ).toBe( 'Keyboard guidance' );
-		guidance.setHidden( true );
-		expect( guidance.element.hidden ).toBe( true );
-		guidance.cleanup();
-		expect( guidance.element.isConnected ).toBe( false );
 	} );
 } );
