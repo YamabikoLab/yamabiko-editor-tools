@@ -60,4 +60,38 @@ describe( 'ensureSortableRuntime', () => {
 		await expect( loading ).resolves.toBeNull();
 		expect( getRuntimeScripts() ).toHaveLength( 0 );
 	} );
+	it( 'waits for an existing script that is still loading', async () => {
+		const script = document.createElement( 'script' );
+		script.id = 'yamabiko-table-reorder-sortable-runtime';
+		script.src = '/sortable.js';
+		script.setAttribute( 'data-yamabiko-table-reorder-runtime-state', 'loading' );
+		document.head.append( script );
+
+		const loading = ensureSortableRuntime( document, window, '/sortable.js' );
+		const runtime = createRuntime();
+
+		getSortableWindow().Sortable = runtime;
+		script.dispatchEvent( new Event( 'load' ) );
+
+		await expect( loading ).resolves.toBe( runtime );
+	} );
+	it( 'does not stay pending when an existing script already loaded without a runtime', async () => {
+		const script = document.createElement( 'script' );
+		script.id = 'yamabiko-table-reorder-sortable-runtime';
+		script.src = '/sortable.js';
+		document.head.append( script );
+
+		// ensureSortableRuntime() が listener を登録する前に、
+		// 既存 script の load が完了していた状態を再現する。
+		script.dispatchEvent( new Event( 'load' ) );
+
+		const result = await Promise.race( [
+			ensureSortableRuntime( document, window, '/sortable.js' ),
+			new Promise< 'pending' >( ( resolve ) => {
+				window.setTimeout( () => resolve( 'pending' ), 50 );
+			} ),
+		] );
+
+		expect( result ).toBeNull();
+	} );
 } );
