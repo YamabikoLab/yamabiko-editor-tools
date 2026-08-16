@@ -117,6 +117,7 @@ describe( 'createSortableController keyboard reorder', () => {
 
 	it( 'starts, moves, and commits from the focused row control', () => {
 		const { context, tbody } = createContext();
+		context.blockElement.setAttribute( 'draggable', 'true' );
 		const onCommit = jest.fn();
 		const controller = createSortableController( {
 			context,
@@ -128,10 +129,25 @@ describe( 'createSortableController keyboard reorder', () => {
 			runtimeUrl: '/sortable.js',
 		} );
 		const control = getControl( tbody, 1 );
+		onCommit.mockImplementation( () => {
+			expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
+			expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
+			expect(
+				document.querySelector< HTMLDivElement >( '.yamabiko-table-reorder-insertion-line' )?.style
+					.display
+			).toBe( 'none' );
+			expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
+		} );
 		control.focus();
 
 		expect( pressKey( control, 'Enter' ).defaultPrevented ).toBe( true );
+		expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'false' );
+		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).not.toBeNull();
 		expect( pressKey( control, 'ArrowDown' ).defaultPrevented ).toBe( true );
+		expect(
+			document.querySelector< HTMLDivElement >( '.yamabiko-table-reorder-insertion-line' )?.style
+				.display
+		).toBe( 'block' );
 		expect( pressKey( control, ' ' ).defaultPrevented ).toBe( true );
 
 		expect( onCommit ).toHaveBeenCalledTimes( 1 );

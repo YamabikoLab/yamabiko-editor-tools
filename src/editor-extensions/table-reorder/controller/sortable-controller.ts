@@ -202,6 +202,38 @@ export const createSortableController = (
 	let restoreFallbackCellWidths: () => void = () => undefined;
 
 	const announce = ( message: string ) => announceLiveStatus( document, message );
+	const commitRowMove = ( {
+		oldIndex,
+		newIndex,
+		rowLabel,
+		focusRowIndex,
+	}: {
+		oldIndex: number;
+		newIndex: number;
+		rowLabel: string;
+		focusRowIndex?: number;
+	} ): boolean => {
+		if (
+			! rows ||
+			isNoopRowMove( oldIndex, newIndex ) ||
+			! isRowMoveAllowed( oldIndex, newIndex, constraints )
+		) {
+			return false;
+		}
+
+		const reorderedRows = reorderRows( rows, oldIndex, newIndex );
+		if ( ! reorderedRows ) {
+			return false;
+		}
+
+		announce( getMoveCommittedAnnouncement( rowLabel, oldIndex + 1, newIndex + 1 ) );
+		if ( focusRowIndex === undefined ) {
+			onCommit( reorderedRows );
+		} else {
+			onCommit( reorderedRows, focusRowIndex );
+		}
+		return true;
+	};
 	const restoreFallbackWidths = () => {
 		restoreFallbackCellWidths();
 		restoreFallbackCellWidths = () => undefined;
@@ -321,26 +353,14 @@ export const createSortableController = (
 		releaseEntry();
 		if (
 			commit &&
-			rows &&
-			! isNoopRowMove( keyboardSession.oldIndex, keyboardSession.currentIndex ) &&
-			isRowMoveAllowed( keyboardSession.oldIndex, keyboardSession.currentIndex, constraints )
+			commitRowMove( {
+				oldIndex: keyboardSession.oldIndex,
+				newIndex: keyboardSession.currentIndex,
+				rowLabel: keyboardSession.rowLabel,
+				focusRowIndex: keyboardSession.currentIndex,
+			} )
 		) {
-			const reorderedRows = reorderRows(
-				rows,
-				keyboardSession.oldIndex,
-				keyboardSession.currentIndex
-			);
-			if ( reorderedRows ) {
-				announce(
-					getMoveCommittedAnnouncement(
-						keyboardSession.rowLabel,
-						keyboardSession.oldIndex + 1,
-						keyboardSession.currentIndex + 1
-					)
-				);
-				onCommit( reorderedRows, keyboardSession.currentIndex );
-				return;
-			}
+			return;
 		}
 
 		if ( ! commit ) {
@@ -364,22 +384,14 @@ export const createSortableController = (
 
 		if (
 			newIndex !== undefined &&
-			rows &&
-			! isNoopRowMove( pointerSession.oldIndex, newIndex ) &&
-			isRowMoveAllowed( pointerSession.oldIndex, newIndex, constraints )
+			commitRowMove( {
+				oldIndex: pointerSession.oldIndex,
+				newIndex,
+				rowLabel: pointerSession.rowLabel,
+				focusRowIndex: newIndex,
+			} )
 		) {
-			const reorderedRows = reorderRows( rows, pointerSession.oldIndex, newIndex );
-			if ( reorderedRows ) {
-				announce(
-					getMoveCommittedAnnouncement(
-						pointerSession.rowLabel,
-						pointerSession.oldIndex + 1,
-						newIndex + 1
-					)
-				);
-				onCommit( reorderedRows, newIndex );
-				return;
-			}
+			return;
 		}
 
 		if ( announceCancellation ) {
@@ -753,26 +765,15 @@ export const createSortableController = (
 				}
 
 				const { oldIndex, newIndex } = event;
-				if ( oldIndex === undefined || newIndex === undefined || ! rows ) {
+				if ( oldIndex === undefined || newIndex === undefined || ! completedSnapshot ) {
 					return;
 				}
 
-				if (
-					isNoopRowMove( oldIndex, newIndex ) ||
-					! isRowMoveAllowed( oldIndex, newIndex, constraints )
-				) {
-					return;
-				}
-
-				const reorderedRows = reorderRows( rows, oldIndex, newIndex );
-				if ( reorderedRows ) {
-					if ( completedSnapshot?.rowLabel ) {
-						announce(
-							getMoveCommittedAnnouncement( completedSnapshot.rowLabel, oldIndex + 1, newIndex + 1 )
-						);
-					}
-					onCommit( reorderedRows );
-				}
+				commitRowMove( {
+					oldIndex,
+					newIndex,
+					rowLabel: completedSnapshot.rowLabel,
+				} );
 			},
 			onUnchoose: () => {
 				if ( session.kind === 'keyboard' ) {
