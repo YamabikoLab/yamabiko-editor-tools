@@ -28,6 +28,12 @@ type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
 
+/** 対応block専用componentへ渡すprops。 */
+type TableReorderEditProps = {
+	BlockEdit: ComponentType< TableBlockEditProps >;
+	props: TableBlockEditProps;
+};
+
 /**
  * Table Reorderが対応するblockか判定する。
  *
@@ -39,15 +45,10 @@ export const isTableReorderSupportedBlock = ( blockName: string ) => blockName =
 /**
  * 対応block専用のTable Reorder描画component。
  *
- * @param props Gutenbergから渡されるBlockEdit propsと元のBlockEdit component。
+ * @param componentProps Gutenbergから渡されるBlockEdit propsと元のBlockEdit component。
  */
-const TableReorderEdit = ( {
-	BlockEdit,
-	props,
-}: {
-	BlockEdit: ComponentType< TableBlockEditProps >;
-	props: TableBlockEditProps;
-} ) => {
+const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
+	const { BlockEdit, props } = componentProps;
 	const {
 		attributes: { body },
 		clientId,
