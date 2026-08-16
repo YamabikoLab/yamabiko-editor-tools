@@ -22,6 +22,7 @@ type TestSortableOptions = {
 	handle?: string;
 	onChoose: ( event: { item: HTMLElement } ) => void;
 	onEnd: ( event: { oldIndex?: number; newIndex?: number } ) => void;
+	onStart: () => void;
 };
 
 const createContext = () => {
@@ -413,6 +414,7 @@ describe( 'createSortableController', () => {
 		const sortableOptions = getCreatedOptions( runtime );
 		const originalRows = Array.from( tbody.rows );
 		sortableOptions.onChoose( { item: originalRows[ 0 ] } );
+		sortableOptions.onStart();
 		tbody.append( originalRows[ 0 ] );
 		expect( Array.from( tbody.rows ).map( ( row ) => row.dataset.index ) ).toEqual( [
 			'1',
