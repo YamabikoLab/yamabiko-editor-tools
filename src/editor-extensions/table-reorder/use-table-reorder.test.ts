@@ -71,7 +71,7 @@ let activeProps: UseTableReorderOptions | null = null;
 const createMockController = (): MockController => ( {
 	destroy: jest.fn(),
 	focusRowControl: jest.fn( () => 'focused' ),
-	focusRowControlAt: jest.fn( () => true ),
+	focusRowControlAt: jest.fn( ( _rowIndex: number ) => true ),
 } );
 
 const createContext = (): TableContext => {
