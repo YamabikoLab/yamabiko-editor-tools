@@ -19,11 +19,43 @@ const createTable = ( rowCount = 3 ) => {
 
 const getInsertionLine = () =>
 	document.querySelector< HTMLDivElement >( '.yamabiko-table-reorder-insertion-line' );
+const getDropAnimation = () =>
+	document.querySelector< HTMLTableElement >( '.yamabiko-table-reorder-drop-animation' );
+
+const setReducedMotion = ( matches: boolean ) => {
+	Object.defineProperty( window, 'matchMedia', {
+		configurable: true,
+		value: jest.fn( () => ( { matches } ) as MediaQueryList ),
+	} );
+};
+
+const mockRect = ( element: Element, top: number, width = 120, height = 20 ) => {
+	jest.spyOn( element, 'getBoundingClientRect' ).mockReturnValue( {
+		bottom: top + height,
+		height,
+		left: 10,
+		right: 10 + width,
+		top,
+		width,
+		x: 10,
+		y: top,
+		toJSON: () => ( {} ),
+	} );
+};
 
 describe( 'drag-ui', () => {
 	beforeEach( () => {
+		jest.useRealTimers();
 		document.head.replaceChildren();
 		document.body.replaceChildren();
+		setReducedMotion( false );
+		Object.defineProperty( window, 'requestAnimationFrame', {
+			configurable: true,
+			value: jest.fn( ( callback: FrameRequestCallback ) => {
+				callback( 0 );
+				return 1;
+			} ),
+		} );
 	} );
 
 	it( 'removes the insertion line from the document on cleanup', () => {
@@ -89,17 +121,7 @@ describe( 'drag-ui', () => {
 		cell.style.minWidth = '10px';
 		cell.style.maxWidth = '80px';
 		cell.style.boxSizing = 'content-box';
-		jest.spyOn( cell, 'getBoundingClientRect' ).mockReturnValue( {
-			bottom: 20,
-			height: 20,
-			left: 0,
-			right: 120,
-			top: 0,
-			width: 120,
-			x: 0,
-			y: 0,
-			toJSON: () => ( {} ),
-		} );
+		mockRect( cell, 0 );
 
 		const restore = fixFallbackRowCellWidths( row );
 		expect( cell.style.width ).toBe( '120px' );
@@ -112,5 +134,49 @@ describe( 'drag-ui', () => {
 		expect( cell.style.minWidth ).toBe( '10px' );
 		expect( cell.style.maxWidth ).toBe( '80px' );
 		expect( cell.style.boxSizing ).toBe( 'content-box' );
+	} );
+
+	it( 'keeps a moved row visible briefly while the drop result settles', () => {
+		jest.useFakeTimers();
+		const { tbody } = createTable( 2 );
+		const row = tbody.rows.item( 0 );
+		const cell = row?.cells.item( 0 );
+		if ( ! row || ! cell ) {
+			throw new Error( 'Expected table row and cell' );
+		}
+		mockRect( row, 100, 200 );
+		mockRect( cell, 100, 200 );
+
+		const restore = fixFallbackRowCellWidths( row );
+		tbody.append( row );
+		restore();
+
+		const overlay = getDropAnimation();
+		expect( overlay ).toBeInstanceOf( HTMLTableElement );
+		expect( overlay?.getAttribute( 'aria-hidden' ) ).toBe( 'true' );
+		expect( overlay?.style.top ).toBe( '100px' );
+		expect( overlay?.style.transform ).toBe( 'translateY(0)' );
+		expect( overlay?.style.opacity ).toBe( '0' );
+
+		jest.runOnlyPendingTimers();
+		expect( getDropAnimation() ).toBeNull();
+	} );
+
+	it( 'does not animate a moved row when reduced motion is requested', () => {
+		setReducedMotion( true );
+		const { tbody } = createTable( 2 );
+		const row = tbody.rows.item( 0 );
+		const cell = row?.cells.item( 0 );
+		if ( ! row || ! cell ) {
+			throw new Error( 'Expected table row and cell' );
+		}
+		mockRect( row, 100, 200 );
+		mockRect( cell, 100, 200 );
+
+		const restore = fixFallbackRowCellWidths( row );
+		tbody.append( row );
+		restore();
+
+		expect( getDropAnimation() ).toBeNull();
 	} );
 } );
