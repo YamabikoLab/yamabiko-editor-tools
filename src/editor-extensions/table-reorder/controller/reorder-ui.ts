@@ -1,38 +1,30 @@
 /**
- * Table Reorderの待機中から存在する行controlと操作中UIを管理する。
+ * Table Reorderの操作中UIを管理し、行control / live statusの既存APIを再公開する。
  *
- * 移動可能行ごとのnative button、accessible name / description、表示状態、先頭cellの
- * handle gutter、操作中の案内、live status、単一ポインター用targetとcleanupを所有する。
- * drag中だけの一時UIは扱わない。
+ * viewport guidanceと単一ポインター用targetを所有する。行controlとlive statusは責務別moduleへ
+ * 分割し、既存consumer向けのimport境界はこのfacadeで維持する。
  */
-
-import { Tooltip } from '@wordpress/components';
-import { createElement, createRoot, flushSync } from '@wordpress/element';
-import { dragHandle, Icon } from '@wordpress/icons';
 
 import {
 	getCancelName,
 	getDestinationBeforeName,
 	getDestinationEndName,
-	getEmptyRowLabel,
-	getKeyboardHandleTooltip,
 	getPcPointerActiveMessage,
-	getPointerHandleTooltip,
-	getRowControlKeyboardDescription,
-	getRowControlName,
-	getRowControlPointerDescription,
 	getTouchPointerActiveMessage,
 } from '../messages';
+import { getRowRepresentativeText } from './row-controls';
 import type { RowMoveDirection, RowMoveTarget } from './row-order';
 
-/** 行control本体に付与するclass。SortableJSのhandle selectorとしても利用する。 */
-export const HANDLE_ZONE_CLASS = 'yamabiko-table-reorder-handle-zone';
-
-/** 行control内のdrag handle表示に付与するclass。 */
-const HANDLE_CLASS = 'yamabiko-table-reorder-handle';
-
-/** 支援技術向け説明文に付与するclass。 */
-const DESCRIPTION_CLASS = 'yamabiko-table-reorder-description';
+export { announceLiveStatus } from './live-status';
+export {
+	createRowControls,
+	getRowRepresentativeText,
+	HANDLE_ZONE_CLASS,
+	stopRowControlInteractionPropagation,
+	type RowControlEntry,
+	type RowControlOptions,
+	type RowControls,
+} from './row-controls';
 
 /** 単一ポインター操作の移動先buttonに付与するclass。 */
 export const DESTINATION_CLASS = 'yamabiko-table-reorder-destination';
@@ -43,15 +35,6 @@ const GUIDANCE_CLASS = 'yamabiko-table-reorder-pointer-guidance';
 /** タッチの明示的キャンセルbuttonに付与するclass。 */
 const CANCEL_CLASS = 'yamabiko-table-reorder-pointer-cancel';
 
-/** live statusに付与するclass。 */
-const LIVE_STATUS_CLASS = 'yamabiko-table-reorder-live-status';
-
-/** 行control用に先頭cellへ確保するinline方向の幅。 */
-const HANDLE_GUTTER_PX = 32;
-
-/** accessible nameへ含める代表情報の最大文字数。 */
-const MAX_ROW_LABEL_LENGTH = 80;
-
 /** touch target上の移動をtapではなくscroll gestureとして扱う距離。 */
 const POINTER_TAP_THRESHOLD_PX = 5;
 
@@ -60,32 +43,6 @@ const KEYBOARD_SCROLL_MARGIN_PX = 24;
 
 /** 操作案内をviewport端から離す余白。 */
 const GUIDANCE_VIEWPORT_OFFSET_PX = 8;
-
-/** 行controlの説明要素へ一意なIDを割り当てるための連番。 */
-let descriptionSequence = 0;
-
-/** owning documentごとに一つだけ共有するlive status。 */
-const liveStatusByDocument = new WeakMap< Document, HTMLElement >();
-
-/** 行control 1件を構成するDOM node。 */
-export type RowControlEntry = {
-	control: HTMLButtonElement;
-	handle: HTMLSpanElement;
-	row: HTMLTableRowElement;
-	setPressed: ( isPressed: boolean ) => void;
-};
-
-/** 行control群と、その表示・cleanupをまとめたUI。 */
-export type RowControls = {
-	entries: RowControlEntry[];
-	setVisible: ( entry: RowControlEntry, isVisible: boolean ) => void;
-	cleanup: () => void;
-};
-
-/** 行control生成時の表示mode。 */
-export type RowControlOptions = {
-	showAll: boolean;
-};
 
 /** 操作中案内を表示するviewport側。 */
 export type ReorderGuidancePosition = 'top' | 'bottom';
@@ -109,63 +66,6 @@ export type RowMoveTargetsOptions = {
 /** 単一ポインター移動先UIのlifecycle。 */
 export type RowMoveTargetsUi = {
 	cleanup: () => void;
-};
-
-/**
- * 行内容からaccessible nameへ使う短い代表情報を返す。
- *
- * 先頭から最初の空でないcell内容を採用し、空行では基本設計の翻訳対象fallbackを返す。
- * 既にTable Reorderのcontrolが存在する場合は、その一時DOMを代表情報へ含めない。
- *
- * @param row 代表情報を取得する本文行。
- * @return 行内容の代表情報。
- */
-export const getRowRepresentativeText = ( row: HTMLTableRowElement ): string => {
-	for ( const cell of Array.from( row.cells ) ) {
-		const clone = cell.cloneNode( true ) as HTMLTableCellElement;
-		clone.querySelectorAll( `.${ HANDLE_ZONE_CLASS }` ).forEach( ( control ) => control.remove() );
-		const text = clone.textContent?.replace( /\s+/g, ' ' ).trim() ?? '';
-		if ( ! text ) {
-			continue;
-		}
-
-		if ( text.length <= MAX_ROW_LABEL_LENGTH ) {
-			return text;
-		}
-
-		return `${ text.slice( 0, MAX_ROW_LABEL_LENGTH - 1 ) }…`;
-	}
-
-	return getEmptyRowLabel();
-};
-
-/**
- * owning document内のlive statusへ一つの通知を送る。
- *
- * 同一nodeをdocumentごとに共有し、同じ文言を再通知する必要がある場合にもDOM更新が発生するよう
- * 一度空にしてからmicrotaskで設定する。連続通知の抑制は操作状態を知るcontroller側が担当する。
- *
- * @param document 通知先のeditor document。
- * @param message  支援技術へ通知する文言。
- */
-export const announceLiveStatus = ( document: Document, message: string ) => {
-	let status = liveStatusByDocument.get( document );
-	if ( ! status || ! status.isConnected ) {
-		status = document.createElement( 'div' );
-		status.className = `${ DESCRIPTION_CLASS } ${ LIVE_STATUS_CLASS }`;
-		status.setAttribute( 'role', 'status' );
-		status.setAttribute( 'aria-live', 'polite' );
-		status.setAttribute( 'aria-atomic', 'true' );
-		document.body.append( status );
-		liveStatusByDocument.set( document, status );
-	}
-
-	status.textContent = '';
-	queueMicrotask( () => {
-		if ( status?.isConnected ) {
-			status.textContent = message;
-		}
-	} );
 };
 
 /**
@@ -306,203 +206,6 @@ export const scrollKeyboardDestinationIntoView = (
 	if ( Math.abs( delta ) >= 1 ) {
 		view.scrollBy( { behavior: 'auto', left: 0, top: delta } );
 	}
-};
-
-/**
- * 移動可能行へ共通の行controlを追加する。
- *
- * hover modeではcontrolをDOMとTab順へ常設しつつ通常時は視覚的に隠し、controllerからのhover表示と
- * native focusで見えるようにする。touch reorder modeでは全controlを表示する。変更した先頭cellの
- * inline styleと生成DOMは`cleanup()`で開始前へ戻す。
- *
- * @param document             controlを生成するeditor document。
- * @param tbody                controlを追加するTable body。
- * @param nonMovableRowIndices controlを作成しない行index。
- * @param options              controlの表示mode。
- * @return 生成した行control群。
- */
-export const createRowControls = (
-	document: Document,
-	tbody: HTMLTableSectionElement,
-	nonMovableRowIndices: readonly number[],
-	options: RowControlOptions
-): RowControls => {
-	const entries: RowControlEntry[] = [];
-	const cleanupControlRoots: Array< () => void > = [];
-	const changedCells: Array< {
-		cell: HTMLTableCellElement;
-		paddingInlineStart: string;
-		position: string;
-	} > = [];
-	const view = document.defaultView;
-	const nonMovableRows = new Set( nonMovableRowIndices );
-
-	for ( const [ rowIndex, row ] of Array.from( tbody.rows ).entries() ) {
-		if ( nonMovableRows.has( rowIndex ) ) {
-			continue;
-		}
-
-		const firstCell = row.cells.item( 0 );
-		if ( ! firstCell ) {
-			continue;
-		}
-
-		const rowLabel = getRowRepresentativeText( row );
-		const computedStyle = view?.getComputedStyle( firstCell );
-		changedCells.push( {
-			cell: firstCell,
-			paddingInlineStart: firstCell.style.paddingInlineStart,
-			position: firstCell.style.position,
-		} );
-
-		if ( computedStyle?.position === 'static' ) {
-			firstCell.style.position = 'relative';
-		}
-		firstCell.style.paddingInlineStart = computedStyle
-			? `calc(${ computedStyle.paddingInlineStart } + ${ HANDLE_GUTTER_PX }px)`
-			: `${ HANDLE_GUTTER_PX }px`;
-
-		descriptionSequence += 1;
-		const descriptionBaseId = `yamabiko-table-reorder-description-${ descriptionSequence }`;
-		const pointerDescriptionId = `${ descriptionBaseId }-pointer`;
-		const keyboardDescriptionId = `${ descriptionBaseId }-keyboard`;
-		const rowControlName = getRowControlName( rowIndex + 1, rowLabel );
-		const pointerDescription = getRowControlPointerDescription();
-		const keyboardDescription = getRowControlKeyboardDescription();
-		const usePointerDescription = ! options.showAll;
-
-		const mount = document.createElement( 'span' );
-		mount.style.display = 'contents';
-		firstCell.prepend( mount );
-		const root = createRoot( mount );
-		let isPressed = false;
-		let tooltipText: string | undefined = usePointerDescription
-			? getPointerHandleTooltip()
-			: undefined;
-		let descriptionId: string | undefined = usePointerDescription
-			? pointerDescriptionId
-			: undefined;
-
-		const renderControl = () => {
-			const anchor = createElement(
-				'button',
-				{
-					'aria-describedby': isPressed ? undefined : descriptionId,
-					'aria-label': rowControlName,
-					'aria-pressed': isPressed,
-					className: HANDLE_ZONE_CLASS,
-					contentEditable: false,
-					type: 'button',
-				},
-				createElement(
-					'span',
-					{
-						'aria-hidden': true,
-						className: HANDLE_CLASS,
-					},
-					createElement( Icon, {
-						icon: dragHandle,
-						size: 20,
-					} )
-				),
-				createElement(
-					'span',
-					{
-						className: DESCRIPTION_CLASS,
-						id: pointerDescriptionId,
-					},
-					pointerDescription
-				),
-				createElement(
-					'span',
-					{
-						className: DESCRIPTION_CLASS,
-						id: keyboardDescriptionId,
-					},
-					keyboardDescription
-				)
-			);
-			root.render(
-				createElement( Tooltip, {
-					children: anchor,
-					text: isPressed ? undefined : tooltipText,
-				} )
-			);
-		};
-
-		flushSync( renderControl );
-		const renderedControl = mount.querySelector< HTMLButtonElement >( `.${ HANDLE_ZONE_CLASS }` );
-		if ( ! renderedControl ) {
-			root.unmount();
-			mount.remove();
-			continue;
-		}
-
-		const handle = renderedControl.querySelector< HTMLSpanElement >( `.${ HANDLE_CLASS }` );
-		if ( ! handle ) {
-			root.unmount();
-			mount.remove();
-			continue;
-		}
-
-		renderedControl.dataset.visible = options.showAll ? 'true' : 'false';
-
-		const setPressed = ( nextIsPressed: boolean ) => {
-			if ( isPressed === nextIsPressed ) {
-				return;
-			}
-			isPressed = nextIsPressed;
-			flushSync( renderControl );
-		};
-		const onFocus = () => {
-			tooltipText = getKeyboardHandleTooltip();
-			descriptionId = keyboardDescriptionId;
-			flushSync( renderControl );
-		};
-		const onBlur = () => {
-			if ( usePointerDescription ) {
-				tooltipText = getPointerHandleTooltip();
-				descriptionId = pointerDescriptionId;
-			} else {
-				tooltipText = undefined;
-				descriptionId = undefined;
-			}
-			flushSync( renderControl );
-		};
-		renderedControl.addEventListener( 'focus', onFocus );
-		renderedControl.addEventListener( 'blur', onBlur );
-
-		cleanupControlRoots.push( () => {
-			renderedControl.removeEventListener( 'focus', onFocus );
-			renderedControl.removeEventListener( 'blur', onBlur );
-			root.unmount();
-			mount.remove();
-		} );
-		entries.push( { control: renderedControl, handle, row, setPressed } );
-	}
-
-	return {
-		entries,
-		setVisible: ( entry, isVisible ) => {
-			if ( isVisible && ! options.showAll ) {
-				for ( const otherEntry of entries ) {
-					if ( otherEntry !== entry ) {
-						otherEntry.control.dataset.visible = 'false';
-					}
-				}
-			}
-			entry.control.dataset.visible = isVisible ? 'true' : 'false';
-		},
-		cleanup: () => {
-			for ( const cleanupControlRoot of cleanupControlRoots ) {
-				cleanupControlRoot();
-			}
-			for ( const { cell, paddingInlineStart, position } of changedCells ) {
-				cell.style.paddingInlineStart = paddingInlineStart;
-				cell.style.position = position;
-			}
-		},
-	};
 };
 
 /**
@@ -652,19 +355,4 @@ export const createRowMoveTargets = (
 			guidance.cleanup();
 		},
 	};
-};
-
-/**
- * 行control上のeventがGutenberg側へ伝播しないよう停止する。
- *
- * native button自身のfocus / click既定動作は維持し、Table ReorderのcontrollerとSortableJSが
- * 同じcontrolを操作入口として扱えるよう`preventDefault()`は行わない。
- *
- * @param event 行control操作か判定するDOM event。
- */
-export const stopRowControlInteractionPropagation = ( event: Event ) => {
-	const target = event.target as Element | null;
-	if ( target?.closest?.( `.${ HANDLE_ZONE_CLASS }` ) ) {
-		event.stopPropagation();
-	}
 };
