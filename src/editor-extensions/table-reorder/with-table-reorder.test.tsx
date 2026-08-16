@@ -5,6 +5,16 @@ import { isTableReorderSupportedBlock, withTableReorder } from './with-table-reo
 
 const { act } = jest.requireActual< { act: ( callback: () => void ) => void } >( 'react' );
 
+jest.mock( '@wordpress/block-editor', () => ( {
+	BlockControls: 'div',
+} ) );
+
+jest.mock( '@wordpress/components', () => ( {
+	Button: 'button',
+	Popover: 'div',
+	ToolbarButton: 'button',
+} ) );
+
 jest.mock( './use-table-reorder', () => ( {
 	useTableReorder: jest.fn(),
 } ) );
