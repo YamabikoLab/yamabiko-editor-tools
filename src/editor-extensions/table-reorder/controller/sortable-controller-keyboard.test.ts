@@ -133,8 +133,8 @@ describe( 'createSortableController keyboard reorder', () => {
 			expect( control.getAttribute( 'aria-pressed' ) ).toBe( 'false' );
 			expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
 			expect(
-				document.querySelector< HTMLDivElement >( '.yamabiko-table-reorder-insertion-line' )
-					?.style.display
+				document.querySelector< HTMLDivElement >( '.yamabiko-table-reorder-insertion-line' )?.style
+					.display
 			).toBe( 'none' );
 			expect( context.blockElement.getAttribute( 'draggable' ) ).toBe( 'true' );
 		} );
