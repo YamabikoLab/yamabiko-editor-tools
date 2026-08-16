@@ -1,7 +1,10 @@
 import { useDispatch, useSelect } from '@wordpress/data';
 import { createElement, createRoot } from '@wordpress/element';
 
-import { createSortableController, type SortableController } from './controller/sortable-controller';
+import {
+	createSortableController,
+	type SortableController,
+} from './controller/sortable-controller';
 import { resolveTableContext, type TableContext } from './table-context';
 import { useTableReorder } from './use-table-reorder';
 
