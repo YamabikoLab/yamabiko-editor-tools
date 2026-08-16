@@ -28,6 +28,7 @@ UI仕様・操作仕様を変えず、#269 / #270 で整理した `ReorderSessio
 - `rowLabel` を helper の必須引数とする。
 - keyboard / pointer からは既存どおり `focusRowIndex = newIndex` を渡し、通常 drag では focus index を渡さない。
 - helper 抽出前に、keyboard / pointer の cleanup-before-commit を保護する characterization test を必要最小限追加する。
+- characterization test では、`onCommit()` callback 内で `releaseEntry()` まで完了済みであることを block の `draggable` 復元状態から確認する。
 - 通常 drag では、既存の「DOM 順を復元してから commit する」テストを副作用順序の保護として継続利用する。
 - 既存の no-op、rowspan 制約、拒否された SortableJS lifecycle、focus、announcement の挙動を維持する。
 
@@ -56,11 +57,15 @@ keyboard では少なくとも次を確認する。
 - keyboard guidance が DOM から cleanup 済み
 - insertion line が `hide()` 済みで非表示
 - insertion line の DOM 削除自体は要求しない
+- active entry / block drag cleanup が完了し、block の `draggable` が元の状態へ復元済み
 
 pointer では少なくとも次を確認する。
 
 - destination UI が削除済み
 - `aria-pressed="false"`
+- active entry / block drag cleanup が完了し、block の `draggable` が元の状態へ復元済み
+
+`draggable` の assertion は session 終了後の最終状態を確認するだけではなく、**`onCommit()` callback が実行された瞬間に `releaseEntry()` が完了していること**を直接保護する。
 
 通常 drag は、既存の「元の DOM 順を復元してから reordered rows を commit する」テストで同じ目的を保護できるため、同内容の characterization test は追加しない。
 
@@ -96,6 +101,17 @@ helper の契約は次とする。
 - helper は `session` を変更しない
 - `rowLabel` は必須で、label 不在を helper 内の境界ケースとして扱わない
 - `focusRowIndex` は optional とし、keyboard / pointer と通常 drag の既存差異だけを表現する
+- `focusRowIndex === undefined` の通常 drag では `onCommit( reorderedRows )` の **1引数呼び出し**を維持し、`onCommit( reorderedRows, undefined )` にはしない
+
+`onCommit()` の呼び出しは概念的に次の分岐とする。
+
+```ts
+if ( focusRowIndex === undefined ) {
+	onCommit( reorderedRows );
+} else {
+	onCommit( reorderedRows, focusRowIndex );
+}
+```
 
 ### 3. keyboard caller を helper へ置き換える
 
@@ -148,7 +164,7 @@ commit 不成立時の既存挙動を維持する。
 
 `DragSnapshot.rowLabel` を helper の必須 `rowLabel` として渡す。
 
-通常 drag は `focusRowIndex` を渡さず、現行の `onCommit( reorderedRows )` 相当の挙動を保つ。
+通常 drag は `focusRowIndex` を渡さず、現行どおり `onCommit( reorderedRows )` を **1引数で**呼ぶ契約を保つ。第2引数として `undefined` を渡す形にはしない。
 
 ### 6. 重複削除後に caller 固有処理だけが残っていることを確認する
 
@@ -224,8 +240,9 @@ Outcome:
 Tasks:
 
 - `sortable-controller-keyboard.test.ts` の成功 commit テストを、`onCommit` callback 内で cleanup 状態を assertion できる形へ追加または最小限拡張する。
-- keyboard callback 内で `aria-pressed=false`、guidance cleanup、insertion line 非表示を確認する。
-- `sortable-controller-pointer.test.ts` の成功 commit テストを、`onCommit` callback 内で destination UI cleanup と `aria-pressed=false` を確認できる形へ追加または最小限拡張する。
+- keyboard callback 内で `aria-pressed=false`、guidance cleanup、insertion line 非表示に加え、block の `draggable` が元の状態へ復元済みであることを確認する。
+- `sortable-controller-pointer.test.ts` の成功 commit テストを、`onCommit` callback 内で destination UI cleanup、`aria-pressed=false`、block の `draggable` 復元済み状態を確認できる形へ追加または最小限拡張する。
+- `draggable` assertion は `releaseEntry()` が `onCommit()` より前に完了していることを回帰検出する目的で置く。
 - 通常 drag の DOM restore-before-commit 既存テストが引き続き存在することを確認する。
 
 Validation:
@@ -242,6 +259,7 @@ Tasks:
 
 - `commitRowMove()` を `createSortableController()` 内へ追加する。
 - `rowLabel` 必須、`focusRowIndex` optional、戻り値 `boolean` の契約にする。
+- `focusRowIndex` が未指定なら `onCommit( reorderedRows )`、指定済みなら `onCommit( reorderedRows, focusRowIndex )` とし、callback の既存引数個数を維持する。
 - `finishKeyboardSession()` の cleanup 順を維持したまま helper 呼び出しへ置き換える。
 - commit 不成立時の cancel announcement / focus / guidance の既存差異を caller 側に残す。
 
@@ -280,6 +298,7 @@ Tasks:
 - 通常 drag `onEnd` の commit 判定 / reorder / announcement / `onCommit()` を helper 呼び出しへ置き換える。
 - `completedSnapshot.rowLabel` を必須 `rowLabel` として渡す。
 - 通常 drag では `focusRowIndex` を渡さない。
+- 通常 drag の `onCommit()` は既存どおり `onCommit( reorderedRows )` の1引数呼び出しを維持する。
 - keyboard 中に拒否された Sortable lifecycle では helper を呼ばない条件を維持する。
 - DOM restore-before-commit の順序を変更しない。
 
@@ -287,6 +306,7 @@ Validation:
 
 - `sortable-controller.test.ts` と keyboard の拒否 lifecycle test を実行する。
 - DOM restore-before-commit test が Green のままであることを確認する。
+- normal drag の既存 `toHaveBeenCalledWith( [ ... ] )` test を callback 引数個数の回帰検出として継続利用する。
 - drag no-op / constraint / cleanup / restart の既存挙動を確認する。
 
 ### Phase 5: 重複確認と全体検証
@@ -319,6 +339,8 @@ Issue #271 で次の方針は確定済みとし、実装中に再設計しない
 - helper は session lifecycle / cleanup / focus / cancel announcement を扱わない。
 - keyboard / pointer は `focusRowIndex = newIndex`、通常 drag は focus index なし。
 - cleanup-before-commit の順序を維持する。
+- keyboard / pointer の characterization test は `onCommit()` callback 内で block の `draggable` 復元済み状態まで確認し、`releaseEntry()` の順序を保護する。
+- normal drag の `onCommit()` は既存どおり1引数で呼び、`undefined` を第2引数として渡さない。
 
 ### Validate during implementation
 
@@ -362,13 +384,15 @@ git diff --check origin/main...HEAD
 ## Completion criteria
 
 - keyboard / pointer の cleanup-before-commit characterization test が `onCommit` callback 内で副作用順序を保護している。
-- keyboard characterization test が guidance cleanup、insertion line 非表示、`aria-pressed="false"` を commit 時点で確認している。
-- pointer characterization test が destination UI cleanup、`aria-pressed="false"` を commit 時点で確認している。
+- keyboard characterization test が guidance cleanup、insertion line 非表示、`aria-pressed="false"`、block の `draggable` 復元済み状態を commit 時点で確認している。
+- pointer characterization test が destination UI cleanup、`aria-pressed="false"`、block の `draggable` 復元済み状態を commit 時点で確認している。
+- keyboard / pointer の characterization test により `releaseEntry()` が `onCommit()` より前に完了する順序が保護されている。
 - keyboard / pointer / 通常 drag の commit 判定・`reorderRows()`・commit announcement・`onCommit()` が `commitRowMove()` 経由になっている。
 - no-op / 移動可否判定が3経路に重複していない。
 - `commitRowMove()` は commit 成立時のみ `true`、不成立時は `false` を返す。
 - `rowLabel` が helper の必須引数になっている。
 - commit 成立時は commit announcement と `onCommit()` が必ず実行される。
+- normal drag の `onCommit()` は既存どおり `onCommit( reorderedRows )` の1引数呼び出しを維持し、第2引数へ `undefined` を渡さない。
 - commit 不成立時の cancel announcement / focus / guidance / session cleanup は helper が行わない。
 - keyboard / pointer / drag 固有の cleanup が各 caller に残っている。
 - keyboard / pointer / drag の cleanup 完了後に helper が呼ばれ、既存の `onCommit()` 副作用順序が維持されている。
