@@ -5,10 +5,13 @@ jest.mock( '@wordpress/components', () => ( {
 } ) );
 
 const createTable = ( labels: string[] ) => {
+	const wrapper = document.createElement( 'figure' );
+	wrapper.className = 'wp-block-table';
 	const table = document.createElement( 'table' );
 	const tbody = document.createElement( 'tbody' );
 	table.append( tbody );
-	document.body.append( table );
+	wrapper.append( table );
+	document.body.append( wrapper );
 
 	for ( const label of labels ) {
 		const row = document.createElement( 'tr' );
@@ -18,7 +21,7 @@ const createTable = ( labels: string[] ) => {
 		tbody.append( row );
 	}
 
-	return { tbody };
+	return { table, tbody, wrapper };
 };
 
 describe( 'row-controls', () => {
@@ -56,6 +59,49 @@ describe( 'row-controls', () => {
 		expect( tbody.querySelector( `.${ HANDLE_ZONE_CLASS }` ) ).toBeNull();
 		expect( firstCell.style.position ).toBe( 'static' );
 		expect( firstCell.style.paddingInlineStart ).toBe( '7px' );
+	} );
+
+	it( 'adds only the missing first-column width in touch reorder mode and restores it', () => {
+		const { table, tbody, wrapper } = createTable( [ 'Alpha', 'Beta' ] );
+		const sizingCell = table.rows.item( 0 )?.cells.item( 0 );
+		if ( ! sizingCell ) {
+			throw new Error( 'Expected sizing cell' );
+		}
+		table.style.minWidth = '400px';
+		sizingCell.style.width = '20px';
+		wrapper.style.overflowX = 'hidden';
+		jest.spyOn( table, 'getBoundingClientRect' ).mockReturnValue( { width: 408 } as DOMRect );
+		jest.spyOn( sizingCell, 'getBoundingClientRect' ).mockReturnValue( { width: 27 } as DOMRect );
+
+		const controls = createRowControls( document, tbody, [], { showAll: true } );
+
+		expect( wrapper.style.overflowX ).toBe( 'auto' );
+		expect( table.style.minWidth ).toBe( '445px' );
+		expect( sizingCell.style.width ).toBe( '64px' );
+
+		controls.cleanup();
+
+		expect( wrapper.style.overflowX ).toBe( 'hidden' );
+		expect( table.style.minWidth ).toBe( '400px' );
+		expect( sizingCell.style.width ).toBe( '20px' );
+	} );
+
+	it( 'keeps table width unchanged when the first column is already wide enough', () => {
+		const { table, tbody, wrapper } = createTable( [ 'Alpha', 'Beta' ] );
+		const sizingCell = table.rows.item( 0 )?.cells.item( 0 );
+		if ( ! sizingCell ) {
+			throw new Error( 'Expected sizing cell' );
+		}
+		jest.spyOn( table, 'getBoundingClientRect' ).mockReturnValue( { width: 408 } as DOMRect );
+		jest.spyOn( sizingCell, 'getBoundingClientRect' ).mockReturnValue( { width: 80 } as DOMRect );
+
+		const controls = createRowControls( document, tbody, [], { showAll: true } );
+
+		expect( wrapper.style.overflowX ).toBe( '' );
+		expect( table.style.minWidth ).toBe( '' );
+		expect( sizingCell.style.width ).toBe( '' );
+
+		controls.cleanup();
 	} );
 
 	it( 'keeps only one row control visible in hover mode', () => {
