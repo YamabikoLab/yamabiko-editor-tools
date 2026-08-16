@@ -17,6 +17,9 @@ const createTable = ( rowCount = 3 ) => {
 	return { tbody };
 };
 
+const getInsertionLine = () =>
+	document.querySelector< HTMLDivElement >( '.yamabiko-table-reorder-insertion-line' );
+
 describe( 'drag-ui', () => {
 	beforeEach( () => {
 		document.head.replaceChildren();
@@ -25,12 +28,14 @@ describe( 'drag-ui', () => {
 
 	it( 'removes the insertion line from the document on cleanup', () => {
 		const insertionLine = createInsertionLine( document );
+		const element = getInsertionLine();
 
-		expect( document.body.contains( insertionLine.element ) ).toBe( true );
+		expect( element ).toBeInstanceOf( HTMLDivElement );
+		expect( element?.isConnected ).toBe( true );
 
 		insertionLine.cleanup();
 
-		expect( document.body.contains( insertionLine.element ) ).toBe( false );
+		expect( element?.isConnected ).toBe( false );
 	} );
 
 	it( 'repositions the insertion line when the editor scrolls', () => {
@@ -52,8 +57,9 @@ describe( 'drag-ui', () => {
 			toJSON: () => ( {} ),
 		} );
 		const insertionLine = createInsertionLine( document );
+		const element = getInsertionLine();
 		insertionLine.show( row, false );
-		expect( insertionLine.element.style.top ).toBe( '100px' );
+		expect( element?.style.top ).toBe( '100px' );
 
 		getRect.mockReturnValue( {
 			bottom: 70,
@@ -68,7 +74,7 @@ describe( 'drag-ui', () => {
 		} );
 		document.dispatchEvent( new Event( 'scroll' ) );
 
-		expect( insertionLine.element.style.top ).toBe( '50px' );
+		expect( element?.style.top ).toBe( '50px' );
 		insertionLine.cleanup();
 	} );
 

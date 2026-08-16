@@ -47,6 +47,9 @@ jobs:
       - name: Run Node.js quality checks
         run: npm test
 
+      - name: Run Knip
+        run: npm run knip
+
       - name: Build
         run: npm run build
 

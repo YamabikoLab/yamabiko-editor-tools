@@ -1,4 +1,4 @@
-import { createRowMoveTargets, DESTINATION_CLASS } from './row-move-targets';
+import { createRowMoveTargets } from './row-move-targets';
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -43,16 +43,16 @@ describe( 'row-move-targets', () => {
 
 	it( 'keeps row move target labels and cleanup scoped to the target UI', () => {
 		const { tbody } = createTable( [ 'Alpha', 'Beta', 'Gamma' ] );
-		const sourceControl = document.createElement( 'button' );
 		const onCancel = jest.fn();
 		const onSelect = jest.fn();
 		const targets = createRowMoveTargets( document, tbody, [ { insertionIndex: 2, newIndex: 1 } ], {
 			isTouch: true,
 			onCancel,
 			onSelect,
-			sourceControl,
 		} );
-		const destination = document.querySelector< HTMLButtonElement >( `.${ DESTINATION_CLASS }` );
+		const destination = document.querySelector< HTMLButtonElement >(
+			'.yamabiko-table-reorder-destination'
+		);
 		const cancel = document.querySelector< HTMLButtonElement >(
 			'.yamabiko-table-reorder-pointer-cancel'
 		);
@@ -64,7 +64,7 @@ describe( 'row-move-targets', () => {
 
 		targets.cleanup();
 
-		expect( document.querySelector( `.${ DESTINATION_CLASS }` ) ).toBeNull();
+		expect( document.querySelector( '.yamabiko-table-reorder-destination' ) ).toBeNull();
 		expect( document.querySelector( '.yamabiko-table-reorder-pointer-guidance' ) ).toBeNull();
 	} );
 
@@ -75,9 +75,10 @@ describe( 'row-move-targets', () => {
 			isTouch: true,
 			onCancel: jest.fn(),
 			onSelect,
-			sourceControl: document.createElement( 'button' ),
 		} );
-		const destination = document.querySelector< HTMLButtonElement >( `.${ DESTINATION_CLASS }` );
+		const destination = document.querySelector< HTMLButtonElement >(
+			'.yamabiko-table-reorder-destination'
+		);
 		if ( ! destination ) {
 			throw new Error( 'Expected destination button' );
 		}

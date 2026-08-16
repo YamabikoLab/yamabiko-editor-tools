@@ -1,4 +1,4 @@
-import { findBlockElement, resolveTableContext } from './table-context';
+import { resolveTableContext } from './table-context';
 
 const appendTableBlock = ( targetDocument: Document, clientId: string ) => {
 	const block = targetDocument.createElement( 'div' );
@@ -8,48 +8,44 @@ const appendTableBlock = ( targetDocument: Document, clientId: string ) => {
 	table.append( tbody );
 	block.append( table );
 	targetDocument.body.append( block );
-	return { block, table, tbody };
+	return { block, tbody };
 };
-
-describe( 'findBlockElement', () => {
-	beforeEach( () => {
-		document.body.replaceChildren();
-	} );
-
-	it( 'prefers the root document when the same block exists in the iframe', () => {
-		const rootBlock = document.createElement( 'div' );
-		rootBlock.dataset.block = 'shared-block';
-		document.body.append( rootBlock );
-
-		const iframe = document.createElement( 'iframe' );
-		iframe.name = 'editor-canvas';
-		document.body.append( iframe );
-		const iframeBlock = iframe.contentDocument?.createElement( 'div' );
-		if ( ! iframeBlock || ! iframe.contentDocument ) {
-			throw new Error( 'Expected iframe contentDocument in jsdom' );
-		}
-		iframeBlock.dataset.block = 'shared-block';
-		iframe.contentDocument.body.append( iframeBlock );
-
-		expect( findBlockElement( document, 'shared-block' ) ).toBe( rootBlock );
-	} );
-} );
 
 describe( 'resolveTableContext', () => {
 	beforeEach( () => {
 		document.body.replaceChildren();
 	} );
 
+	it( 'prefers the root document when the same block exists in the iframe', () => {
+		const anchor = document.createElement( 'span' );
+		document.body.append( anchor );
+		const root = appendTableBlock( document, 'shared-block' );
+
+		const iframe = document.createElement( 'iframe' );
+		iframe.name = 'editor-canvas';
+		document.body.append( iframe );
+		if ( ! iframe.contentDocument ) {
+			throw new Error( 'Expected iframe contentDocument in jsdom' );
+		}
+		appendTableBlock( iframe.contentDocument, 'shared-block' );
+
+		expect( resolveTableContext( anchor, 'shared-block' ) ).toEqual( {
+			blockElement: root.block,
+			document,
+			window,
+			tbody: root.tbody,
+		} );
+	} );
+
 	it( 'resolves a direct document Table context', () => {
 		const anchor = document.createElement( 'span' );
 		document.body.append( anchor );
-		const { block, table, tbody } = appendTableBlock( document, 'root-block' );
+		const { block, tbody } = appendTableBlock( document, 'root-block' );
 
 		expect( resolveTableContext( anchor, 'root-block' ) ).toEqual( {
 			blockElement: block,
 			document,
 			window,
-			table,
 			tbody,
 		} );
 	} );
@@ -63,13 +59,12 @@ describe( 'resolveTableContext', () => {
 		if ( ! iframe.contentDocument || ! iframe.contentWindow ) {
 			throw new Error( 'Expected iframe document and window in jsdom' );
 		}
-		const { block, table, tbody } = appendTableBlock( iframe.contentDocument, 'iframe-block' );
+		const { block, tbody } = appendTableBlock( iframe.contentDocument, 'iframe-block' );
 
 		expect( resolveTableContext( anchor, 'iframe-block' ) ).toEqual( {
 			blockElement: block,
 			document: iframe.contentDocument,
 			window: iframe.contentWindow,
-			table,
 			tbody,
 		} );
 	} );

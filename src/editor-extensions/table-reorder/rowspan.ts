@@ -10,7 +10,7 @@
  *
  * startとendはどちらも範囲に含む。
  */
-export type RowspanRange = {
+type RowspanRange = {
 	end: number;
 	start: number;
 };

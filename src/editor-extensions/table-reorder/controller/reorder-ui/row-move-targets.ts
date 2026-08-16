@@ -10,7 +10,7 @@ import { getRowRepresentativeText } from './row-controls';
 import type { RowMoveTarget } from '../row-order';
 
 /** 単一ポインター操作の移動先buttonに付与するclass。 */
-export const DESTINATION_CLASS = 'yamabiko-table-reorder-destination';
+const DESTINATION_CLASS = 'yamabiko-table-reorder-destination';
 
 /** タッチの明示的キャンセルbuttonに付与するclass。 */
 const CANCEL_CLASS = 'yamabiko-table-reorder-pointer-cancel';
@@ -19,11 +19,10 @@ const CANCEL_CLASS = 'yamabiko-table-reorder-pointer-cancel';
 const POINTER_TAP_THRESHOLD_PX = 5;
 
 /** 単一ポインター移動先UI生成時の設定。 */
-export type RowMoveTargetsOptions = {
+type RowMoveTargetsOptions = {
 	isTouch: boolean;
 	onCancel: () => void;
 	onSelect: ( newIndex: number ) => void;
-	sourceControl: HTMLButtonElement;
 };
 
 /** 単一ポインター移動先UIのlifecycle。 */
@@ -56,8 +55,7 @@ export const createRowMoveTargets = (
 	const guidance = createReorderGuidance(
 		document,
 		tbody,
-		options.isTouch ? getTouchPointerActiveMessage() : getPcPointerActiveMessage(),
-		options.sourceControl
+		options.isTouch ? getTouchPointerActiveMessage() : getPcPointerActiveMessage()
 	);
 
 	if ( options.isTouch ) {

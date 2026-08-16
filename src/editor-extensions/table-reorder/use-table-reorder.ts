@@ -21,7 +21,7 @@ import { useTableReorderController } from './use-table-reorder-controller';
 import { useTableReorderInteraction } from './use-table-reorder-interaction';
 
 /** custom hookへ渡すGutenberg側の入力。 */
-export type UseTableReorderOptions = {
+type UseTableReorderOptions = {
 	body: unknown;
 	clientId: string;
 	enabled: boolean;
@@ -30,7 +30,7 @@ export type UseTableReorderOptions = {
 };
 
 /** HOCが描画とtoolbar操作に利用する最小state。 */
-export type TableReorderHookResult = {
+type TableReorderHookResult = {
 	anchorRef: RefObject< HTMLSpanElement >;
 	dismissKeyboardCoachmark: () => void;
 	dismissTouchCoachmark: () => void;

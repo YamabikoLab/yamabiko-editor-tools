@@ -51,7 +51,6 @@ const createContext = (): TableContext => {
 	return {
 		blockElement,
 		document,
-		table,
 		tbody,
 		window,
 	};

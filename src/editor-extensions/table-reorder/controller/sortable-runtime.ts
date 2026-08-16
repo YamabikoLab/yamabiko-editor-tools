@@ -16,7 +16,7 @@ export type SortableInstance = {
 /**
  * scriptからowning windowに公開されるSortableJS runtimeの最小interface。
  */
-export type SortableRuntime = {
+type SortableRuntime = {
 	create: ( element: HTMLElement, options: object ) => SortableInstance;
 };
 
@@ -30,7 +30,7 @@ type SortableWindow = Window & {
 /**
  * editor document内でTable Reorder用runtime scriptを一意に識別するID。
  */
-export const SORTABLE_SCRIPT_ID = 'yamabiko-table-reorder-sortable-runtime';
+const SORTABLE_SCRIPT_ID = 'yamabiko-table-reorder-sortable-runtime';
 
 /**
  * owning windowごとの読み込み中Promise。

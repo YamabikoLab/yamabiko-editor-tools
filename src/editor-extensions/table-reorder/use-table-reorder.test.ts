@@ -4,16 +4,15 @@ import { createElement, createRoot } from '@wordpress/element';
 import {
 	createSortableController,
 	type SortableController,
-	type SortableControllerOptions,
 } from './controller/sortable-controller';
 import { resolveTableContext, type TableContext } from './table-context';
-import {
-	useTableReorder,
-	type TableReorderHookResult,
-	type UseTableReorderOptions,
-} from './use-table-reorder';
+import { useTableReorder } from './use-table-reorder';
 
 const { act } = jest.requireActual< { act: ( callback: () => void ) => void } >( 'react' );
+
+type SortableControllerOptions = Parameters< typeof createSortableController >[ 0 ];
+type UseTableReorderOptions = Parameters< typeof useTableReorder >[ 0 ];
+type TableReorderHookResult = ReturnType< typeof useTableReorder >;
 
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn(),
@@ -84,7 +83,6 @@ const createContext = (): TableContext => {
 	return {
 		blockElement,
 		document,
-		table,
 		tbody,
 		window,
 	};

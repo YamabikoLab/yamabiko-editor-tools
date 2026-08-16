@@ -1,10 +1,8 @@
 import { createSortableController } from './sortable-controller';
-import {
-	ensureSortableRuntime,
-	type SortableInstance,
-	type SortableRuntime,
-} from './sortable-runtime';
+import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
 import type { TableContext } from '../table-context';
+
+type SortableRuntime = NonNullable< Awaited< ReturnType< typeof ensureSortableRuntime > > >;
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -45,7 +43,6 @@ const createContext = () => {
 	const context: TableContext = {
 		blockElement,
 		document,
-		table,
 		tbody,
 		window,
 	};
