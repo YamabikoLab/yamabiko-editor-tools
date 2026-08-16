@@ -15,7 +15,7 @@
 
 今回の目的は API surface を機械的に最小化することではない。production consumer、test consumer、DOM / CSS / ARIA、WordPress / Gutenberg、SortableJS の間接契約を維持したまま、役割を失った引数・計算・戻り値 property・公開 type / re-export・重複処理を除去する。
 
-focused test の観測境界や明示的な内部契約として意味を持つ export / property は、削除効果が小さい限り本 Issue では維持する。
+focused test の観測境界や明示的な内部契約として意味を持つ export / property は、削除効果が小さい限り本 Issue では維持する。ただし、production で不要な property を test の観測だけのために公開しており、同じ挙動を DOM 上の結果から直接確認できる場合は、production API を狭めて test を DOM query へ切り替える。
 
 ## Scope
 
@@ -29,6 +29,7 @@ focused test の観測境界や明示的な内部契約として意味を持つ 
 - `ReorderGuidancePosition` の export / facade re-export を削除し、module 内部型へ狭める。
 - `onControlPointerDown()` 内の重複 `suppressBlockDrag()` を削除する。
 - `RowControlEntry.handle` の未使用 property を削除する。
+- `InsertionLine.element` の test 専用 property を削除し、`drag-ui.test.ts` は insertion line DOM を query して接続状態と `style.top` を検証する。
 - repo 内 production consumer が型名を import していない次の type export を module private にする。
   - `InsertionLine`
   - `RowControlOptions`
@@ -48,7 +49,6 @@ focused test の観測境界や明示的な内部契約として意味を持つ 
 
 ### Not included
 
-- `InsertionLine.element` の削除。
 - `TableContext.table` の削除。
 - `findBlockElement` の private 化。
 - `DESTINATION_CLASS` 自体の private 化または削除。
@@ -72,11 +72,13 @@ focused test の観測境界や明示的な内部契約として意味を持つ 
 
 ### 1. 削除対象を「挙動に影響しないもの」に固定する
 
-実装開始時点では、#283 の調査コメントで低リスクと判断済みの候補だけを対象にする。
+実装開始時点では、#283 の調査コメントで低リスクと判断済みの候補と、その後に個別確認して低リスクと判断した `InsertionLine.element` だけを対象にする。
 
-本 Issue では「production consumer がない」という理由だけで削除しない。test seam、DOM / CSS / ARIA、Gutenberg、SortableJS の境界として意味を持つ候補は維持する。
+本 Issue では「production consumer がない」という理由だけで削除しない。test seam、DOM / CSS / ARIA、Gutenberg、SortableJS の境界として意味を持つ候補は原則維持する。
 
-これにより、不要コード整理と test architecture / public contract の再設計を同時に行わない。
+一方、`InsertionLine.element` のように test が production の内部 DOM 参照を戻り値経由で取得するためだけの property は、production API に残さない。生成・表示・cleanup の結果を既存 DOM class から直接観測できる場合は、focused test を DOM query に変更して API surface を縮小する。
+
+これにより、test の検証内容は維持しつつ、test 都合だけで production API を広げない。
 
 ### 2. 未使用引数と派生計算を入口から除去する
 
@@ -127,7 +129,30 @@ ReorderGuidanceUi
 
 ただし `.yamabiko-table-reorder-handle` DOM element 自体と、生成時の defensive check は CSS / Icon / UI 契約として必要なため維持する。
 
-### 5. 実装内部専用 type の export を狭める
+### 5. `InsertionLine.element` を test 専用 API から外す
+
+`InsertionLine.element` は production consumer がなく、`drag-ui.test.ts` が insertion line の DOM 接続状態と `style.top` を直接確認するためだけに利用している。
+
+production が必要とする `InsertionLine` の契約は次だけに狭める。
+
+```text
+InsertionLine
+├─ hide
+├─ show
+└─ cleanup
+```
+
+`createInsertionLine()` が生成する `.yamabiko-table-reorder-insertion-line` DOM 自体、位置計算、scroll / resize listener、`hide()` / `show()` / `cleanup()` の挙動は変更しない。
+
+`drag-ui.test.ts` は既存 class を `document.querySelector()` で取得し、次の既存 contract を引き続き確認する。
+
+- create 後に insertion line が document に接続されている。
+- `show()` 後および editor scroll 後に `style.top` が更新される。
+- `cleanup()` 後に insertion line が document から削除されている。
+
+このテストのために `INSERTION_LINE_CLASS` を新たに export しない。local focused test は既存 DOM class literal を selector として利用し、test 都合で production API を増やさない。
+
+### 6. 実装内部専用 type の export を狭める
 
 次の type は実装内部で必要だが、repo 内 production consumer が型名を import していないため、export keyword だけを外す。
 
@@ -154,7 +179,7 @@ messages.ts
 
 型そのものや runtime logic は変更しない。
 
-### 6. `reorder-ui` facade の互換 re-export を整理する
+### 7. `reorder-ui` facade の互換 re-export を整理する
 
 #278 / #281 では責務分割・配置変更と consumer 依存整理を同時に行わないため、意図的に facade API を広く維持した。
 
@@ -210,16 +235,18 @@ controller/reorder-ui/index.ts  ← facade surface を必要分だけに縮小
 ### Phase 2: 不要な公開 property / facade API の縮小
 
 - Outcome:
-  - runtime behavior を変えずに、guidance / row control / facade の不要 surface が減っている。
+  - runtime behavior を変えずに、guidance / row control / drag UI / facade の不要 surface が減っている。
 - Tasks:
   - `ReorderGuidanceUi.setPosition` を public return shape から削除する。
   - `ReorderGuidancePosition` を module private type にする。
   - `RowControlEntry.handle` を return shape から削除する。
+  - `InsertionLine.element` を return shape から削除する。
+  - `drag-ui.test.ts` の insertion line 観測を DOM query へ変更する。
   - `onControlPointerDown()` の重複 `suppressBlockDrag()` を削除する。
   - `reorder-ui/index.ts` の不要 re-export を削除する。
 - Validation:
-  - row control / guidance / sortable controller の focused unit test。
-  - handle DOM class、guidance top / bottom 更新、block drag suppression の既存挙動が維持されることを確認する。
+  - row control / guidance / drag UI / sortable controller の focused unit test。
+  - handle DOM class、guidance top / bottom 更新、insertion line の表示・位置更新・cleanup、block drag suppression の既存挙動が維持されることを確認する。
 
 ### Phase 3: 実装内部専用 type export の縮小
 
@@ -253,13 +280,14 @@ controller/reorder-ui/index.ts  ← facade surface を必要分だけに縮小
 
 - なし。
 
-#283 の調査結果により、本計画で削除する低リスク候補はすでに確定している。
+#283 の調査結果と追加確認により、本計画で削除する低リスク候補は確定している。`InsertionLine.element` も test 専用 property として削除し、test は DOM query へ変更する方針で確定している。
 
 ### Validate during implementation
 
 - `npm run knip` が #283 記載の既知の facade re-export / exported type を検出しなくなるか。
 - type export を private 化した結果、見落としていた repo 内 consumer が typecheck で判明しないか。
 - `sourceControl` / scroll 引数削除後も focused test が既存 UI / keyboard scroll contract を維持しているか。
+- `InsertionLine.element` 削除後も DOM query に置き換えた focused test が insertion line の生成・位置更新・cleanup contract を同じ粒度で確認できるか。
 
 新たに test seam や外部境界として意味を持つ consumer が見つかった候補は、無理に削除せず対象外へ戻す。
 
@@ -269,7 +297,6 @@ controller/reorder-ui/index.ts  ← facade surface を必要分だけに縮小
 
 実装中に、次のような設計判断が必要な候補を改めて削除したくなった場合のみ #275 配下の follow-up Issue として切り出す。
 
-- `InsertionLine.element`
 - `TableContext.table`
 - `findBlockElement` export
 - test 専用定数 export
@@ -299,9 +326,11 @@ UI / 操作仕様は変更しないため、新しい E2E シナリオ追加は�
 - `followingIndex` と不要な追加 insertion index 計算が消えている。
 - `ReorderGuidanceUi.setPosition` は公開されず、内部 position 更新は維持されている。
 - `RowControlEntry.handle` は return shape から消えているが、handle DOM / CSS 契約は維持されている。
+- `InsertionLine.element` は return shape から消え、`drag-ui.test.ts` は DOM query で生成・位置更新・cleanup を検証している。
+- insertion line DOM class、位置計算、scroll / resize listener、`hide()` / `show()` / `cleanup()` の既存挙動が維持されている。
 - `reorder-ui` facade の既知の不要 re-export が整理されている。
 - 実装内部専用 type の不要 export が整理されている。
-- `InsertionLine.element`、`TableContext.table`、`findBlockElement`、test seam 用 export は本 Issue で無理に削除していない。
+- `TableContext.table`、`findBlockElement`、その他の test seam 用 export は本 Issue で無理に削除していない。
 - DOM / CSS / ARIA、WordPress / Gutenberg、SortableJS の既存契約が変わっていない。
 - Table Reorder の keyboard / pointer / touch / drag / accessibility 挙動が変わっていない。
 - `npm run knip` で本 Issue が扱う既知の検出結果が解消している。
@@ -310,6 +339,8 @@ UI / 操作仕様は変更しないため、新しい E2E シナリオ追加は�
 ## Notes
 
 - Knip は削除判断の補助材料であり、runtime / DOM / CSS / ARIA / external library contract より優先しない。
+- test だけが production property を利用している場合でも、自動的に削除するのではなく、同じ contract を公開 API なしで安全に観測できるか確認する。`InsertionLine.element` は DOM query で同じ contract を確認できるため削除対象とする。
+- `InsertionLine.element` の代替として test 専用 export を追加しない。`drag-ui.test.ts` は既存 `.yamabiko-table-reorder-insertion-line` selector を直接利用する。
 - `DESTINATION_CLASS` は CSS / destination DOM 契約として必要であり、削除するのは facade re-export だけである。
 - `ReorderGuidancePosition` は型自体を消す必要はなく、module private に狭めるだけでよい。
 - `void createNotice(...)`、`void preferencesActions.set(...)`、`void ensureSortableRuntime(...).then(...)` は intentional fire-and-forget であり、本 Issue の未使用 `void` 引数とは別物なので変更しない。
