@@ -192,20 +192,12 @@ export const useTableReorderInteraction = (
 	const dismissKeyboardCoachmark = () => {
 		setIsKeyboardCoachmarkTriggered( false );
 		setIsKeyboardCoachmarkDismissedLocally( true );
-		void preferencesActions.set(
-			PREFERENCES_SCOPE,
-			KEYBOARD_COACHMARK_DISMISSED_PREFERENCE,
-			true
-		);
+		void preferencesActions.set( PREFERENCES_SCOPE, KEYBOARD_COACHMARK_DISMISSED_PREFERENCE, true );
 	};
 
 	const dismissTouchCoachmark = () => {
 		setIsTouchCoachmarkDismissedLocally( true );
-		void preferencesActions.set(
-			PREFERENCES_SCOPE,
-			TOUCH_COACHMARK_DISMISSED_PREFERENCE,
-			true
-		);
+		void preferencesActions.set( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE, true );
 	};
 
 	const isKeyboardCoachmarkVisible =
