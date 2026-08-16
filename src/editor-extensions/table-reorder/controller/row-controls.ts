@@ -258,7 +258,7 @@ export const createRowControls = (
 					if ( otherEntry !== entry ) {
 						otherEntry.control.dataset.visible = 'false';
 					}
-				}
+			}
 			entry.control.dataset.visible = isVisible ? 'true' : 'false';
 		},
 		cleanup: () => {
