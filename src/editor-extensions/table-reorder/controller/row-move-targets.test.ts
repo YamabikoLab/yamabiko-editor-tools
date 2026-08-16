@@ -1,5 +1,9 @@
 import { createRowMoveTargets, DESTINATION_CLASS } from './row-move-targets';
 
+jest.mock( '@wordpress/components', () => ( {
+	Tooltip: ( { children }: { children: unknown } ) => children,
+} ) );
+
 const createTable = ( labels: string[] ) => {
 	const table = document.createElement( 'table' );
 	const tbody = document.createElement( 'tbody' );
