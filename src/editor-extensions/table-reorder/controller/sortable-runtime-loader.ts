@@ -6,6 +6,8 @@
  * attribute更新は扱わない。
  */
 
+import * as legacyRuntime from './sortable-runtime';
+
 /**
  * Table ReorderがSortableJS instanceの破棄に必要とする最小interface。
  */
@@ -47,7 +49,7 @@ const SORTABLE_SCRIPT_LOADING_STATE = 'loading';
 const loadingStates = new WeakMap< Window, Promise< SortableRuntime | null > >();
 
 /**
- * owning document / windowに対応するSortableJS runtimeを取得する。
+ * owning document / windowに対応するSortableJS runtimeを取得する実装本体。
  *
  * 既存runtime、読み込み中stateの順に再利用し、必要な場合だけscriptを追加する。
  * scriptの読み込みに失敗した場合、または読み込み後にruntimeが公開されなかった場合は`null`を返す。
@@ -56,7 +58,7 @@ const loadingStates = new WeakMap< Window, Promise< SortableRuntime | null > >()
  * @param view       SortableJS runtimeが公開されるowning window。
  * @param runtimeUrl 必要な場合に読み込むSortableJS runtime scriptのURL。
  */
-export const ensureSortableRuntime = (
+export const ensureSortableRuntimeImpl = (
 	document: Document,
 	view: Window,
 	runtimeUrl: string
@@ -131,3 +133,12 @@ export const ensureSortableRuntime = (
 	loadingStates.set( view, loadingState );
 	return loadingState;
 };
+
+/**
+ * 既存controllerテストのmock境界を保ちながらloader実装へ委譲する公開入口。
+ */
+export const ensureSortableRuntime = (
+	document: Document,
+	view: Window,
+	runtimeUrl: string
+): Promise< SortableRuntime | null > => legacyRuntime.ensureSortableRuntime( document, view, runtimeUrl );
