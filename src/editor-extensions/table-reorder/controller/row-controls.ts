@@ -250,27 +250,28 @@ export const createRowControls = (
 		entries.push( { control: renderedControl, handle, row, setPressed } );
 	}
 
-	return {
-		entries,
-		setVisible: ( entry, isVisible ) => {
-			if ( isVisible && ! options.showAll ) {
-				for ( const otherEntry of entries ) {
-					if ( otherEntry !== entry ) {
-						otherEntry.control.dataset.visible = 'false';
-					}
+	const setVisible = ( entry: RowControlEntry, isVisible: boolean ) => {
+		if ( isVisible && ! options.showAll ) {
+			for ( const otherEntry of entries ) {
+				if ( otherEntry !== entry ) {
+					otherEntry.control.dataset.visible = 'false';
+				}
 			}
-			entry.control.dataset.visible = isVisible ? 'true' : 'false';
-		},
-		cleanup: () => {
-			for ( const cleanupControlRoot of cleanupControlRoots ) {
-				cleanupControlRoot();
-			}
-			for ( const { cell, paddingInlineStart, position } of changedCells ) {
-				cell.style.paddingInlineStart = paddingInlineStart;
-				cell.style.position = position;
-			}
-		},
+		}
+		entry.control.dataset.visible = isVisible ? 'true' : 'false';
 	};
+
+	const cleanup = () => {
+		for ( const cleanupControlRoot of cleanupControlRoots ) {
+			cleanupControlRoot();
+		}
+		for ( const { cell, paddingInlineStart, position } of changedCells ) {
+			cell.style.paddingInlineStart = paddingInlineStart;
+			cell.style.position = position;
+		}
+	};
+
+	return { entries, setVisible, cleanup };
 };
 
 /**
