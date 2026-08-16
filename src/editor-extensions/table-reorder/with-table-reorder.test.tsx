@@ -34,7 +34,7 @@ const createProps = ( name: string ): WithTableReorderProps =>
 		isSelected: false,
 		name,
 		setAttributes: jest.fn(),
-	} as WithTableReorderProps );
+	} ) as WithTableReorderProps;
 
 const render = ( props: WithTableReorderProps ) => {
 	const container = document.createElement( 'div' );

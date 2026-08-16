@@ -91,9 +91,7 @@ const TableReorderEdit = ( {
 				<BlockControls>
 					<ToolbarButton
 						aria-describedby={ toolbarDescriptionId }
-						className={
-							isCoachmarkVisible ? 'yamabiko-table-reorder-coachmark-target' : undefined
-						}
+						className={ isCoachmarkVisible ? 'yamabiko-table-reorder-coachmark-target' : undefined }
 						icon="sort"
 						isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
 						label={ toolbarLabel }
