@@ -305,6 +305,7 @@ Tasks:
 - `enabled=false` の非生成を固定する。
 - `body` 更新時の旧 controller cleanup と新 controller 生成を固定する。
 - `onCommit(reorderedBody, focusRowIndex)` から `setAttributes`、body rerender、新 controller、focus 復元までを 1 本の主要 characterization test で固定する。
+- keyboard 入力で keyboard coachmark が表示された後、pointer 入力へ切り替えた際の現行 visibility を固定する。
 - stale effect / stale cleanup が新 controller を壊さないケースを固定する。
 - unmount destroy を固定する。
 
