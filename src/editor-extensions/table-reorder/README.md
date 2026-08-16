@@ -81,7 +81,7 @@ Responsibility boundaries:
 
 The former `controller/touch-press.ts` long-press tracker is no longer needed. Touch DnD uses the same handle boundary as PC, so cell taps and normal table scrolling do not require a separate press tracker or touch-mode pointer-event suppression.
 
-The dependency direction stays from the Gutenberg / React boundary toward lower-level modules. Current consumers continue to import the reorder UI contract through `controller/reorder-ui.ts`; `row-move-targets.ts` depends only on `row-controls.ts` and `reorder-guidance.ts`, and the lower-level UI modules do not depend back on the facade.
+The dependency direction stays from the Gutenberg / React boundary toward lower-level modules. Current consumers continue to import the reorder UI contract through `controller/reorder-ui.ts`; among the UI modules, `row-move-targets.ts` depends only on `row-controls.ts` and `reorder-guidance.ts`, and the lower-level UI modules do not depend back on the facade.
 
 ## Build integration
 
