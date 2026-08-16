@@ -44,7 +44,7 @@ import {
 	restoreOriginalRowOrder,
 	type RowMoveDirection,
 } from './row-order';
-import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime';
+import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime-loader';
 
 /** SortableJSのauto-scrollを開始する端からの距離。 */
 const AUTO_SCROLL_SENSITIVITY_PX = 80;

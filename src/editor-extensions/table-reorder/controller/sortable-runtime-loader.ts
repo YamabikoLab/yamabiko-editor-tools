@@ -1,5 +1,5 @@
 /**
- * Table Reorderが利用するSortableJS runtimeの読み込みを管理する。
+ * Table Reorderが利用するSortableJS runtime loader。
  *
  * owning windowに既にあるruntimeは再利用し、同じwindowで読み込み中なら同じloading stateを返す。
  * 必要な場合だけowning documentへscriptを挿入し、instance lifecycleやGutenbergのstate / block
@@ -31,6 +31,12 @@ type SortableWindow = Window & {
  * editor document内でTable Reorder用runtime scriptを一意に識別するID。
  */
 const SORTABLE_SCRIPT_ID = 'yamabiko-table-reorder-sortable-runtime';
+
+/** loaderが挿入したruntime scriptの読み込み状態を識別するattribute。 */
+const SORTABLE_SCRIPT_STATE_ATTRIBUTE = 'data-yamabiko-table-reorder-runtime-state';
+
+/** runtime scriptがまだ読み込み中であることを示すstate。 */
+const SORTABLE_SCRIPT_LOADING_STATE = 'loading';
 
 /**
  * owning windowごとの読み込み中Promise。
@@ -78,6 +84,7 @@ export const ensureSortableRuntime = (
 			}
 
 			settled = true;
+			script.removeAttribute( SORTABLE_SCRIPT_STATE_ATTRIBUTE );
 			loadingStates.delete( view );
 			resolve( runtime );
 		};
@@ -93,6 +100,16 @@ export const ensureSortableRuntime = (
 			finish( null );
 		};
 
+		if (
+			existingScript &&
+			existingScript.getAttribute( SORTABLE_SCRIPT_STATE_ATTRIBUTE ) !==
+				SORTABLE_SCRIPT_LOADING_STATE
+		) {
+			existingScript.remove();
+			view.setTimeout( () => finish( null ), 0 );
+			return;
+		}
+
 		script.addEventListener( 'load', onLoad, { once: true } );
 		script.addEventListener( 'error', onError, { once: true } );
 
@@ -107,6 +124,7 @@ export const ensureSortableRuntime = (
 
 		script.id = SORTABLE_SCRIPT_ID;
 		script.src = runtimeUrl;
+		script.setAttribute( SORTABLE_SCRIPT_STATE_ATTRIBUTE, SORTABLE_SCRIPT_LOADING_STATE );
 		document.head.append( script );
 	} );
 
