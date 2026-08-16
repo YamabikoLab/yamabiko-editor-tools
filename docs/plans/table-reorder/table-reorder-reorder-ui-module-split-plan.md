@@ -471,6 +471,6 @@ Implementation 完了時の標準 validation:
 
 ## Notes
 
-- #278 の Issue 本文をこの計画の要件上の正本とする。
+- この実装プランを、実装手順・Phase・責務境界・非目標・検証方針・完了条件の正本（source of truth）とする。Issue #278 は目的・背景を参照するための親 Issue として扱う。
 - #276 の `useTableReorder` lifecycle / state 整理は完了済みであり、本計画はその現在構造を前提とする。#276 で追加された `use-table-reorder-interaction.ts` も `reorder-ui.ts` の既存 consumer として扱い、今回の変更は引き続き `controller/reorder-ui.ts` の内部 module boundary に限定する。
 - `sortable-controller.ts` 側の session refactoring を同時に行わない。責務分割の PR で interaction logic の変更が混ざると回帰原因を切り分けにくくなるためである。
