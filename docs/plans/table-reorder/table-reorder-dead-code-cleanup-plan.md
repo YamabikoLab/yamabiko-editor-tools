@@ -7,6 +7,7 @@
 - Investigation result: #283 comment `5306191201`
 - Knip introduction: #284 / PR #285
 - Related refactoring: #269 / #271 / #276 / #278 / #281
+- PR Validation: `.github/workflows/pr-validation.yml`
 - Validation guidance: `docs/development/testing.md`
 
 ## Goal
@@ -16,6 +17,8 @@
 今回の目的は API surface を機械的に最小化することではない。production consumer、test consumer、DOM / CSS / ARIA、WordPress / Gutenberg、SortableJS の間接契約を維持したまま、役割を失った引数・計算・戻り値 property・公開 type / constant / helper / re-export・重複処理を除去する。
 
 production で不要な property / export を test の観測や harness 型付けだけのために公開しており、同じ contract を別の公開 API 追加なしで安全に確認できる場合は、production API を狭めて test を追従させる。
+
+不要コード整理の完了後は、`npm run knip` を既存の PR Validation に組み込み、同種の不要 export / exported type 等が再混入した場合に PR Validation で検出できる状態にする。
 
 ## Scope
 
@@ -61,6 +64,7 @@ production で不要な property / export を test の観測や harness 型付�
   - `RowMoveTargetsOptions`
 - 上記変更に伴う import、型注釈、test fixture、互換コメントを必要最小限で整理する。
 - `npm run knip` で #283 が対象とする既知の不要 export / exported type が解消したことを確認する。
+- 最終フェーズで `.github/workflows/pr-validation.yml` の Node job に `npm run knip` を追加し、PR Validation の quality gate として実行する。
 
 ### Not included
 
@@ -84,6 +88,7 @@ production で不要な property / export を test の観測や harness 型付�
 - module 境界の追加再編。
 - 新しい abstraction、helper、state 管理ライブラリの導入。
 - Knip の結果をゼロにするためだけの ignore 追加。
+- Knip 実行に不要な PR Validation の trigger、job 分割、Node / PHP 構成などの CI 再設計。
 
 ## Approach
 
@@ -334,6 +339,32 @@ RowMoveTargetsOptions
 
 `DESTINATION_CLASS` は facade re-export だけでなく `row-move-targets.ts` からの export 自体も外す。ただし定数値と destination DOM / CSS class は維持する。
 
+### 12. Knip を PR Validation の quality gate にする
+
+不要コードの整理と `npm run knip` の全体確認が完了した後、既存の `.github/workflows/pr-validation.yml` の Node job に Knip を追加する。
+
+現在の Node job は `npm ci` の後に `npm test`、`npm run build` を実行しているため、`npm test` と build の間に Knip の独立 step を追加する。
+
+```text
+Install dependencies
+  └─ npm ci
+
+Run Node.js quality checks
+  └─ npm test
+
+Run Knip
+  └─ npm run knip
+
+Build
+  └─ npm run build
+```
+
+`npm run knip` が非 0 で終了した場合は通常の GitHub Actions step として Node job を失敗させる。Knip 専用 wrapper、ignore、独自判定ロジックは追加しない。
+
+`npm test` 自体へ Knip を含める変更は行わず、既存の local quality gate の責務は維持したまま PR Validation で明示的に実行する。
+
+PR Validation の `workflow_dispatch` trigger、Node / PHP の job 構成、Node / npm version 固定、build、PHP validation など Knip と無関係な構成は変更しない。
+
 ## Architecture
 
 今回の変更は module responsibility を再編しない。既存構造のまま、不要 surface だけを縮小する。
@@ -434,6 +465,19 @@ resolveTableContext()
   - `npm run build`
   - `git diff --check origin/main...HEAD`
 
+### Phase 5: Knip を PR Validation に組み込む
+
+- Outcome:
+  - `npm run knip` が既存 PR Validation の Node job で実行され、Knip の検出が PR Validation の成否に反映される。
+- Tasks:
+  - `.github/workflows/pr-validation.yml` の Node job に独立した Knip step を追加する。
+  - `npm test` の後、`npm run build` の前に `npm run knip` を実行する。
+  - Knip 専用 wrapper、ignore、独自の exit code 判定は追加しない。
+  - PR Validation の trigger、job 構成、Node / npm version、PHP job など Knip と無関係な設定は変更しない。
+- Validation:
+  - workflow diff が `npm run knip` の追加に必要な最小変更であることを確認する。
+  - 対象ブランチで PR Validation を実行し、Node job の Knip step が実行・成功することを確認する。
+
 ## Decisions and validation questions
 
 ### Decide before implementation
@@ -447,6 +491,7 @@ resolveTableContext()
 - `findBlockElement` export: 削除。helper 自体は維持し公開 contract 経由で test。
 - `DESTINATION_CLASS` / `SORTABLE_SCRIPT_ID` export: 削除。runtime constant 自体は維持。
 - test harness 専用 type export: 削除。test は production signature から型を導出。
+- Knip の PR Validation 組み込み: 既存 Node job に独立 step として追加し、CI の他構成は変更しない。
 
 ### Validate during implementation
 
@@ -459,6 +504,7 @@ resolveTableContext()
 - `DESTINATION_CLASS` private 化後も destination class / CSS contract と cleanup が維持されるか。
 - `SORTABLE_SCRIPT_ID` private 化後も既存 runtime 時の非挿入、loading 中の script 1 個への集約、error 時 cleanup が維持されるか。
 - test harness 専用 type を private 化した後も、`Parameters<>` / `ReturnType<>` 等で mock / props / result の型安全性が維持されるか。
+- PR Validation で `npm run knip` が通常の Node quality gate として実行され、Knip の非 0 終了が job failure にそのまま反映されるか。
 
 新たに外部境界として意味を持つ production consumer が見つかった候補は、無理に private 化せず対象外へ戻す。
 
@@ -467,6 +513,8 @@ resolveTableContext()
 本 Issue は小さな低リスク削除を一つの cleanup としてまとめて実装する。現時点では子 Issue に分割しない。
 
 当初「判断が必要」とした候補はすべて本計画内で方針確定したため、それらを理由とする follow-up Issue は現時点では不要とする。
+
+Knip の PR Validation 組み込みも #284 / PR #285 で導入済みの既存コマンドを quality gate に追加する小規模な仕上げとして、本 Issue の最終フェーズに含める。
 
 実装中に新たな設計判断や挙動変更が必要な候補が見つかった場合のみ、#275 配下の follow-up Issue として切り出す。
 
@@ -482,6 +530,9 @@ resolveTableContext()
   - production asset build が成功する。
 - `git diff --check origin/main...HEAD`
   - whitespace error がない。
+- PR Validation
+  - Node job で `npm run knip` が独立 step として実行され、成功する。
+  - workflow の変更が Knip 追加に必要な最小範囲に留まっている。
 
 必要に応じて変更中は focused unit test を先に実行する。
 
@@ -510,7 +561,10 @@ UI / 操作仕様は変更しないため、新しい E2E シナリオ追加は�
 - DOM / CSS / ARIA、WordPress / Gutenberg、SortableJS の既存契約が変わっていない。
 - Table Reorder の keyboard / pointer / touch / drag / accessibility 挙動が変わっていない。
 - `npm run knip` で本 Issue が扱う既知の検出結果が解消している。
+- `.github/workflows/pr-validation.yml` の Node job で `npm run knip` が `npm test` 後、build 前に独立 step として実行される。
+- PR Validation で Knip の実行結果が Node job の成否に反映される。
 - `npm test`、`npm run build`、`git diff --check origin/main...HEAD` が成功している。
+- 対象ブランチの PR Validation が成功している。
 
 ## Notes
 
@@ -524,3 +578,4 @@ UI / 操作仕様は変更しないため、新しい E2E シナリオ追加は�
 - test harness 専用 type は replacement export を作らず、production function signature を test 側の型の正本とする。
 - `ReorderGuidancePosition` は型自体を消す必要はなく、module private に狭めるだけでよい。
 - `void createNotice(...)`、`void preferencesActions.set(...)`、`void ensureSortableRuntime(...).then(...)` は intentional fire-and-forget であり、本 Issue の未使用 `void` 引数とは別物なので変更しない。
+- PR Validation への Knip 追加は独立 step とし、`npm test` の定義や PHP job など既存 validation の責務は変更しない。
