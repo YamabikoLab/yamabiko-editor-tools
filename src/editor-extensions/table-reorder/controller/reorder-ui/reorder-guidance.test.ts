@@ -1,4 +1,8 @@
-import { getKeyboardActiveMessage } from '../../messages';
+import {
+	getKeyboardActiveMessage,
+	getTouchModeMessage,
+	getTouchPointerActiveMessage,
+} from '../../messages';
 import { createReorderGuidance } from './reorder-guidance';
 
 const createTable = () => {
@@ -12,6 +16,16 @@ const createTable = () => {
 	table.append( tbody );
 	document.body.append( table );
 	return { tbody };
+};
+
+const dispatchTouchPointer = ( type: string, pointerId: number, clientY: number ) => {
+	const event = new Event( type, { bubbles: true } );
+	Object.defineProperties( event, {
+		clientY: { value: clientY },
+		pointerId: { value: pointerId },
+		pointerType: { value: 'touch' },
+	} );
+	document.dispatchEvent( event );
 };
 
 describe( 'reorder-guidance', () => {
@@ -38,4 +52,33 @@ describe( 'reorder-guidance', () => {
 		expect( icon?.getAttribute( 'aria-hidden' ) ).toBe( 'true' );
 		guidance.cleanup();
 	} );
+
+	it.each( [ getTouchModeMessage(), getTouchPointerActiveMessage() ] )(
+		'moves touch guidance with swipe direction and keeps the last position for %s',
+		( message ) => {
+			const { tbody } = createTable();
+			const guidance = createReorderGuidance( document, tbody, message );
+
+			expect( guidance.element.style.top ).toBe( '8px' );
+
+			dispatchTouchPointer( 'pointerdown', 1, 100 );
+			dispatchTouchPointer( 'pointermove', 1, 110 );
+			expect( guidance.element.style.top ).toBe( '8px' );
+
+			dispatchTouchPointer( 'pointermove', 1, 120 );
+			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
+
+			dispatchTouchPointer( 'pointerup', 1, 120 );
+			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
+
+			dispatchTouchPointer( 'pointerdown', 2, 120 );
+			dispatchTouchPointer( 'pointermove', 2, 110 );
+			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
+
+			dispatchTouchPointer( 'pointermove', 2, 100 );
+			expect( guidance.element.style.top ).toBe( '8px' );
+
+			guidance.cleanup();
+		}
+	);
 } );
