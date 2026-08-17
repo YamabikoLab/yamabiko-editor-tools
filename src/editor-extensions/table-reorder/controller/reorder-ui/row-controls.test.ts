@@ -1,6 +1,8 @@
 import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './row-controls';
 
-const { act } = jest.requireActual< { act: ( callback: () => void ) => void } >( 'react' );
+const { act } = jest.requireActual< { act: ( callback: () => void | Promise< void > ) => Promise< void > } >(
+	'react'
+);
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
@@ -26,6 +28,10 @@ const createTable = ( labels: string[] ) => {
 };
 
 describe( 'row-controls', () => {
+	beforeAll( () => {
+		Object.assign( globalThis, { IS_REACT_ACT_ENVIRONMENT: true } );
+	} );
+
 	beforeEach( () => {
 		document.body.replaceChildren();
 	} );
@@ -138,7 +144,7 @@ describe( 'row-controls', () => {
 		controls.cleanup();
 	} );
 
-	it( 'uses WordPress Tooltip instead of a native title and switches the accessible description', () => {
+	it( 'uses WordPress Tooltip instead of a native title and switches the accessible description', async () => {
 		const { tbody } = createTable( [ 'Alpha' ] );
 		const controls = createRowControls( document, tbody, [], { showAll: false } );
 		const control = controls.entries[ 0 ].control;
@@ -147,13 +153,13 @@ describe( 'row-controls', () => {
 		expect( control.hasAttribute( 'title' ) ).toBe( false );
 		expect( pointerDescriptionId ).toContain( '-pointer' );
 
-		act( () => {
+		await act( async () => {
 			control.dispatchEvent( new FocusEvent( 'focus' ) );
 		} );
 		expect( control.hasAttribute( 'title' ) ).toBe( false );
 		expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
 
-		act( () => {
+		await act( async () => {
 			control.dispatchEvent( new FocusEvent( 'blur' ) );
 		} );
 		expect( control.hasAttribute( 'title' ) ).toBe( false );
