@@ -129,6 +129,7 @@ final class Plugin {
 	 */
 	private static function register_webpack_runtime_script(): ?string {
 		$file_path = __DIR__ . '/build/runtime.js';
+
 		if ( ! is_readable( $file_path ) ) {
 			return null;
 		}
