@@ -1,3 +1,4 @@
+import { getKeyboardActiveMessage } from '../../messages';
 import { createReorderGuidance } from './reorder-guidance';
 
 const createTable = () => {
@@ -27,5 +28,14 @@ describe( 'reorder-guidance', () => {
 		expect( guidance.element.hidden ).toBe( true );
 		guidance.cleanup();
 		expect( guidance.element.isConnected ).toBe( false );
+	} );
+
+	it( 'adds a decorative WordPress icon for a known guidance message', () => {
+		const { tbody } = createTable();
+		const guidance = createReorderGuidance( document, tbody, getKeyboardActiveMessage() );
+		const icon = guidance.element.querySelector( '.yamabiko-table-reorder-guidance-icon' );
+
+		expect( icon?.getAttribute( 'aria-hidden' ) ).toBe( 'true' );
+		guidance.cleanup();
 	} );
 } );
