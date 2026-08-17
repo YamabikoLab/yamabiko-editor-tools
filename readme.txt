@@ -3,7 +3,7 @@ Tags: block editor, gutenberg, table
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,13 @@ The generated archive is `yamabiko-editor-tools.zip`.
 4. Activate Yamabiko Editor Tools.
 
 == Changelog ==
+
+= 0.2.0 =
+
+* Changed: Refined the internal Table Reorder design by clarifying responsibilities around operation state, commit handling, controller lifecycle, UI behavior, and runtime loading.
+* Changed: Avoid running Table Reorder-specific hooks for unsupported blocks.
+* Changed: Removed unused compatibility APIs, arguments, calculations, and controller-specific test fixtures.
+* Fixed: Prevented row-reorder handles from overlapping content in a narrow first column on mobile by expanding only when needed and allowing horizontal scrolling temporarily.
 
 = 0.1.0 =
 
