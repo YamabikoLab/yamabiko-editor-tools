@@ -62,17 +62,17 @@ describe( 'reorder-guidance', () => {
 			expect( guidance.element.style.top ).toBe( '8px' );
 
 			dispatchTouchPointer( 'pointerdown', 1, 100 );
-			dispatchTouchPointer( 'pointermove', 1, 110 );
+			dispatchTouchPointer( 'pointermove', 1, 106 );
 			expect( guidance.element.style.top ).toBe( '8px' );
 
-			dispatchTouchPointer( 'pointermove', 1, 120 );
+			dispatchTouchPointer( 'pointermove', 1, 108 );
 			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
 
-			dispatchTouchPointer( 'pointerup', 1, 120 );
+			dispatchTouchPointer( 'pointerup', 1, 108 );
 			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
 
-			dispatchTouchPointer( 'pointerdown', 2, 120 );
-			dispatchTouchPointer( 'pointermove', 2, 110 );
+			dispatchTouchPointer( 'pointerdown', 2, 108 );
+			dispatchTouchPointer( 'pointermove', 2, 102 );
 			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
 
 			dispatchTouchPointer( 'pointermove', 2, 100 );
