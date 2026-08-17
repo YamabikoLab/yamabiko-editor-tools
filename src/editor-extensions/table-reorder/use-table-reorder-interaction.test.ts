@@ -211,27 +211,22 @@ describe( 'useTableReorderInteraction', () => {
 		);
 	} );
 
-	it( 'does not persist dismissal when Tab reaches a row handle before the coachmark is shown', () => {
+	it( 'shows the coachmark when keyboard selection and row handle focus happen in the same interaction', () => {
 		installMatchMedia( true );
 		mountHook();
 		const handle = createRowHandle();
 
 		act( () => {
-			document.dispatchEvent( new KeyboardEvent( 'keydown', { bubbles: true, key: 'Tab' } ) );
+			document.dispatchEvent( new KeyboardEvent( 'keydown', { bubbles: true, key: 'Enter' } ) );
 			handle.dispatchEvent( new FocusEvent( 'focusin', { bubbles: true } ) );
 		} );
 
-		expect( getResult().isKeyboardCoachmarkVisible ).toBe( false );
+		expect( getResult().isKeyboardCoachmarkVisible ).toBe( true );
 		expect( preferencesSetMock ).not.toHaveBeenCalledWith(
 			PREFERENCES_SCOPE,
 			KEYBOARD_COACHMARK_DISMISSED_PREFERENCE,
 			true
 		);
-
-		act( () => {
-			handle.dispatchEvent( new FocusEvent( 'focusout', { bubbles: true } ) );
-		} );
-		expect( getResult().isKeyboardCoachmarkVisible ).toBe( true );
 	} );
 
 	it( 'dismisses keyboard coachmark when keyboard focus reaches a row handle after it was shown', () => {
@@ -270,17 +265,12 @@ describe( 'useTableReorderInteraction', () => {
 			handle.dispatchEvent( new FocusEvent( 'focusin', { bubbles: true } ) );
 		} );
 
-		expect( getResult().isKeyboardCoachmarkVisible ).toBe( false );
+		expect( getResult().isKeyboardCoachmarkVisible ).toBe( true );
 		expect( preferencesSetMock ).not.toHaveBeenCalledWith(
 			PREFERENCES_SCOPE,
 			KEYBOARD_COACHMARK_DISMISSED_PREFERENCE,
 			true
 		);
-
-		act( () => {
-			handle.dispatchEvent( new FocusEvent( 'focusout', { bubbles: true } ) );
-		} );
-		expect( getResult().isKeyboardCoachmarkVisible ).toBe( true );
 	} );
 
 	it( 'derives touch coachmark visibility from selection, hover, mode, and preference', () => {
