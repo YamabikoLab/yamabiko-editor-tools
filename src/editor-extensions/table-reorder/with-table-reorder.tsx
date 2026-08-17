@@ -38,6 +38,34 @@ type TableReorderEditProps = {
 };
 
 /**
+ * coachmarkをviewport中央・Toolbar直下へ配置するためのvirtual anchorを生成する。
+ *
+ * @param toolbarButton coachmarkの基準となるToolbar button。
+ * @return Popoverへ渡すvirtual anchor。
+ */
+const createCoachmarkAnchor = ( toolbarButton: HTMLButtonElement ) => ( {
+	ownerDocument: toolbarButton.ownerDocument,
+	getBoundingClientRect: (): DOMRect => {
+		const buttonRect = toolbarButton.getBoundingClientRect();
+		const document = toolbarButton.ownerDocument;
+		const viewportWidth = document.defaultView?.innerWidth ?? document.documentElement.clientWidth;
+		const centerX = viewportWidth / 2;
+
+		return {
+			bottom: buttonRect.bottom,
+			height: 0,
+			left: centerX,
+			right: centerX,
+			top: buttonRect.bottom,
+			width: 0,
+			x: centerX,
+			y: buttonRect.bottom,
+			toJSON: () => ( {} ),
+		};
+	},
+} );
+
+/**
  * 対応block専用のTable Reorder描画component。
  *
  * @param componentProps Gutenbergから渡されるBlockEdit props、元のBlockEdit component、block support。
@@ -81,6 +109,7 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 	const dismissCoachmark = isKeyboardCoachmarkVisible
 		? dismissKeyboardCoachmark
 		: dismissTouchCoachmark;
+	const coachmarkAnchor = toolbarButton ? createCoachmarkAnchor( toolbarButton ) : null;
 
 	return (
 		<>
@@ -100,8 +129,18 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 					<span className="yamabiko-table-reorder-description" id={ toolbarDescriptionId }>
 						{ toolbarDescription }
 					</span>
-					{ isCoachmarkVisible && toolbarButton && (
-						<Popover anchor={ toolbarButton } focusOnMount={ false } onClose={ dismissCoachmark }>
+					{ isCoachmarkVisible && coachmarkAnchor && (
+						<Popover
+							anchor={ coachmarkAnchor }
+							className="yamabiko-table-reorder-coachmark-popover"
+							flip={ false }
+							focusOnMount={ false }
+							offset={ 4 }
+							onClose={ dismissCoachmark }
+							placement="bottom"
+							shift
+							variant="unstyled"
+						>
 							<div className="yamabiko-table-reorder-coachmark">
 								<span aria-hidden="true" className="yamabiko-table-reorder-guidance-icon">
 									<Icon icon={ coachmarkIcon } size={ 24 } />
