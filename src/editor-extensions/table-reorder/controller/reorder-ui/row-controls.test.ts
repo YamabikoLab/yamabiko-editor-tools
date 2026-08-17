@@ -1,8 +1,8 @@
 import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './row-controls';
 
-const { act } = jest.requireActual< { act: ( callback: () => void | Promise< void > ) => Promise< void > } >(
-	'react'
-);
+const { act } = jest.requireActual< {
+	act: ( callback: () => void | Promise< void > ) => Promise< void >;
+} >( 'react' );
 
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
