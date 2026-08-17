@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 const TABLE_CONTENT = `<!-- wp:table -->
@@ -36,6 +36,22 @@ const setPluginPreference = async ( page: Page, name: string, value: boolean ) =
 		},
 		{ name, value }
 	);
+};
+
+const focusWithArrowDown = async ( page: Page, target: Locator ) => {
+	for ( let attempt = 0; attempt < 10; attempt++ ) {
+		if (
+			await target.evaluate(
+				( element ) => element === element.ownerDocument.activeElement
+			)
+		) {
+			return;
+		}
+
+		await page.keyboard.press( 'ArrowDown' );
+	}
+
+	await expect( target ).toBeFocused();
 };
 
 test.describe( 'Table Reorder UI', () => {
@@ -89,9 +105,13 @@ test.describe( 'Table Reorder UI', () => {
 			.first()
 			.locator( '.yamabiko-table-reorder-handle-zone' );
 		const toolbarButton = page.getByRole( 'button', { name: TOOLBAR_NAME } );
+		const listViewTable = page.getByRole( 'button', { name: /^(Table|テーブル)$/ } );
 
-		await tableBlock.click();
-		await page.keyboard.press( 'Tab' );
+		await page.keyboard.press( 'Shift+Alt+O' );
+		await expect( listViewTable ).toBeVisible();
+		await focusWithArrowDown( page, listViewTable );
+		await page.keyboard.press( 'Enter' );
+
 		await expect( page.getByText( KEYBOARD_COACHMARK ) ).toBeVisible();
 
 		await toolbarButton.focus();
