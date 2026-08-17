@@ -3,7 +3,7 @@ Tags: block editor, gutenberg, table
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,13 @@ The generated archive is `yamabiko-editor-tools.zip`.
 4. Activate Yamabiko Editor Tools.
 
 == Changelog ==
+
+= 0.3.1 =
+
+* Fixed: Prevented the initial Keyboard coachmark from being permanently dismissed before it was actually displayed.
+* Changed: Unified the Table Reorder guidance panel design for Keyboard and Touch interactions and added icons that match the current operation.
+* Changed: Improved coachmark positioning on narrow viewports.
+* Changed: Moved Touch guidance between the top and bottom of the viewport based on swipe direction so destination rows remain easier to see.
 
 = 0.3.0 =
 
