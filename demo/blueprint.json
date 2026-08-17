@@ -4,11 +4,7 @@
 		"title": "Yamabiko Table Reorder v0.3.0 Demo",
 		"description": "Yamabiko Editor Tools v0.3.0 の Table Reorder を、WordPress Core Table と Flexible Table Block の両方で体験するデモ。",
 		"author": "YamabikoLab",
-		"categories": [
-			"demo",
-			"table",
-			"accessibility"
-		]
+		"categories": [ "demo", "table", "accessibility" ]
 	},
 	"preferredVersions": {
 		"php": "8.3",
