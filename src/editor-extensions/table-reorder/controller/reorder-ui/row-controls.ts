@@ -108,20 +108,20 @@ export const createRowControls = (
 	const view = document.defaultView;
 	const nonMovableRows = new Set( nonMovableRowIndices );
 	const table = tbody.closest< HTMLTableElement >( 'table' );
-	const wrapper = table?.closest< HTMLElement >( '.wp-block-table' ) ?? null;
+	const overflowContainer = table?.parentElement ?? null;
 	const sizingCell = table?.rows.item( 0 )?.cells.item( 0 ) ?? null;
 	const originalTableMinWidth = table?.style.minWidth ?? '';
 	const originalSizingCellWidth = sizingCell?.style.width ?? '';
-	const originalWrapperOverflowX = wrapper?.style.overflowX ?? '';
+	const originalOverflowX = overflowContainer?.style.overflowX ?? '';
 
-	if ( options.showAll && table && wrapper && sizingCell ) {
+	if ( options.showAll && table && overflowContainer && sizingCell ) {
 		const tableWidth = table.getBoundingClientRect().width;
 		const firstColumnWidth = sizingCell.getBoundingClientRect().width;
 		const requiredFirstColumnWidth = HANDLE_GUTTER_PX + MIN_FIRST_COLUMN_CONTENT_WIDTH_PX;
 		const extraWidth = Math.max( 0, requiredFirstColumnWidth - firstColumnWidth );
 
 		if ( extraWidth > 0 ) {
-			wrapper.style.overflowX = 'auto';
+			overflowContainer.style.overflowX = 'auto';
 			table.style.minWidth = `${ tableWidth + extraWidth }px`;
 			sizingCell.style.width = `${ firstColumnWidth + extraWidth }px`;
 		}
@@ -296,8 +296,8 @@ export const createRowControls = (
 		if ( sizingCell ) {
 			sizingCell.style.width = originalSizingCellWidth;
 		}
-		if ( wrapper ) {
-			wrapper.style.overflowX = originalWrapperOverflowX;
+		if ( overflowContainer ) {
+			overflowContainer.style.overflowX = originalOverflowX;
 		}
 	};
 

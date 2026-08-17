@@ -1,5 +1,7 @@
 import { createElement, createRoot } from '@wordpress/element';
 
+import { getTableReorderBlockSupport } from './block-support';
+import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { useTableReorder } from './use-table-reorder';
 import { withTableReorder } from './with-table-reorder';
 
@@ -37,25 +39,24 @@ const BlockEdit = jest.fn( ( { name }: { name: string } ) => createElement( 'div
 const WithTableReorder = withTableReorder( BlockEdit );
 type WithTableReorderProps = Parameters< typeof WithTableReorder >[ 0 ];
 
-const createProps = ( name: string ): WithTableReorderProps => {
-	const props: Partial< WithTableReorderProps > = {
-		attributes: { body: [] },
-		clientId: 'block-client-id',
+const renderFlexibleTableBlock = ( body: unknown[] ) => {
+	const props = {
+		attributes: { body },
+		clientId: 'flexible-table-block-client-id',
 		isSelected: false,
-		name,
+		name: 'flexible-table-block/table',
 		setAttributes: jest.fn(),
-	};
-	return props as WithTableReorderProps;
-};
-
-const render = ( props: WithTableReorderProps ) => {
+	} as unknown as WithTableReorderProps;
 	const container = document.createElement( 'div' );
 	const root = createRoot( container );
+
 	act( () => {
 		root.render( createElement( WithTableReorder, props ) );
 	} );
+
 	return {
 		container,
+		props,
 		unmount: () => {
 			act( () => {
 				root.unmount();
@@ -74,30 +75,52 @@ beforeEach( () => {
 	useTableReorderMock.mockReturnValue( createHookResult() );
 } );
 
-describe( 'withTableReorder', () => {
-	it( 'returns the original BlockEdit without running Table Reorder hooks for unsupported blocks', () => {
-		const mounted = render( createProps( 'core/paragraph' ) );
-
-		expect( mounted.container.textContent ).toBe( 'core/paragraph' );
-		expect( BlockEdit ).toHaveBeenCalledTimes( 1 );
-		expect( useTableReorderMock ).not.toHaveBeenCalled();
-
-		mounted.unmount();
+describe( 'Flexible Table Block integration contract', () => {
+	it( 'registers Flexible Table Block with rowSpan support', () => {
+		expect( getTableReorderBlockSupport( 'flexible-table-block/table' ) ).toEqual( {
+			rowspanProperty: 'rowSpan',
+		} );
 	} );
 
-	it( 'runs Table Reorder hooks for Core Table with the Core rowspan property', () => {
-		const props = createProps( 'core/table' );
-		const mounted = render( props );
+	it( 'derives movement restrictions from Flexible Table Block rowSpan values', () => {
+		const body = [
+			{ cells: [ { content: 'a', rowSpan: 2 } ] },
+			{ cells: [ { content: 'b' } ] },
+			{ cells: [ { content: 'c' } ] },
+		];
+		const ranges = getRowspanRanges( body, 'rowSpan' );
 
-		expect( mounted.container.textContent ).toBe( 'core/table' );
+		expect( ranges ).toEqual( [ { start: 0, end: 1 } ] );
+		expect( getNonMovableRowIndices( ranges ) ).toEqual( [ 0, 1 ] );
+		expect( getForbiddenInsertionIndices( ranges ) ).toEqual( [ 1 ] );
+	} );
+
+	it( 'passes Flexible Table Block body and setAttributes through the shared Table Reorder path', () => {
+		const body = [
+			{
+				cells: [
+					{
+						className: 'first-cell',
+						colSpan: 2,
+						content: 'Flexible row',
+						rowSpan: 2,
+						scope: 'row',
+						styles: { color: '#000000' },
+					},
+				],
+			},
+		];
+		const mounted = renderFlexibleTableBlock( body );
+
+		expect( mounted.container.textContent ).toBe( 'flexible-table-block/table' );
 		expect( useTableReorderMock ).toHaveBeenCalledTimes( 1 );
 		expect( useTableReorderMock ).toHaveBeenCalledWith( {
-			body: [],
-			clientId: 'block-client-id',
+			body,
+			clientId: 'flexible-table-block-client-id',
 			enabled: true,
 			isSelected: false,
-			rowspanProperty: 'rowspan',
-			setAttributes: props.setAttributes,
+			rowspanProperty: 'rowSpan',
+			setAttributes: mounted.props.setAttributes,
 		} );
 
 		mounted.unmount();
