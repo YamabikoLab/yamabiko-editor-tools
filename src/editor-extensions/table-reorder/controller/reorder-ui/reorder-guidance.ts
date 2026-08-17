@@ -21,7 +21,7 @@ const KEYBOARD_SCROLL_MARGIN_PX = 24;
 const GUIDANCE_VIEWPORT_OFFSET_PX = 8;
 
 /** Touchの微小な揺れをswipe方向の変更として扱わない距離。 */
-const TOUCH_SWIPE_DIRECTION_THRESHOLD_PX = 16;
+const TOUCH_SWIPE_DIRECTION_THRESHOLD_PX = 8;
 
 /** 操作中案内を表示するviewport側。 */
 type ReorderGuidancePosition = 'top' | 'bottom';
