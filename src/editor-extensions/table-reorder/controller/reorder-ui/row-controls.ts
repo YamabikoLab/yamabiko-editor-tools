@@ -166,7 +166,6 @@ export const createRowControls = (
 		firstCell.prepend( mount );
 		const root = createRoot( mount );
 		let isPressed = false;
-		let cleanedUp = false;
 		let tooltipText: string | undefined = usePointerDescription
 			? getPointerHandleTooltip()
 			: undefined;
@@ -245,13 +244,6 @@ export const createRowControls = (
 			}
 			renderedControl.setAttribute( 'aria-describedby', descriptionId );
 		};
-		const scheduleControlRender = () => {
-			queueMicrotask( () => {
-				if ( ! cleanedUp ) {
-					flushSync( renderControl );
-				}
-			} );
-		};
 		const setPressed = ( nextIsPressed: boolean ) => {
 			if ( isPressed === nextIsPressed ) {
 				return;
@@ -263,7 +255,7 @@ export const createRowControls = (
 			tooltipText = getKeyboardHandleTooltip();
 			descriptionId = keyboardDescriptionId;
 			syncAccessibleDescription();
-			scheduleControlRender();
+			renderControl();
 		};
 		const onBlur = () => {
 			if ( usePointerDescription ) {
@@ -274,13 +266,12 @@ export const createRowControls = (
 				descriptionId = undefined;
 			}
 			syncAccessibleDescription();
-			scheduleControlRender();
+			renderControl();
 		};
 		renderedControl.addEventListener( 'focus', onFocus );
 		renderedControl.addEventListener( 'blur', onBlur );
 
 		cleanupControlRoots.push( () => {
-			cleanedUp = true;
 			renderedControl.removeEventListener( 'focus', onFocus );
 			renderedControl.removeEventListener( 'blur', onBlur );
 			root.unmount();
