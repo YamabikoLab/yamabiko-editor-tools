@@ -39,20 +39,10 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 	line.style.transform = 'translateY(-50%)';
 	document.body.append( line );
 
-	const removalObserver = new MutationObserver( ( mutations ) => {
-		for ( const mutation of mutations ) {
-			if ( Array.from( mutation.removedNodes ).includes( line ) ) {
-				trace317( '[yet:#317] insertionLine removed externally', {
-					connected: line.isConnected,
-					target: mutation.target,
-					bodySame: mutation.target === document.body,
-				} );
-			}
-		}
-	} );
-	removalObserver.observe( document.body, {
-		childList: true,
-	} );
+	const traceWindow = window as typeof window & {
+		__yet317Line?: HTMLElement;
+	};
+	traceWindow.__yet317Line = line;
 
 	let activeTarget: {
 		row: HTMLTableRowElement;
@@ -136,7 +126,6 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 			activeTarget = null;
 			document.removeEventListener( 'scroll', onViewportChange, true );
 			document.defaultView?.removeEventListener( 'resize', onViewportChange );
-			removalObserver.disconnect();
 			line.remove();
 		},
 	};
