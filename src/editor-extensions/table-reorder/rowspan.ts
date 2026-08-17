@@ -16,13 +16,6 @@ type RowspanRange = {
 };
 
 /**
- * Gutenberg Table body内のcellで、このモジュールが参照する最小構造。
- */
-type TableCell = {
-	rowspan?: unknown;
-};
-
-/**
  * unknown値がpropertyを参照できるobjectか判定する。
  *
  * @param value 判定対象の値。
@@ -46,9 +39,9 @@ const getRows = ( body: unknown ): unknown[] => ( Array.isArray( body ) ? body :
  *
  * @param row Table body内の1行。
  */
-const getCells = ( row: unknown ): TableCell[] =>
+const getCells = ( row: unknown ): Array< Record< string, unknown > > =>
 	isRecord( row ) && Array.isArray( row.cells )
-		? row.cells.filter( ( cell ): cell is TableCell => isRecord( cell ) )
+		? row.cells.filter( ( cell ): cell is Record< string, unknown > => isRecord( cell ) )
 		: [];
 
 /**
@@ -56,13 +49,16 @@ const getCells = ( row: unknown ): TableCell[] =>
  *
  * 2以上の整数または数値文字列だけを採用し、それ以外はnullを返す。
  *
- * @param cell 判定対象のTable cell。
+ * @param cell            判定対象のTable cell。
+ * @param rowspanProperty rowspan値を保持するcell property名。
  */
-const getRowspan = ( cell: TableCell ): number | null => {
+const getRowspan = (
+	cell: Record< string, unknown >,
+	rowspanProperty: string
+): number | null => {
+	const rowspan = cell[ rowspanProperty ];
 	const value =
-		typeof cell.rowspan === 'number' || typeof cell.rowspan === 'string'
-			? Number( cell.rowspan )
-			: null;
+		typeof rowspan === 'number' || typeof rowspan === 'string' ? Number( rowspan ) : null;
 
 	return value !== null && Number.isInteger( value ) && value >= 2 ? value : null;
 };
@@ -82,14 +78,18 @@ const range = ( start: number, end: number ): number[] =>
  * rowspanがTable末尾を越える場合は最終行までに収める。
  * 無効なbody、row、cell、rowspanは無視する。
  *
- * @param body Gutenberg Table blockのbody attribute。
+ * @param body            Gutenberg Table blockのbody attribute。
+ * @param rowspanProperty rowspan値を保持するcell property名。
  */
-export const getRowspanRanges = ( body: unknown ): RowspanRange[] => {
+export const getRowspanRanges = (
+	body: unknown,
+	rowspanProperty: string
+): RowspanRange[] => {
 	const rows = getRows( body );
 
 	return rows.flatMap( ( row, start ) =>
 		getCells( row ).flatMap( ( cell ) => {
-			const rowspan = getRowspan( cell );
+			const rowspan = getRowspan( cell, rowspanProperty );
 			if ( rowspan === null ) {
 				return [];
 			}

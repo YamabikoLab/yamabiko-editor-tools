@@ -1,7 +1,7 @@
 import { createElement, createRoot } from '@wordpress/element';
 
 import { useTableReorder } from './use-table-reorder';
-import { isTableReorderSupportedBlock, withTableReorder } from './with-table-reorder';
+import { withTableReorder } from './with-table-reorder';
 
 const { act } = jest.requireActual< { act: ( callback: () => void ) => void } >( 'react' );
 
@@ -74,14 +74,6 @@ beforeEach( () => {
 	useTableReorderMock.mockReturnValue( createHookResult() );
 } );
 
-describe( 'isTableReorderSupportedBlock', () => {
-	it( 'supports only core/table', () => {
-		expect( isTableReorderSupportedBlock( 'core/table' ) ).toBe( true );
-		expect( isTableReorderSupportedBlock( 'core/paragraph' ) ).toBe( false );
-		expect( isTableReorderSupportedBlock( 'flexible-table-block/table' ) ).toBe( false );
-	} );
-} );
-
 describe( 'withTableReorder', () => {
 	it( 'returns the original BlockEdit without running Table Reorder hooks for unsupported blocks', () => {
 		const mounted = render( createProps( 'core/paragraph' ) );
@@ -104,6 +96,7 @@ describe( 'withTableReorder', () => {
 			clientId: 'block-client-id',
 			enabled: true,
 			isSelected: false,
+			rowspanProperty: 'rowspan',
 			setAttributes: props.setAttributes,
 		} );
 

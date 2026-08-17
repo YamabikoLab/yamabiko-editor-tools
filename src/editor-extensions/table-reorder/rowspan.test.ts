@@ -1,8 +1,12 @@
 import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 
+const ROWSPAN_PROPERTY = 'rowspan';
+
 describe( 'getRowspanRanges', () => {
 	it( 'returns no ranges when rowspan is absent', () => {
-		expect( getRowspanRanges( [ { cells: [ {} ] }, { cells: [ {} ] } ] ) ).toEqual( [] );
+		expect(
+			getRowspanRanges( [ { cells: [ {} ] }, { cells: [ {} ] } ], ROWSPAN_PROPERTY )
+		).toEqual( [] );
 	} );
 
 	it( 'accepts integer and numeric-string rowspan values', () => {
@@ -13,7 +17,7 @@ describe( 'getRowspanRanges', () => {
 			{ cells: [ {} ] },
 		];
 
-		expect( getRowspanRanges( body ) ).toEqual( [
+		expect( getRowspanRanges( body, ROWSPAN_PROPERTY ) ).toEqual( [
 			{ start: 0, end: 1 },
 			{ start: 1, end: 3 },
 		] );
@@ -22,35 +26,46 @@ describe( 'getRowspanRanges', () => {
 	it.each( [ 1, 0, -2, 2.5, 'invalid', null, undefined, {} ] )(
 		'ignores invalid rowspan value %p',
 		( rowspan ) => {
-			expect( getRowspanRanges( [ { cells: [ { rowspan } ] }, { cells: [ {} ] } ] ) ).toEqual( [] );
+			expect(
+				getRowspanRanges( [ { cells: [ { rowspan } ] }, { cells: [ {} ] } ], ROWSPAN_PROPERTY )
+			).toEqual( [] );
 		}
 	);
 
 	it( 'treats a non-array body as empty', () => {
-		expect( getRowspanRanges( null ) ).toEqual( [] );
-		expect( getRowspanRanges( { body: [] } ) ).toEqual( [] );
+		expect( getRowspanRanges( null, ROWSPAN_PROPERTY ) ).toEqual( [] );
+		expect( getRowspanRanges( { body: [] }, ROWSPAN_PROPERTY ) ).toEqual( [] );
 	} );
 
 	it( 'ignores rows whose cells value is not an array', () => {
 		expect(
-			getRowspanRanges( [ { cells: null }, { cells: { rowspan: 2 } }, { cells: [ {} ] } ] )
+			getRowspanRanges(
+				[ { cells: null }, { cells: { rowspan: 2 } }, { cells: [ {} ] } ],
+				ROWSPAN_PROPERTY
+			)
 		).toEqual( [] );
 	} );
 
 	it( 'clamps a rowspan that extends beyond the end of the table', () => {
 		expect(
-			getRowspanRanges( [ { cells: [ {} ] }, { cells: [ { rowspan: 10 } ] }, { cells: [ {} ] } ] )
+			getRowspanRanges(
+				[ { cells: [ {} ] }, { cells: [ { rowspan: 10 } ] }, { cells: [ {} ] } ],
+				ROWSPAN_PROPERTY
+			)
 		).toEqual( [ { start: 1, end: 2 } ] );
 	} );
 
 	it( 'keeps multiple overlapping rowspan ranges', () => {
 		expect(
-			getRowspanRanges( [
-				{ cells: [ { rowspan: 3 } ] },
-				{ cells: [ { rowspan: 3 } ] },
-				{ cells: [ {} ] },
-				{ cells: [ {} ] },
-			] )
+			getRowspanRanges(
+				[
+					{ cells: [ { rowspan: 3 } ] },
+					{ cells: [ { rowspan: 3 } ] },
+					{ cells: [ {} ] },
+					{ cells: [ {} ] },
+				],
+				ROWSPAN_PROPERTY
+			)
 		).toEqual( [
 			{ start: 0, end: 2 },
 			{ start: 1, end: 3 },

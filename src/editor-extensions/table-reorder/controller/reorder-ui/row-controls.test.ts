@@ -6,7 +6,6 @@ jest.mock( '@wordpress/components', () => ( {
 
 const createTable = ( labels: string[] ) => {
 	const wrapper = document.createElement( 'figure' );
-	wrapper.className = 'wp-block-table';
 	const table = document.createElement( 'table' );
 	const tbody = document.createElement( 'tbody' );
 	table.append( tbody );

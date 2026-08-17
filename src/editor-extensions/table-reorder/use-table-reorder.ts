@@ -6,7 +6,7 @@
  */
 
 import { useDispatch } from '@wordpress/data';
-import { useRef, type RefObject } from '@wordpress/element';
+import { useMemo, useRef, type RefObject } from '@wordpress/element';
 import { store as noticesStore } from '@wordpress/notices';
 
 import { announceLiveStatus } from './controller/reorder-ui';
@@ -15,7 +15,11 @@ import {
 	getNoMovableRowsMessage,
 	getRowspanErrorMessage,
 } from './messages';
-import { getNonMovableRowIndices, getRowspanRanges } from './rowspan';
+import {
+	getForbiddenInsertionIndices,
+	getNonMovableRowIndices,
+	getRowspanRanges,
+} from './rowspan';
 import { resolveTableContext } from './table-context';
 import { useTableReorderController } from './use-table-reorder-controller';
 import { useTableReorderInteraction } from './use-table-reorder-interaction';
@@ -26,6 +30,7 @@ type UseTableReorderOptions = {
 	clientId: string;
 	enabled: boolean;
 	isSelected: boolean;
+	rowspanProperty?: string;
 	setAttributes: ( attributes: { body: unknown[] } ) => void;
 };
 
@@ -45,13 +50,20 @@ type TableReorderHookResult = {
 /**
  * Table ReorderのReact lifecycleを所有し、必要な期間だけSortableJS controllerを接続する。
  *
- * @param options Table blockのbody、選択状態、clientId、attribute更新callback。
+ * @param options Table blockのbody、選択状態、clientId、rowspan property、attribute更新callback。
  * @return Toolbar描画と操作に必要なstate / callback。
  */
 export const useTableReorder = ( options: UseTableReorderOptions ): TableReorderHookResult => {
-	const { body, clientId, enabled, isSelected, setAttributes } = options;
+	const { body, clientId, enabled, isSelected, rowspanProperty, setAttributes } = options;
 	const anchorRef = useRef< HTMLSpanElement >( null );
 	const { createNotice } = useDispatch( noticesStore );
+	const { forbiddenInsertionIndices, nonMovableRowIndices } = useMemo( () => {
+		const rowspanRanges = rowspanProperty ? getRowspanRanges( body, rowspanProperty ) : [];
+		return {
+			forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
+			nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
+		};
+	}, [ body, rowspanProperty ] );
 	const {
 		dismissKeyboardCoachmark,
 		dismissTouchCoachmark,
@@ -73,7 +85,9 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		body,
 		clientId,
 		enabled,
+		forbiddenInsertionIndices,
 		interactionMode,
+		nonMovableRowIndices,
 		onBodyCommit: ( reorderedBody ) => {
 			setAttributes( { body: reorderedBody } );
 		},
@@ -117,8 +131,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 			if ( ! isTouchReorderMode ) {
 				dismissTouchCoachmark();
 				const rowCount = Array.isArray( body ) ? body.length : 0;
-				const nonMovableRowCount = getNonMovableRowIndices( getRowspanRanges( body ) ).length;
-				if ( rowCount === 0 || nonMovableRowCount >= rowCount ) {
+				if ( rowCount === 0 || nonMovableRowIndices.length >= rowCount ) {
 					notifyTouchNoMovableRows();
 					return;
 				}

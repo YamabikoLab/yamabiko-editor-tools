@@ -13,7 +13,6 @@ import {
 	type ReorderInteractionMode,
 	type SortableController,
 } from './controller/sortable-controller';
-import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { resolveTableContext } from './table-context';
 
 /** SortableJS runtime URLを公開するeditor windowの設定。 */
@@ -29,7 +28,9 @@ type UseTableReorderControllerOptions = {
 	body: unknown;
 	clientId: string;
 	enabled: boolean;
+	forbiddenInsertionIndices: readonly number[];
 	interactionMode: ReorderInteractionMode | null;
+	nonMovableRowIndices: readonly number[];
 	onBodyCommit: ( reorderedBody: unknown[] ) => void;
 };
 
@@ -41,13 +42,22 @@ type TableReorderControllerCommands = {
 /**
  * Table Reorderのcontroller生成・cleanupとcommit後のfocus復元を所有する。
  *
- * @param options controller生成に必要なTable情報とbody commit callback。
+ * @param options controller生成に必要なTable情報、算出済み制約、body commit callback。
  * @return Toolbarから利用するcontroller command。
  */
 export const useTableReorderController = (
 	options: UseTableReorderControllerOptions
 ): TableReorderControllerCommands => {
-	const { anchorRef, body, clientId, enabled, interactionMode, onBodyCommit } = options;
+	const {
+		anchorRef,
+		body,
+		clientId,
+		enabled,
+		forbiddenInsertionIndices,
+		interactionMode,
+		nonMovableRowIndices,
+		onBodyCommit,
+	} = options;
 	const controllerRef = useRef< SortableController | null >( null );
 	const pendingFocusRowIndexRef = useRef< number | null >( null );
 	const onBodyCommitRef = useRef( onBodyCommit );
@@ -85,7 +95,6 @@ export const useTableReorderController = (
 			return;
 		}
 
-		const rowspanRanges = getRowspanRanges( body );
 		let controller: SortableController | null = null;
 		let disposed = false;
 
@@ -96,9 +105,9 @@ export const useTableReorderController = (
 
 			const createdController = createSortableController( {
 				context,
-				forbiddenInsertionIndices: getForbiddenInsertionIndices( rowspanRanges ),
+				forbiddenInsertionIndices,
 				interactionMode,
-				nonMovableRowIndices: getNonMovableRowIndices( rowspanRanges ),
+				nonMovableRowIndices,
 				onCommit: ( reorderedBody, focusRowIndex ) => {
 					if ( focusRowIndex !== undefined ) {
 						pendingFocusRowIndexRef.current = focusRowIndex;
@@ -138,7 +147,15 @@ export const useTableReorderController = (
 				} );
 			}
 		};
-	}, [ anchorRef, body, clientId, enabled, interactionMode ] );
+	}, [
+		anchorRef,
+		body,
+		clientId,
+		enabled,
+		forbiddenInsertionIndices,
+		interactionMode,
+		nonMovableRowIndices,
+	] );
 
 	return {
 		focusRowControl: () => controllerRef.current?.focusRowControl(),

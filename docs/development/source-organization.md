@@ -45,6 +45,8 @@ Table Reorder currently follows this feature-first shape:
 src/editor-extensions/table-reorder/
 ├── index.tsx
 ├── editor.scss
+├── block-support.ts
+├── block-support.test.ts
 ├── use-table-reorder.ts
 ├── with-table-reorder.tsx
 ├── messages.ts
@@ -58,6 +60,8 @@ src/editor-extensions/table-reorder/
 ```
 
 The exact file set is driven by current responsibilities. New files or subdirectories should be added only when they make an existing responsibility clearer.
+
+`block-support.ts` is the thin boundary for differences between Table Reorder-supported block types. It owns only supported block-name recognition and the minimal block-specific attribute differences needed by Table Reorder. Higher-level BlockEdit integration may depend on this boundary, while controller lifecycle, DOM discovery, row-order logic, and UI modules must remain block-independent.
 
 `controller/reorder-ui/` is owned by the Table Reorder controller UI boundary. Its `index.ts` is the compatibility facade used by controller consumers, while the sibling modules inside that directory own focused row-control, guidance, row-move-target, and live-status UI lifecycles.
 

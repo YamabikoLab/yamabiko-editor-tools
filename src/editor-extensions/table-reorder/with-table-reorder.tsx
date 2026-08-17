@@ -16,14 +16,18 @@ import {
 	getToolbarReorderName,
 	getTouchCoachmarkMessage,
 } from './messages';
+import {
+	getTableReorderBlockSupport,
+	type TableReorderBlockSupport,
+} from './block-support';
 import { useTableReorder } from './use-table-reorder';
 
-/** Core Table blockのbodyを含むattribute形。 */
+/** Table Reorder対応blockのbodyを含むattribute形。 */
 type TableAttributes = Record< string, unknown > & {
 	body?: unknown[];
 };
 
-/** HOCが利用するCore Table向けBlockEdit props。 */
+/** HOCが利用するTable Reorder対応block向けBlockEdit props。 */
 type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 	name: string;
 };
@@ -32,23 +36,16 @@ type TableBlockEditProps = BlockEditProps< TableAttributes > & {
 type TableReorderEditProps = {
 	BlockEdit: ComponentType< TableBlockEditProps >;
 	props: TableBlockEditProps;
+	support: TableReorderBlockSupport;
 };
-
-/**
- * Table Reorderが対応するblockか判定する。
- *
- * @param blockName Gutenberg block name。
- * @return Table Reorder対応blockならtrue。
- */
-export const isTableReorderSupportedBlock = ( blockName: string ) => blockName === 'core/table';
 
 /**
  * 対応block専用のTable Reorder描画component。
  *
- * @param componentProps Gutenbergから渡されるBlockEdit propsと元のBlockEdit component。
+ * @param componentProps Gutenbergから渡されるBlockEdit props、元のBlockEdit component、block support。
  */
 const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
-	const { BlockEdit, props } = componentProps;
+	const { BlockEdit, props, support } = componentProps;
 	const {
 		attributes: { body },
 		clientId,
@@ -71,6 +68,7 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 		clientId,
 		enabled: true,
 		isSelected,
+		rowspanProperty: support.rowspanProperty,
 		setAttributes,
 	} );
 
@@ -138,9 +136,10 @@ export const withTableReorder = ( BlockEdit: ComponentType< TableBlockEditProps 
 	 * @param props Gutenbergから渡されるBlockEdit props。
 	 */
 	function WithTableReorder( props: TableBlockEditProps ) {
-		if ( ! isTableReorderSupportedBlock( props.name ) ) {
+		const support = getTableReorderBlockSupport( props.name );
+		if ( ! support ) {
 			return <BlockEdit { ...props } />;
 		}
 
-		return <TableReorderEdit BlockEdit={ BlockEdit } props={ props } />;
+		return <TableReorderEdit BlockEdit={ BlockEdit } props={ props } support={ support } />;
 	};
