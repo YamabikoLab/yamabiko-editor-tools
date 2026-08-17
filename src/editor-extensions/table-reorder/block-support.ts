@@ -12,6 +12,9 @@ const BLOCK_SUPPORTS: Readonly< Record< string, TableReorderBlockSupport > > = {
 	'core/table': {
 		rowspanProperty: 'rowspan',
 	},
+	'flexible-table-block/table': {
+		rowspanProperty: 'rowSpan',
+	},
 };
 
 /**
