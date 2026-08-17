@@ -20,6 +20,9 @@ const KEYBOARD_SCROLL_MARGIN_PX = 24;
 /** 操作案内をviewport端から離す余白。 */
 const GUIDANCE_VIEWPORT_OFFSET_PX = 8;
 
+/** Touchの微小な揺れをswipe方向の変更として扱わない距離。 */
+const TOUCH_SWIPE_DIRECTION_THRESHOLD_PX = 16;
+
 /** 操作中案内を表示するviewport側。 */
 type ReorderGuidancePosition = 'top' | 'bottom';
 
@@ -51,10 +54,20 @@ const getGuidanceIcon = ( message: string ) => {
 };
 
 /**
+ * Touch swipe方向へ追従する案内文かを返す。
+ *
+ * @param message 表示する案内文。
+ * @return Touch swipe方向へ追従する場合はtrue。
+ */
+const isTouchSwipeGuidance = ( message: string ) =>
+	message === getTouchModeMessage() || message === getTouchPointerActiveMessage();
+
+/**
  * Tableに関連付く操作中案内をowning documentへ追加する。
  *
  * fixed配置でスクロール中も確認できる状態を保つ。既定はviewport上側で、keyboard入力時は
- * ArrowUpなら下側、ArrowDownなら上側へ切り替え、移動先を確認する方向を覆わない。
+ * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内では一定距離以上のswipeを
+ * 検出したとき、上方向なら上側、下方向なら下側へ切り替え、反対方向を検出するまで維持する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -86,6 +99,8 @@ export const createReorderGuidance = (
 	guidance.append( text );
 	document.body.append( guidance );
 	let position: ReorderGuidancePosition = 'top';
+	let touchPointer: { pointerId: number; y: number } | null = null;
+	const trackTouchSwipe = isTouchSwipeGuidance( message );
 
 	const updatePosition = () => {
 		const tableRect = ( table ?? tbody ).getBoundingClientRect();
@@ -126,11 +141,45 @@ export const createReorderGuidance = (
 			setPosition( 'top' );
 		}
 	};
+	const onPointerDown = ( event: PointerEvent ) => {
+		if ( event.pointerType !== 'touch' ) {
+			return;
+		}
+		touchPointer = { pointerId: event.pointerId, y: event.clientY };
+	};
+	const onPointerMove = ( event: PointerEvent ) => {
+		if (
+			event.pointerType !== 'touch' ||
+			! touchPointer ||
+			event.pointerId !== touchPointer.pointerId
+		) {
+			return;
+		}
+
+		const deltaY = event.clientY - touchPointer.y;
+		if ( Math.abs( deltaY ) < TOUCH_SWIPE_DIRECTION_THRESHOLD_PX ) {
+			return;
+		}
+
+		touchPointer.y = event.clientY;
+		setPosition( deltaY > 0 ? 'bottom' : 'top' );
+	};
+	const onPointerEnd = ( event: PointerEvent ) => {
+		if ( touchPointer?.pointerId === event.pointerId ) {
+			touchPointer = null;
+		}
+	};
 
 	updatePosition();
 	view?.addEventListener( 'resize', updatePosition );
 	view?.addEventListener( 'scroll', updatePosition, true );
 	document.addEventListener( 'keydown', onKeyDown, true );
+	if ( trackTouchSwipe ) {
+		document.addEventListener( 'pointerdown', onPointerDown, true );
+		document.addEventListener( 'pointermove', onPointerMove, true );
+		document.addEventListener( 'pointercancel', onPointerEnd, true );
+		document.addEventListener( 'pointerup', onPointerEnd, true );
+	}
 
 	return {
 		element: guidance,
@@ -141,6 +190,12 @@ export const createReorderGuidance = (
 			view?.removeEventListener( 'resize', updatePosition );
 			view?.removeEventListener( 'scroll', updatePosition, true );
 			document.removeEventListener( 'keydown', onKeyDown, true );
+			if ( trackTouchSwipe ) {
+				document.removeEventListener( 'pointerdown', onPointerDown, true );
+				document.removeEventListener( 'pointermove', onPointerMove, true );
+				document.removeEventListener( 'pointercancel', onPointerEnd, true );
+				document.removeEventListener( 'pointerup', onPointerEnd, true );
+			}
 			iconRoot?.unmount();
 			guidance.remove();
 		},
