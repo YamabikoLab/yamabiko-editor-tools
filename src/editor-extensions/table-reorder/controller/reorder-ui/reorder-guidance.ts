@@ -1,5 +1,18 @@
+import { createElement, createRoot } from '@wordpress/element';
+import { chevronUpDown, dragHandle, Icon } from '@wordpress/icons';
+
+import {
+	getKeyboardActiveMessage,
+	getPcPointerActiveMessage,
+	getTouchModeMessage,
+	getTouchPointerActiveMessage,
+} from '../../messages';
+
 /** 操作中の案内に付与するclass。 */
 const GUIDANCE_CLASS = 'yamabiko-table-reorder-pointer-guidance';
+
+/** 操作中案内の内容補助iconに付与するclass。 */
+const GUIDANCE_ICON_CLASS = 'yamabiko-table-reorder-guidance-icon';
 
 /** keyboard scroll追従でviewport端に確保する最小余白。 */
 const KEYBOARD_SCROLL_MARGIN_PX = 24;
@@ -15,6 +28,26 @@ export type ReorderGuidanceUi = {
 	element: HTMLDivElement;
 	setHidden: ( isHidden: boolean ) => void;
 	cleanup: () => void;
+};
+
+/**
+ * 案内文の意味に対応するWordPress標準iconを返す。
+ *
+ * @param message 表示する案内文。
+ * @return 内容補助icon。対象外の案内文ではnull。
+ */
+const getGuidanceIcon = ( message: string ) => {
+	if ( message === getTouchModeMessage() ) {
+		return dragHandle;
+	}
+	if (
+		message === getKeyboardActiveMessage() ||
+		message === getPcPointerActiveMessage() ||
+		message === getTouchPointerActiveMessage()
+	) {
+		return chevronUpDown;
+	}
+	return null;
 };
 
 /**
@@ -38,6 +71,16 @@ export const createReorderGuidance = (
 	const guidance = document.createElement( 'div' );
 	guidance.className = GUIDANCE_CLASS;
 	guidance.contentEditable = 'false';
+	const icon = getGuidanceIcon( message );
+	let iconRoot: ReturnType< typeof createRoot > | null = null;
+	if ( icon ) {
+		const iconContainer = document.createElement( 'span' );
+		iconContainer.className = GUIDANCE_ICON_CLASS;
+		iconContainer.setAttribute( 'aria-hidden', 'true' );
+		guidance.append( iconContainer );
+		iconRoot = createRoot( iconContainer );
+		iconRoot.render( createElement( Icon, { icon, size: 24 } ) );
+	}
 	const text = document.createElement( 'span' );
 	text.textContent = message;
 	guidance.append( text );
@@ -98,6 +141,7 @@ export const createReorderGuidance = (
 			view?.removeEventListener( 'resize', updatePosition );
 			view?.removeEventListener( 'scroll', updatePosition, true );
 			document.removeEventListener( 'keydown', onKeyDown, true );
+			iconRoot?.unmount();
 			guidance.remove();
 		},
 	};
