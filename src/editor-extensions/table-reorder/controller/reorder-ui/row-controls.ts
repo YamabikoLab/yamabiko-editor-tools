@@ -247,7 +247,7 @@ export const createRowControls = (
 		const onFocus = () => {
 			tooltipText = getKeyboardHandleTooltip();
 			descriptionId = keyboardDescriptionId;
-			flushSync( renderControl );
+			renderControl();
 		};
 		const onBlur = () => {
 			if ( usePointerDescription ) {
@@ -257,7 +257,7 @@ export const createRowControls = (
 				tooltipText = undefined;
 				descriptionId = undefined;
 			}
-			flushSync( renderControl );
+			renderControl();
 		};
 		renderedControl.addEventListener( 'focus', onFocus );
 		renderedControl.addEventListener( 'blur', onBlur );
