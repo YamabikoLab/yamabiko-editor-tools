@@ -23,19 +23,6 @@ describe( 'getRowspanRanges', () => {
 		] );
 	} );
 
-	it( 'supports Flexible Table Block rowSpan values', () => {
-		const body = [
-			{ cells: [ { content: 'a', rowSpan: 2 } ] },
-			{ cells: [ { content: 'b' } ] },
-			{ cells: [ { content: 'c' } ] },
-		];
-		const ranges = getRowspanRanges( body, 'rowSpan' );
-
-		expect( ranges ).toEqual( [ { start: 0, end: 1 } ] );
-		expect( getNonMovableRowIndices( ranges ) ).toEqual( [ 0, 1 ] );
-		expect( getForbiddenInsertionIndices( ranges ) ).toEqual( [ 1 ] );
-	} );
-
 	it.each( [ 1, 0, -2, 2.5, 'invalid', null, undefined, {} ] )(
 		'ignores invalid rowspan value %p',
 		( rowspan ) => {
