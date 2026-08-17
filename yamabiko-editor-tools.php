@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Yamabiko Editor Tools
  * Description: Editor tools for intuitive content structure editing.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.8
  * Requires PHP: 8.1
  * Author: YamabikoLab

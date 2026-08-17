@@ -3,14 +3,14 @@
 サイト制作者向けのWordPressプラグインです。
 
 **Gutenbergをちょっと便利にする機能やブロックを開発しています。**  
-現在は **Core Table ブロックの行ドラッグ＆ドロップ（Table Reorder）** を中心に開発しています。
+現在は **Tableブロックの行ドラッグ＆ドロップ（Table Reorder）** を中心に開発しています。
 
 > [!WARNING]
 > 現在開発中です。仕様や動作は今後変更される可能性があります。
 
 ## Table Reorder
 
-Core Table ブロックの本文行をドラッグ＆ドロップで並べ替える機能です。
+対応するTableブロックの本文行をドラッグ＆ドロップで並べ替える機能です。
 
 <img width="1240" height="724" alt="demo" src="https://github.com/user-attachments/assets/09adfced-6d43-46a1-97d4-adb1ac2eba18" />
 
@@ -26,6 +26,11 @@ WordPress Playground で、インストール不要で行の並べ替えを体�
 - iframe / non-iframe エディターの両方に対応
 - `rowspan` を含む縦結合行の不正な移動を制限
 - 並べ替え結果をGutenbergのブロック属性へ反映
+
+## Supported blocks
+
+- WordPress Core Table
+- Flexible Table Block
 
 ## 動作環境
 

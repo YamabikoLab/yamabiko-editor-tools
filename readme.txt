@@ -3,7 +3,7 @@ Tags: block editor, gutenberg, table
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Editor tools for intuitive content structure editing in WordPress.
 
 Yamabiko Editor Tools improves the Gutenberg editing experience for site creators.
 
-The current focus is Table Reorder, which lets you reorder body rows in the Core Table block while preserving the block's content structure.
+The current focus is Table Reorder, which lets you reorder body rows in supported table blocks while preserving the block's content structure.
 
 Features include:
 
@@ -43,6 +43,13 @@ The generated archive is `yamabiko-editor-tools.zip`.
 4. Activate Yamabiko Editor Tools.
 
 == Changelog ==
+
+= 0.3.0 =
+
+* Added: Added Table Reorder support for Flexible Table Block.
+* Changed: Consolidated Core Table and Flexible Table Block-specific differences behind a thin block support boundary.
+* Changed: Integrated Flexible Table Block `rowSpan` handling into the existing merged-cell movement constraints.
+* Changed: Removed the Core Table-specific selector dependency from the temporary horizontal-scroll adjustment used by touch reorder mode.
 
 = 0.2.0 =
 
