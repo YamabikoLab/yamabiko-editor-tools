@@ -6,7 +6,7 @@
  */
 
 import { useDispatch, useSelect } from '@wordpress/data';
-import { useEffect, useState, type RefObject } from '@wordpress/element';
+import { useEffect, useRef, useState, type RefObject } from '@wordpress/element';
 
 import { HANDLE_ZONE_CLASS } from './controller/reorder-ui';
 import type { ReorderInteractionMode } from './controller/sortable-controller';
@@ -83,12 +83,31 @@ export const useTableReorderInteraction = (
 		() => window.matchMedia( HOVER_REORDER_MEDIA_QUERY ).matches
 	);
 	const [ inputModality, setInputModality ] = useState< InputModality >( 'pointer' );
+	const inputModalityRef = useRef< InputModality >( 'pointer' );
 	const [ isKeyboardCoachmarkTriggered, setIsKeyboardCoachmarkTriggered ] = useState( false );
 	const [ isKeyboardCoachmarkDismissedLocally, setIsKeyboardCoachmarkDismissedLocally ] =
 		useState( false );
+	const [ isRowHandleFocused, setIsRowHandleFocused ] = useState( false );
+	const hasKeyboardCoachmarkBeenVisibleRef = useRef( false );
 	const [ isTouchCoachmarkDismissedLocally, setIsTouchCoachmarkDismissedLocally ] =
 		useState( false );
 	const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
+
+	const isKeyboardCoachmarkVisible =
+		enabled &&
+		isSelected &&
+		isHoverCapable &&
+		isKeyboardCoachmarkTriggered &&
+		! isKeyboardCoachmarkDismissed &&
+		! isKeyboardCoachmarkDismissedLocally &&
+		! isRowHandleFocused;
+	const isTouchCoachmarkVisible =
+		enabled &&
+		isSelected &&
+		! isHoverCapable &&
+		! isTouchReorderMode &&
+		! isTouchCoachmarkDismissed &&
+		! isTouchCoachmarkDismissedLocally;
 
 	useEffect( () => {
 		if ( ! enabled ) {
@@ -111,6 +130,12 @@ export const useTableReorderInteraction = (
 	}, [ enabled ] );
 
 	useEffect( () => {
+		if ( isKeyboardCoachmarkVisible ) {
+			hasKeyboardCoachmarkBeenVisibleRef.current = true;
+		}
+	}, [ isKeyboardCoachmarkVisible ] );
+
+	useEffect( () => {
 		if ( ! enabled ) {
 			return;
 		}
@@ -124,15 +149,25 @@ export const useTableReorderInteraction = (
 
 		const onKeyDown = ( event: KeyboardEvent ) => {
 			if ( ! MODIFIER_KEYS.has( event.key ) ) {
+				inputModalityRef.current = 'keyboard';
 				setInputModality( 'keyboard' );
 			}
 		};
 		const onPointerDown = () => {
+			inputModalityRef.current = 'pointer';
 			setInputModality( 'pointer' );
 		};
 		const onFocusIn = ( event: FocusEvent ) => {
 			const target = event.target as Element | null;
 			if ( ! target?.classList.contains( HANDLE_ZONE_CLASS ) ) {
+				return;
+			}
+
+			setIsRowHandleFocused( true );
+			if (
+				inputModalityRef.current !== 'keyboard' ||
+				! hasKeyboardCoachmarkBeenVisibleRef.current
+			) {
 				return;
 			}
 
@@ -144,17 +179,25 @@ export const useTableReorderInteraction = (
 				true
 			);
 		};
+		const onFocusOut = ( event: FocusEvent ) => {
+			const target = event.target as Element | null;
+			if ( target?.classList.contains( HANDLE_ZONE_CLASS ) ) {
+				setIsRowHandleFocused( false );
+			}
+		};
 
 		for ( const document of documents ) {
 			document.addEventListener( 'keydown', onKeyDown, true );
 			document.addEventListener( 'pointerdown', onPointerDown, true );
 			document.addEventListener( 'focusin', onFocusIn, true );
+			document.addEventListener( 'focusout', onFocusOut, true );
 		}
 		return () => {
 			for ( const document of documents ) {
 				document.removeEventListener( 'keydown', onKeyDown, true );
 				document.removeEventListener( 'pointerdown', onPointerDown, true );
 				document.removeEventListener( 'focusin', onFocusIn, true );
+				document.removeEventListener( 'focusout', onFocusOut, true );
 			}
 		};
 	}, [ anchorRef, clientId, enabled, preferencesActions ] );
@@ -162,6 +205,7 @@ export const useTableReorderInteraction = (
 	useEffect( () => {
 		if ( ! isSelected ) {
 			setIsTouchReorderMode( false );
+			setIsRowHandleFocused( false );
 		}
 	}, [ isSelected ] );
 
@@ -199,21 +243,6 @@ export const useTableReorderInteraction = (
 		setIsTouchCoachmarkDismissedLocally( true );
 		void preferencesActions.set( PREFERENCES_SCOPE, TOUCH_COACHMARK_DISMISSED_PREFERENCE, true );
 	};
-
-	const isKeyboardCoachmarkVisible =
-		enabled &&
-		isSelected &&
-		isHoverCapable &&
-		isKeyboardCoachmarkTriggered &&
-		! isKeyboardCoachmarkDismissed &&
-		! isKeyboardCoachmarkDismissedLocally;
-	const isTouchCoachmarkVisible =
-		enabled &&
-		isSelected &&
-		! isHoverCapable &&
-		! isTouchReorderMode &&
-		! isTouchCoachmarkDismissed &&
-		! isTouchCoachmarkDismissedLocally;
 
 	let interactionMode: ReorderInteractionMode | null = null;
 	if ( isHoverCapable ) {
