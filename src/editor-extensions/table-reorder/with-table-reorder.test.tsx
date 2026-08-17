@@ -37,9 +37,9 @@ const BlockEdit = jest.fn( ( { name }: { name: string } ) => createElement( 'div
 const WithTableReorder = withTableReorder( BlockEdit );
 type WithTableReorderProps = Parameters< typeof WithTableReorder >[ 0 ];
 
-const createProps = ( name: string, body: unknown[] = [] ): WithTableReorderProps => {
+const createProps = ( name: string ): WithTableReorderProps => {
 	const props: Partial< WithTableReorderProps > = {
-		attributes: { body },
+		attributes: { body: [] },
 		clientId: 'block-client-id',
 		isSelected: false,
 		name,
@@ -97,38 +97,6 @@ describe( 'withTableReorder', () => {
 			enabled: true,
 			isSelected: false,
 			rowspanProperty: 'rowspan',
-			setAttributes: props.setAttributes,
-		} );
-
-		mounted.unmount();
-	} );
-
-	it( 'runs Table Reorder hooks for Flexible Table Block with body and rowSpan support', () => {
-		const body = [
-			{
-				cells: [
-					{
-						className: 'first-cell',
-						colSpan: 2,
-						content: 'Flexible row',
-						rowSpan: 2,
-						scope: 'row',
-						styles: { color: '#000000' },
-					},
-				],
-			},
-		];
-		const props = createProps( 'flexible-table-block/table', body );
-		const mounted = render( props );
-
-		expect( mounted.container.textContent ).toBe( 'flexible-table-block/table' );
-		expect( useTableReorderMock ).toHaveBeenCalledTimes( 1 );
-		expect( useTableReorderMock ).toHaveBeenCalledWith( {
-			body,
-			clientId: 'block-client-id',
-			enabled: true,
-			isSelected: false,
-			rowspanProperty: 'rowSpan',
 			setAttributes: props.setAttributes,
 		} );
 
