@@ -63,8 +63,6 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 		line.style.width = `${ rect.width }px`;
 		line.style.display = 'block';
 
-		const lineRect = line.getBoundingClientRect();
-
 		trace317( '[yet:#317] insertionLine positioned', {
 			targetRect: {
 				top: rect.top,
@@ -81,14 +79,6 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 				left: line.style.left,
 				width: line.style.width,
 				zIndex: line.style.zIndex,
-			},
-			lineRect: {
-				top: lineRect.top,
-				bottom: lineRect.bottom,
-				left: lineRect.left,
-				right: lineRect.right,
-				width: lineRect.width,
-				height: lineRect.height,
 			},
 			viewport: {
 				width: document.defaultView?.innerWidth,
