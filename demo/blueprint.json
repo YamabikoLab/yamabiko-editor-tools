@@ -1,8 +1,8 @@
 {
 	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
 	"meta": {
-		"title": "Yamabiko Table Reorder v0.3.0 Demo",
-		"description": "Yamabiko Editor Tools v0.3.0 の Table Reorder を、WordPress Core Table と Flexible Table Block の両方で体験するデモ。",
+		"title": "Yamabiko Table Reorder v0.3.1 Demo",
+		"description": "Yamabiko Editor Tools v0.3.1 の Table Reorder を、WordPress Core Table と Flexible Table Block の両方で体験するデモ。",
 		"author": "YamabikoLab",
 		"categories": [ "demo", "table", "accessibility" ]
 	},
@@ -24,20 +24,20 @@
 			"step": "setSiteOptions",
 			"options": {
 				"blogname": "Yamabiko Table Reorder Demo",
-				"blogdescription": "Yamabiko Editor Tools v0.3.0 の Table Reorder 体験デモ"
+				"blogdescription": "Yamabiko Editor Tools v0.3.1 の Table Reorder 体験デモ"
 			}
 		},
 		{
 			"step": "installPlugin",
 			"pluginData": {
 				"resource": "url",
-				"url": "https://github.com/YamabikoLab/yamabiko-editor-tools/releases/download/v0.3.0/yamabiko-editor-tools.zip"
+				"url": "https://github.com/YamabikoLab/yamabiko-editor-tools/releases/download/v0.3.1/yamabiko-editor-tools.zip"
 			},
 			"options": {
 				"activate": true
 			},
 			"progress": {
-				"caption": "Yamabiko Editor Tools v0.3.0 をインストール中..."
+				"caption": "Yamabiko Editor Tools v0.3.1 をインストール中..."
 			}
 		},
 		{
