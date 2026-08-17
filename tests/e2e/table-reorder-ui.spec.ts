@@ -12,10 +12,8 @@ const TABLE_CONTENT = `<!-- wp:table -->
 const TOOLBAR_NAME = /^(Reorder rows|行を並べ替え)$/;
 const KEYBOARD_COACHMARK =
 	/You can reorder the rows in this table with the keyboard|キーボードで表の行を並べ替えられます/;
-const TOUCH_COACHMARK =
-	/You can reorder the rows in this table\. Tap|この表は行を並べ替えられます/;
-const TOUCH_GUIDANCE =
-	/Drag a row handle to move the row|行ハンドルをドラッグして行を移動する/;
+const TOUCH_COACHMARK = /You can reorder the rows in this table\. Tap|この表は行を並べ替えられます/;
+const TOUCH_GUIDANCE = /Drag a row handle to move the row|行ハンドルをドラッグして行を移動する/;
 
 const setPluginPreference = async ( page: Page, name: string, value: boolean ) => {
 	await page.waitForFunction( () => Boolean( ( window as Window & { wp?: unknown } ).wp ) );
