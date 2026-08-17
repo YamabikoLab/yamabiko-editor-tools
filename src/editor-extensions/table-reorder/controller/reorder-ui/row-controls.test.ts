@@ -1,5 +1,7 @@
 import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './row-controls';
 
+const { act } = jest.requireActual< { act: ( callback: () => void ) => void } >( 'react' );
+
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
 } ) );
@@ -145,11 +147,15 @@ describe( 'row-controls', () => {
 		expect( control.hasAttribute( 'title' ) ).toBe( false );
 		expect( pointerDescriptionId ).toContain( '-pointer' );
 
-		control.dispatchEvent( new FocusEvent( 'focus' ) );
+		act( () => {
+			control.dispatchEvent( new FocusEvent( 'focus' ) );
+		} );
 		expect( control.hasAttribute( 'title' ) ).toBe( false );
 		expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
 
-		control.dispatchEvent( new FocusEvent( 'blur' ) );
+		act( () => {
+			control.dispatchEvent( new FocusEvent( 'blur' ) );
+		} );
 		expect( control.hasAttribute( 'title' ) ).toBe( false );
 		expect( control.getAttribute( 'aria-describedby' ) ).toBe( pointerDescriptionId );
 
