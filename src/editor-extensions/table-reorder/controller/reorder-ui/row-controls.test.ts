@@ -1,5 +1,9 @@
 import { createRowControls, getRowRepresentativeText, HANDLE_ZONE_CLASS } from './row-controls';
 
+const { act } = jest.requireActual< {
+	act: ( callback: () => void | Promise< void > ) => Promise< void >;
+} >( 'react' );
+
 jest.mock( '@wordpress/components', () => ( {
 	Tooltip: ( { children }: { children: unknown } ) => children,
 } ) );
@@ -136,7 +140,7 @@ describe( 'row-controls', () => {
 		controls.cleanup();
 	} );
 
-	it( 'uses WordPress Tooltip instead of a native title and switches the accessible description', () => {
+	it( 'uses WordPress Tooltip instead of a native title and switches the accessible description', async () => {
 		const { tbody } = createTable( [ 'Alpha' ] );
 		const controls = createRowControls( document, tbody, [], { showAll: false } );
 		const control = controls.entries[ 0 ].control;
@@ -145,15 +149,25 @@ describe( 'row-controls', () => {
 		expect( control.hasAttribute( 'title' ) ).toBe( false );
 		expect( pointerDescriptionId ).toContain( '-pointer' );
 
-		control.dispatchEvent( new FocusEvent( 'focus' ) );
-		expect( control.hasAttribute( 'title' ) ).toBe( false );
-		expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
+		Object.assign( globalThis, { IS_REACT_ACT_ENVIRONMENT: true } );
+		try {
+			await act( async () => {
+				control.dispatchEvent( new FocusEvent( 'focus' ) );
+				expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
+			} );
+			expect( control.hasAttribute( 'title' ) ).toBe( false );
+			expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
 
-		control.dispatchEvent( new FocusEvent( 'blur' ) );
-		expect( control.hasAttribute( 'title' ) ).toBe( false );
-		expect( control.getAttribute( 'aria-describedby' ) ).toBe( pointerDescriptionId );
-
-		controls.cleanup();
+			await act( async () => {
+				control.dispatchEvent( new FocusEvent( 'blur' ) );
+				expect( control.getAttribute( 'aria-describedby' ) ).toBe( pointerDescriptionId );
+			} );
+			expect( control.hasAttribute( 'title' ) ).toBe( false );
+			expect( control.getAttribute( 'aria-describedby' ) ).toBe( pointerDescriptionId );
+		} finally {
+			Object.assign( globalThis, { IS_REACT_ACT_ENVIRONMENT: false } );
+			controls.cleanup();
+		}
 	} );
 
 	it( 'uses the first non-empty cell as representative row text', () => {
