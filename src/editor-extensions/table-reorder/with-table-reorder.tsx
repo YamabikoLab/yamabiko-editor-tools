@@ -8,6 +8,7 @@ import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { Button, Popover, ToolbarButton } from '@wordpress/components';
 import { useState, type ComponentType } from '@wordpress/element';
+import { dragHandle, Icon, keyboard } from '@wordpress/icons';
 
 import {
 	getCloseGuidanceName,
@@ -76,6 +77,7 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 	const coachmarkMessage = isKeyboardCoachmarkVisible
 		? getKeyboardCoachmarkMessage()
 		: getTouchCoachmarkMessage();
+	const coachmarkIcon = isKeyboardCoachmarkVisible ? keyboard : dragHandle;
 	const dismissCoachmark = isKeyboardCoachmarkVisible
 		? dismissKeyboardCoachmark
 		: dismissTouchCoachmark;
@@ -101,6 +103,9 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 					{ isCoachmarkVisible && toolbarButton && (
 						<Popover anchor={ toolbarButton } focusOnMount={ false } onClose={ dismissCoachmark }>
 							<div className="yamabiko-table-reorder-coachmark">
+								<span aria-hidden="true" className="yamabiko-table-reorder-guidance-icon">
+									<Icon icon={ coachmarkIcon } size={ 24 } />
+								</span>
 								<p>{ coachmarkMessage }</p>
 								<Button
 									aria-label={ getCloseGuidanceName() }
