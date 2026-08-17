@@ -15,11 +15,7 @@ import {
 	getNoMovableRowsMessage,
 	getRowspanErrorMessage,
 } from './messages';
-import {
-	getForbiddenInsertionIndices,
-	getNonMovableRowIndices,
-	getRowspanRanges,
-} from './rowspan';
+import { getForbiddenInsertionIndices, getNonMovableRowIndices, getRowspanRanges } from './rowspan';
 import { resolveTableContext } from './table-context';
 import { useTableReorderController } from './use-table-reorder-controller';
 import { useTableReorderInteraction } from './use-table-reorder-interaction';

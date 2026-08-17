@@ -20,6 +20,5 @@ const BLOCK_SUPPORTS: Readonly< Record< string, TableReorderBlockSupport > > = {
  * @param blockName Gutenberg block name。
  * @return 対応blockのsupport。非対応blockではnull。
  */
-export const getTableReorderBlockSupport = (
-	blockName: string
-): TableReorderBlockSupport | null => BLOCK_SUPPORTS[ blockName ] ?? null;
+export const getTableReorderBlockSupport = ( blockName: string ): TableReorderBlockSupport | null =>
+	BLOCK_SUPPORTS[ blockName ] ?? null;

@@ -52,10 +52,7 @@ const getCells = ( row: unknown ): Array< Record< string, unknown > > =>
  * @param cell            判定対象のTable cell。
  * @param rowspanProperty rowspan値を保持するcell property名。
  */
-const getRowspan = (
-	cell: Record< string, unknown >,
-	rowspanProperty: string
-): number | null => {
+const getRowspan = ( cell: Record< string, unknown >, rowspanProperty: string ): number | null => {
 	const rowspan = cell[ rowspanProperty ];
 	const value =
 		typeof rowspan === 'number' || typeof rowspan === 'string' ? Number( rowspan ) : null;
@@ -81,10 +78,7 @@ const range = ( start: number, end: number ): number[] =>
  * @param body            Gutenberg Table blockのbody attribute。
  * @param rowspanProperty rowspan値を保持するcell property名。
  */
-export const getRowspanRanges = (
-	body: unknown,
-	rowspanProperty: string
-): RowspanRange[] => {
+export const getRowspanRanges = ( body: unknown, rowspanProperty: string ): RowspanRange[] => {
 	const rows = getRows( body );
 
 	return rows.flatMap( ( row, start ) =>

@@ -16,10 +16,7 @@ import {
 	getToolbarReorderName,
 	getTouchCoachmarkMessage,
 } from './messages';
-import {
-	getTableReorderBlockSupport,
-	type TableReorderBlockSupport,
-} from './block-support';
+import { getTableReorderBlockSupport, type TableReorderBlockSupport } from './block-support';
 import { useTableReorder } from './use-table-reorder';
 
 /** Table Reorder対応blockのbodyを含むattribute形。 */
