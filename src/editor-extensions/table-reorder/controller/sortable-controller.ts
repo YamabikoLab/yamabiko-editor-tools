@@ -310,7 +310,15 @@ export const createSortableController = (
 	const showKeyboardCandidate = (
 		keyboardSession: Extract< ReorderSession, { kind: 'keyboard' } >
 	) => {
+		trace317( '[yet:#317] showKeyboardCandidate', {
+			oldIndex: keyboardSession.oldIndex,
+			currentIndex: keyboardSession.currentIndex,
+			rowCount: tbody.rows.length,
+		} );
+
 		if ( keyboardSession.currentIndex === keyboardSession.oldIndex ) {
+			trace317( '[yet:#317] candidate = original position -> hide' );
+
 			insertionLine.hide();
 			return;
 		}
@@ -319,9 +327,17 @@ export const createSortableController = (
 			keyboardSession.oldIndex,
 			keyboardSession.currentIndex
 		);
+
+		trace317( '[yet:#317] insertionIndex', insertionIndex );
+
 		if ( insertionIndex <= 0 ) {
 			const firstRow = tbody.rows.item( 0 );
 			if ( firstRow ) {
+				trace317( '[yet:#317] show before first row', {
+					row: firstRow,
+					rect: firstRow.getBoundingClientRect(),
+				} );
+
 				insertionLine.show( firstRow, false );
 			}
 			return;
@@ -330,6 +346,11 @@ export const createSortableController = (
 		if ( insertionIndex >= tbody.rows.length ) {
 			const lastRow = tbody.rows.item( tbody.rows.length - 1 );
 			if ( lastRow ) {
+				trace317( '[yet:#317] show after last row', {
+					row: lastRow,
+					rect: lastRow.getBoundingClientRect(),
+				} );
+
 				insertionLine.show( lastRow, true );
 			}
 			return;
@@ -337,6 +358,21 @@ export const createSortableController = (
 
 		const nextRow = tbody.rows.item( insertionIndex );
 		if ( nextRow ) {
+			const rect = nextRow.getBoundingClientRect();
+
+			trace317( '[yet:#317] show before row', {
+				insertionIndex,
+				rect: {
+					top: rect.top,
+					bottom: rect.bottom,
+					left: rect.left,
+					right: rect.right,
+					width: rect.width,
+					height: rect.height,
+				},
+				connected: nextRow.isConnected,
+			} );
+
 			insertionLine.show( nextRow, false );
 		}
 	};
@@ -868,4 +904,24 @@ export const createSortableController = (
 			rowControls.cleanup();
 		},
 	};
+};
+
+type Yet317TraceEntry = {
+	time: number;
+	event: string;
+	data?: unknown;
+};
+
+const trace317 = ( event: string, data?: unknown ) => {
+	const traceWindow = window as typeof window & {
+		__yet317Trace?: Yet317TraceEntry[];
+	};
+
+	traceWindow.__yet317Trace ??= [];
+
+	traceWindow.__yet317Trace.push( {
+		time: performance.now(),
+		event,
+		data,
+	} );
 };

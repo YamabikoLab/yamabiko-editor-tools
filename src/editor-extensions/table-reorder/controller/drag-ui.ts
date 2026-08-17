@@ -45,10 +45,14 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 	} | null = null;
 	const updatePosition = () => {
 		if ( ! activeTarget ) {
+			trace317( '[yet:#317] insertionLine updatePosition: no target' );
+
 			return;
 		}
 
 		if ( ! activeTarget.row.isConnected ) {
+			trace317( '[yet:#317] insertionLine target disconnected', activeTarget.row );
+
 			line.style.display = 'none';
 			return;
 		}
@@ -58,6 +62,39 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 		line.style.top = `${ activeTarget.willInsertAfter ? rect.bottom : rect.top }px`;
 		line.style.width = `${ rect.width }px`;
 		line.style.display = 'block';
+
+		const lineRect = line.getBoundingClientRect();
+
+		trace317( '[yet:#317] insertionLine positioned', {
+			targetRect: {
+				top: rect.top,
+				bottom: rect.bottom,
+				left: rect.left,
+				right: rect.right,
+				width: rect.width,
+				height: rect.height,
+			},
+			lineStyle: {
+				display: line.style.display,
+				position: line.style.position,
+				top: line.style.top,
+				left: line.style.left,
+				width: line.style.width,
+				zIndex: line.style.zIndex,
+			},
+			lineRect: {
+				top: lineRect.top,
+				bottom: lineRect.bottom,
+				left: lineRect.left,
+				right: lineRect.right,
+				width: lineRect.width,
+				height: lineRect.height,
+			},
+			viewport: {
+				width: document.defaultView?.innerWidth,
+				height: document.defaultView?.innerHeight,
+			},
+		} );
 	};
 	const onViewportChange = () => {
 		updatePosition();
@@ -67,14 +104,30 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 
 	return {
 		hide: () => {
+			trace317( '[yet:#317] insertionLine.hide', {
+				activeTarget,
+				stack: new Error().stack,
+			} );
+
 			activeTarget = null;
 			line.style.display = 'none';
 		},
 		show: ( row, willInsertAfter ) => {
+			trace317( '[yet:#317] insertionLine.show', {
+				row,
+				willInsertAfter,
+				connected: row.isConnected,
+			} );
+
 			activeTarget = { row, willInsertAfter };
 			updatePosition();
 		},
 		cleanup: () => {
+			trace317( '[yet:#317] insertionLine.cleanup', {
+				activeTarget,
+				stack: new Error().stack,
+			} );
+
 			activeTarget = null;
 			document.removeEventListener( 'scroll', onViewportChange, true );
 			document.defaultView?.removeEventListener( 'resize', onViewportChange );
@@ -119,4 +172,24 @@ export const fixFallbackRowCellWidths = ( row: HTMLElement ): ( () => void ) => 
 			cell.style.maxWidth = maxWidth;
 		}
 	};
+};
+
+type Yet317TraceEntry = {
+	time: number;
+	event: string;
+	data?: unknown;
+};
+
+const trace317 = ( event: string, data?: unknown ) => {
+	const traceWindow = window as typeof window & {
+		__yet317Trace?: Yet317TraceEntry[];
+	};
+
+	traceWindow.__yet317Trace ??= [];
+
+	traceWindow.__yet317Trace.push( {
+		time: performance.now(),
+		event,
+		data,
+	} );
 };
