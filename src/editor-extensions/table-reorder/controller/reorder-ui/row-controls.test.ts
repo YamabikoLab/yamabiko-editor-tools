@@ -151,15 +151,17 @@ describe( 'row-controls', () => {
 
 		Object.assign( globalThis, { IS_REACT_ACT_ENVIRONMENT: true } );
 		try {
-			await act( async () => {
-				control.dispatchEvent( new FocusEvent( 'focus' ) );
-			} );
+			control.dispatchEvent( new FocusEvent( 'focus' ) );
+			expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
+
+			await act( async () => {} );
 			expect( control.hasAttribute( 'title' ) ).toBe( false );
 			expect( control.getAttribute( 'aria-describedby' ) ).toContain( '-keyboard' );
 
-			await act( async () => {
-				control.dispatchEvent( new FocusEvent( 'blur' ) );
-			} );
+			control.dispatchEvent( new FocusEvent( 'blur' ) );
+			expect( control.getAttribute( 'aria-describedby' ) ).toBe( pointerDescriptionId );
+
+			await act( async () => {} );
 			expect( control.hasAttribute( 'title' ) ).toBe( false );
 			expect( control.getAttribute( 'aria-describedby' ) ).toBe( pointerDescriptionId );
 		} finally {
