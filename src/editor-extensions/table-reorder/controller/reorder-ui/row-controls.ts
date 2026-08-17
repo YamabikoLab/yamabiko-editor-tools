@@ -237,6 +237,13 @@ export const createRowControls = (
 
 		renderedControl.dataset.visible = options.showAll ? 'true' : 'false';
 
+		const syncAccessibleDescription = () => {
+			if ( isPressed || ! descriptionId ) {
+				renderedControl.removeAttribute( 'aria-describedby' );
+				return;
+			}
+			renderedControl.setAttribute( 'aria-describedby', descriptionId );
+		};
 		const setPressed = ( nextIsPressed: boolean ) => {
 			if ( isPressed === nextIsPressed ) {
 				return;
@@ -247,6 +254,7 @@ export const createRowControls = (
 		const onFocus = () => {
 			tooltipText = getKeyboardHandleTooltip();
 			descriptionId = keyboardDescriptionId;
+			syncAccessibleDescription();
 			renderControl();
 		};
 		const onBlur = () => {
@@ -257,6 +265,7 @@ export const createRowControls = (
 				tooltipText = undefined;
 				descriptionId = undefined;
 			}
+			syncAccessibleDescription();
 			renderControl();
 		};
 		renderedControl.addEventListener( 'focus', onFocus );
