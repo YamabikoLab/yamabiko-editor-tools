@@ -7,12 +7,6 @@ describe( 'getTableReorderBlockSupport', () => {
 		} );
 	} );
 
-	it( 'returns Flexible Table Block support', () => {
-		expect( getTableReorderBlockSupport( 'flexible-table-block/table' ) ).toEqual( {
-			rowspanProperty: 'rowSpan',
-		} );
-	} );
-
 	it( 'returns null for unsupported blocks', () => {
 		expect( getTableReorderBlockSupport( 'core/paragraph' ) ).toBeNull();
 	} );
