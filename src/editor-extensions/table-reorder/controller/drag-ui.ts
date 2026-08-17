@@ -69,6 +69,7 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 		line.style.display = 'block';
 
 		trace317( '[yet:#317] insertionLine positioned', {
+			lineConnected: line.isConnected,
 			targetRect: {
 				top: rect.top,
 				bottom: rect.bottom,
@@ -111,7 +112,8 @@ export const createInsertionLine = ( document: Document ): InsertionLine => {
 			trace317( '[yet:#317] insertionLine.show', {
 				row,
 				willInsertAfter,
-				connected: row.isConnected,
+				rowConnected: row.isConnected,
+				lineConnected: line.isConnected,
 			} );
 
 			activeTarget = { row, willInsertAfter };
