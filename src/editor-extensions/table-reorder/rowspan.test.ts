@@ -57,10 +57,7 @@ describe( 'getRowspanRanges', () => {
 
 	it( 'does not create a range when a clamped rowspan occupies only its starting row', () => {
 		expect(
-			getRowspanRanges(
-				[ { cells: [ {} ] }, { cells: [ { rowspan: 2 } ] } ],
-				ROWSPAN_PROPERTY
-			)
+			getRowspanRanges( [ { cells: [ {} ] }, { cells: [ { rowspan: 2 } ] } ], ROWSPAN_PROPERTY )
 		).toEqual( [] );
 	} );
 

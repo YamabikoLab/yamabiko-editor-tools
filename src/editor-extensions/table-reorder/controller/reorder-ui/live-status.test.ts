@@ -21,9 +21,7 @@ describe( 'live-status', () => {
 
 	it( 'does not write an announcement back to a detached live status', async () => {
 		announceLiveStatus( document, 'Detached announcement' );
-		const status = document.querySelector< HTMLElement >(
-			'.yamabiko-table-reorder-live-status'
-		);
+		const status = document.querySelector< HTMLElement >( '.yamabiko-table-reorder-live-status' );
 		expect( status ).not.toBeNull();
 
 		status?.remove();
