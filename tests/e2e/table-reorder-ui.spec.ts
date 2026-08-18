@@ -36,4 +36,16 @@ test.describe( 'Table Reorder UI', () => {
 		await expect( editor.canvas.getByText( 'Charlie', { exact: true } ) ).toBeVisible();
 		await expect( editor.canvas.getByText( 'Outside table', { exact: true } ) ).toBeVisible();
 	} );
+
+	test( 'shows the toolbar entry only for a supported Table block', async ( { editor, page } ) => {
+		const reorderRowsButton = page.getByRole( 'button', {
+			name: /^(Reorder rows|行を並べ替え)$/,
+		} );
+
+		await editor.canvas.getByText( 'Alpha', { exact: true } ).click();
+		await expect( reorderRowsButton ).toBeVisible();
+
+		await editor.canvas.getByText( 'Outside table', { exact: true } ).click();
+		await expect( reorderRowsButton ).toHaveCount( 0 );
+	} );
 } );
