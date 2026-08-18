@@ -58,25 +58,28 @@ test.describe( 'Table Reorder UI', () => {
 
 	test( 'shows the toolbar entry only for a supported Table block', async ( { editor, page } ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
+		const tableBlock = editorContext.locator( '[data-type="core/table"][data-block]' );
+		const paragraphBlock = editorContext.locator( '[data-type="core/paragraph"][data-block]' );
 		const reorderRowsButton = page.getByRole( 'button', {
 			name: /^(Reorder rows|行を並べ替え)$/,
 		} );
 
-		await editorContext.getByText( 'Alpha', { exact: true } ).click();
+		await editor.selectBlocks( tableBlock );
 		await expect( reorderRowsButton ).toBeVisible();
 
-		await editorContext.getByText( 'Outside table', { exact: true } ).click();
+		await editor.selectBlocks( paragraphBlock );
 		await expect( reorderRowsButton ).toHaveCount( 0 );
 	} );
 
 	test( 'shows a row control while its row is hovered on desktop', async ( { editor, page } ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
+		const tableBlock = editorContext.locator( '[data-type="core/table"][data-block]' );
 		const firstRow = editorContext.locator( 'tbody tr' ).filter( { hasText: 'Alpha' } );
 		const firstRowControl = editorContext.getByRole( 'button', {
 			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
 		} );
 
-		await editorContext.getByText( 'Alpha', { exact: true } ).click();
+		await editor.selectBlocks( tableBlock );
 		await expect( firstRowControl ).toBeAttached();
 
 		await editorContext.getByText( 'Outside table', { exact: true } ).hover();
