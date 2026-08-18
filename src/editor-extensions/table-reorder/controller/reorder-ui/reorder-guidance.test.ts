@@ -6,6 +6,19 @@ import {
 } from '../../messages';
 import { createReorderGuidance } from './reorder-guidance';
 
+const createRect = ( top: number, bottom: number, left = 0, width = 400 ): DOMRect =>
+	( {
+		bottom,
+		height: bottom - top,
+		left,
+		right: left + width,
+		top,
+		width,
+		x: left,
+		y: top,
+		toJSON: () => ( {} ),
+	} ) as DOMRect;
+
 const createTable = () => {
 	const table = document.createElement( 'table' );
 	const tbody = document.createElement( 'tbody' );
@@ -16,7 +29,8 @@ const createTable = () => {
 	tbody.append( row );
 	table.append( tbody );
 	document.body.append( table );
-	return { tbody };
+	jest.spyOn( table, 'getBoundingClientRect' ).mockReturnValue( createRect( 100, 300 ) );
+	return { table, tbody };
 };
 
 const dispatchTouchPointer = ( type: string, pointerId: number, clientY: number ) => {
@@ -40,7 +54,7 @@ describe( 'reorder-guidance', () => {
 
 		expect( guidance.element.textContent ).toBe( 'Keyboard guidance' );
 		guidance.setHidden( true );
-		expect( guidance.element.hidden ).toBe( true );
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
 		guidance.cleanup();
 		expect( guidance.element.isConnected ).toBe( false );
 	} );
@@ -55,13 +69,14 @@ describe( 'reorder-guidance', () => {
 	} );
 
 	it.each( [ getKeyboardActiveMessage(), getPcPointerActiveMessage() ] )(
-		'places PC and keyboard guidance on the viewport right for %s',
+		'places PC and keyboard guidance below the header on the viewport right for %s',
 		( message ) => {
 			const { tbody } = createTable();
 			const guidance = createReorderGuidance( document, tbody, message );
 
 			expect( guidance.element.style.left ).toBe( '' );
 			expect( guidance.element.style.right ).toBe( '8px' );
+			expect( guidance.element.style.top ).toBe( '64px' );
 			guidance.cleanup();
 		}
 	);
@@ -74,9 +89,42 @@ describe( 'reorder-guidance', () => {
 
 			expect( guidance.element.style.left ).not.toBe( '' );
 			expect( guidance.element.style.right ).toBe( '' );
-			guidance.cleanup();
+		guidance.cleanup();
 		}
 	);
+
+	it( 'hides guidance when the table leaves the viewport and shows it again when it returns', () => {
+		const { table, tbody } = createTable();
+		const guidance = createReorderGuidance( document, tbody, getPcPointerActiveMessage() );
+		const tableRect = jest.spyOn( table, 'getBoundingClientRect' );
+
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( false );
+
+		tableRect.mockReturnValue( createRect( window.innerHeight + 20, window.innerHeight + 220 ) );
+		window.dispatchEvent( new Event( 'scroll' ) );
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
+
+		tableRect.mockReturnValue( createRect( 120, 320 ) );
+		window.dispatchEvent( new Event( 'scroll' ) );
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( false );
+
+		guidance.cleanup();
+	} );
+
+	it( 'keeps explicitly hidden guidance hidden after the table returns to the viewport', () => {
+		const { table, tbody } = createTable();
+		const guidance = createReorderGuidance( document, tbody, getTouchModeMessage() );
+		const tableRect = jest.spyOn( table, 'getBoundingClientRect' );
+
+		guidance.setHidden( true );
+		tableRect.mockReturnValue( createRect( window.innerHeight + 20, window.innerHeight + 220 ) );
+		window.dispatchEvent( new Event( 'scroll' ) );
+		tableRect.mockReturnValue( createRect( 120, 320 ) );
+		window.dispatchEvent( new Event( 'scroll' ) );
+
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
+		guidance.cleanup();
+	} );
 
 	it.each( [ getTouchModeMessage(), getTouchPointerActiveMessage() ] )(
 		'moves touch guidance with swipe direction and keeps the last position for %s',
