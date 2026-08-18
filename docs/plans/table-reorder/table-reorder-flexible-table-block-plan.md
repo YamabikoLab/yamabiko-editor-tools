@@ -6,7 +6,7 @@
 - Investigation result: #268 comment `5311329162`
 - Previous investigation: #194
 - Superseded design: #201
-- Requirements: `docs/requirements/table-reorder/table-reorder-sortablejs-requirements.md`
+- Requirements: `docs/requirements/table-reorder/table-reorder-requirements.md`
 - Current integration: `src/editor-extensions/table-reorder/with-table-reorder.tsx`
 - Current hook: `src/editor-extensions/table-reorder/use-table-reorder.ts`
 - Current controller hook: `src/editor-extensions/table-reorder/use-table-reorder-controller.ts`
