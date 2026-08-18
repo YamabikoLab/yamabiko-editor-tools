@@ -1,5 +1,6 @@
 import {
 	getKeyboardActiveMessage,
+	getPcPointerActiveMessage,
 	getTouchModeMessage,
 	getTouchPointerActiveMessage,
 } from '../../messages';
@@ -51,6 +52,37 @@ describe( 'reorder-guidance', () => {
 
 		expect( icon?.getAttribute( 'aria-hidden' ) ).toBe( 'true' );
 		guidance.cleanup();
+	} );
+
+	it( 'places only PC pointer guidance below a visible contextual block toolbar', () => {
+		const toolbar = document.createElement( 'div' );
+		toolbar.className = 'block-editor-block-contextual-toolbar';
+		toolbar.getBoundingClientRect = () =>
+			( {
+				bottom: 64,
+				height: 48,
+				left: 0,
+				right: 320,
+				top: 16,
+				width: 320,
+				x: 0,
+				y: 16,
+				toJSON: () => ( {} ),
+			} ) as DOMRect;
+		document.body.append( toolbar );
+
+		const { tbody } = createTable();
+		const pcGuidance = createReorderGuidance( document, tbody, getPcPointerActiveMessage() );
+		expect( pcGuidance.element.style.top ).toBe( '72px' );
+		pcGuidance.cleanup();
+
+		const keyboardGuidance = createReorderGuidance(
+			document,
+			tbody,
+			getKeyboardActiveMessage()
+		);
+		expect( keyboardGuidance.element.style.top ).toBe( '8px' );
+		keyboardGuidance.cleanup();
 	} );
 
 	it.each( [ getTouchModeMessage(), getTouchPointerActiveMessage() ] )(
