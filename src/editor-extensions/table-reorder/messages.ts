@@ -5,47 +5,41 @@ export const getEmptyRowLabel = (): string => __( 'Empty row', 'yamabiko-editor-
 
 /** PCでhover中の行controlに表示する案内を返す。 */
 export const getPointerHandleTooltip = (): string =>
-	__( 'Drag to move this row, or click to choose a destination.', 'yamabiko-editor-tools' );
+	__( 'Drag to move, or click to choose a destination.', 'yamabiko-editor-tools' );
 
 /** keyboard focus中の行controlに表示する案内を返す。 */
 export const getKeyboardHandleTooltip = (): string =>
-	__( 'Press Enter or Space to start moving this row.', 'yamabiko-editor-tools' );
+	__( 'Enter / Space: start moving', 'yamabiko-editor-tools' );
 
 /** keyboard並べ替え中の案内を返す。 */
 export const getKeyboardActiveMessage = (): string =>
-	__(
-		'Use the Up and Down arrow keys to move the row. Press Enter or Space to confirm, or Escape to cancel.',
-		'yamabiko-editor-tools'
-	);
+	__( '↑↓ Move　Enter / Space Confirm　Esc Cancel', 'yamabiko-editor-tools' );
 
 /** PC単一ポインター操作中の案内を返す。 */
 export const getPcPointerActiveMessage = (): string =>
-	__( 'Click where you want to move the row. Press Escape to cancel.', 'yamabiko-editor-tools' );
+	__( 'Click destination　Esc Cancel', 'yamabiko-editor-tools' );
 
 /** touch並べ替えmode中の案内を返す。 */
 export const getTouchModeMessage = (): string =>
 	__(
-		'Drag a row handle to move the row. Or tap the handle and choose a destination. Tap a cell to edit it.',
+		'Handle: drag to move / tap to choose destination　Cell: tap to edit',
 		'yamabiko-editor-tools'
 	);
 
 /** touch単一ポインター操作中の案内を返す。 */
 export const getTouchPointerActiveMessage = (): string =>
-	__( 'Tap where you want to move the row.', 'yamabiko-editor-tools' );
+	__( 'Tap destination', 'yamabiko-editor-tools' );
 
 /** PC keyboard利用時に初回だけ表示するcoachmark文言を返す。 */
 export const getKeyboardCoachmarkMessage = (): string =>
 	__(
-		'You can reorder the rows in this table with the keyboard. Select “Reorder rows” in the toolbar.',
+		'Reorder rows with the keyboard. Select “Reorder rows” in the toolbar.',
 		'yamabiko-editor-tools'
 	);
 
 /** touch端末で初回利用時に表示するcoachmark文言を返す。 */
 export const getTouchCoachmarkMessage = (): string =>
-	__(
-		'You can reorder the rows in this table. Tap “Reorder rows” in the toolbar to begin.',
-		'yamabiko-editor-tools'
-	);
+	__( 'Tap “Reorder rows” in the toolbar to begin.', 'yamabiko-editor-tools' );
 
 /**
  * 行controlのaccessible nameを返す。
@@ -101,14 +95,11 @@ export const getToolbarReorderDescription = (): string =>
 
 /** rowspan範囲内の移動不能行について表示する案内を返す。 */
 export const getRowspanErrorMessage = (): string =>
-	__(
-		'This row cannot be moved because it is within a cell that spans multiple rows.',
-		'yamabiko-editor-tools'
-	);
+	__( 'This row is in a row-spanning cell and can’t be moved.', 'yamabiko-editor-tools' );
 
 /** 移動可能な本文行がない場合の案内を返す。 */
 export const getNoMovableRowsMessage = (): string =>
-	__( 'There are no rows that can be reordered in this table.', 'yamabiko-editor-tools' );
+	__( 'No rows can be reordered.', 'yamabiko-editor-tools' );
 
 /**
  * keyboard並べ替え開始を支援技術へ伝える文言を返す。
@@ -224,4 +215,5 @@ export const getRowspanBlockedAnnouncement = ( rowLabel: string ): string => {
 };
 
 /** 移動可能な本文行がないことを支援技術へ伝える文言を返す。 */
-export const getNoMovableRowsAnnouncement = (): string => getNoMovableRowsMessage();
+export const getNoMovableRowsAnnouncement = (): string =>
+	__( 'There are no rows that can be reordered in this table.', 'yamabiko-editor-tools' );
