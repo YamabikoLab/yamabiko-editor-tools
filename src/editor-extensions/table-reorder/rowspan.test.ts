@@ -55,6 +55,12 @@ describe( 'getRowspanRanges', () => {
 		).toEqual( [ { start: 1, end: 2 } ] );
 	} );
 
+	it( 'does not create a range when a clamped rowspan occupies only its starting row', () => {
+		expect(
+			getRowspanRanges( [ { cells: [ {} ] }, { cells: [ { rowspan: 2 } ] } ], ROWSPAN_PROPERTY )
+		).toEqual( [] );
+	} );
+
 	it( 'keeps multiple overlapping rowspan ranges', () => {
 		expect(
 			getRowspanRanges(
