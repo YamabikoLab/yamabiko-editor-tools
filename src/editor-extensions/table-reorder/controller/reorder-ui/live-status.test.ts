@@ -18,4 +18,17 @@ describe( 'live-status', () => {
 		expect( statuses[ 0 ].getAttribute( 'aria-live' ) ).toBe( 'polite' );
 		expect( statuses[ 0 ].getAttribute( 'aria-atomic' ) ).toBe( 'true' );
 	} );
+
+	it( 'does not write an announcement back to a detached live status', async () => {
+		announceLiveStatus( document, 'Detached announcement' );
+		const status = document.querySelector< HTMLElement >(
+			'.yamabiko-table-reorder-live-status'
+		);
+		expect( status ).not.toBeNull();
+
+		status?.remove();
+		await Promise.resolve();
+
+		expect( status?.textContent ).toBe( '' );
+	} );
 } );
