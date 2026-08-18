@@ -76,11 +76,7 @@ describe( 'reorder-guidance', () => {
 		expect( pcGuidance.element.style.top ).toBe( '72px' );
 		pcGuidance.cleanup();
 
-		const keyboardGuidance = createReorderGuidance(
-			document,
-			tbody,
-			getKeyboardActiveMessage()
-		);
+		const keyboardGuidance = createReorderGuidance( document, tbody, getKeyboardActiveMessage() );
 		expect( keyboardGuidance.element.style.top ).toBe( '8px' );
 		keyboardGuidance.cleanup();
 	} );
