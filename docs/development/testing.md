@@ -28,6 +28,14 @@ npm run test:unit
 
 Use the individual commands when iterating on a focused problem. Before handoff for JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes, use `npm test` so the same quality gate is shared by local development and PR Validation.
 
+Run Jest with coverage reporting when you want to inspect the current unit test coverage baseline:
+
+```bash
+npm run test:unit:coverage
+```
+
+The coverage report includes Statements, Branches, Functions, and Lines. Coverage thresholds are intentionally not enforced at this stage.
+
 Create the production build separately:
 
 ```bash
