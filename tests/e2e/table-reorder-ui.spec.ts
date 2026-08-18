@@ -24,6 +24,11 @@ async function setTableReorderCoachmarkDismissal(
 }
 
 test.describe( 'Table Reorder UI', () => {
+	test.use( {
+		hasTouch: false,
+		isMobile: false,
+	} );
+
 	test.beforeEach( async ( { admin, editor, requestUtils } ) => {
 		await setTableReorderCoachmarkDismissal( requestUtils, false );
 		await admin.createNewPost();
@@ -47,5 +52,24 @@ test.describe( 'Table Reorder UI', () => {
 
 		await editor.canvas.getByText( 'Outside table', { exact: true } ).click();
 		await expect( reorderRowsButton ).toHaveCount( 0 );
+	} );
+
+	test( 'shows a row control while its row is hovered on desktop', async ( { editor } ) => {
+		const firstRow = editor.canvas.locator( 'tbody tr' ).filter( { hasText: 'Alpha' } );
+		const firstRowControl = editor.canvas.getByRole( 'button', {
+			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
+		} );
+
+		await editor.canvas.getByText( 'Alpha', { exact: true } ).click();
+		await expect( firstRowControl ).toBeAttached();
+
+		await editor.canvas.getByText( 'Outside table', { exact: true } ).hover();
+		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
+
+		await firstRow.hover();
+		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'true' );
+
+		await editor.canvas.getByText( 'Outside table', { exact: true } ).hover();
+		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
 	} );
 } );
