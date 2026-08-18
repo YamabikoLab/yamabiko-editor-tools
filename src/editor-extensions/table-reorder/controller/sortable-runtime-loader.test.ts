@@ -65,6 +65,17 @@ describe( 'ensureSortableRuntime', () => {
 		expect( getRuntimeScripts() ).toHaveLength( 0 );
 	} );
 
+	it( 'returns null and removes the script when load completes without publishing the runtime', async () => {
+		const loading = ensureSortableRuntime( document, window, '/sortable.js' );
+		const script = getRuntimeScripts()[ 0 ];
+
+		expect( script ).toBeInstanceOf( HTMLScriptElement );
+		script?.dispatchEvent( new Event( 'load' ) );
+
+		await expect( loading ).resolves.toBeNull();
+		expect( getRuntimeScripts() ).toHaveLength( 0 );
+	} );
+
 	it( 'waits for an existing script that is still loading', async () => {
 		const script = document.createElement( 'script' );
 		script.id = RUNTIME_SCRIPT_ID;
@@ -77,6 +88,21 @@ describe( 'ensureSortableRuntime', () => {
 
 		getSortableWindow().Sortable = runtime;
 		script.dispatchEvent( new Event( 'load' ) );
+
+		await expect( loading ).resolves.toBe( runtime );
+		expect( script.hasAttribute( RUNTIME_SCRIPT_STATE_ATTRIBUTE ) ).toBe( false );
+	} );
+
+	it( 'recovers when an existing loading script has already published the runtime', async () => {
+		const script = document.createElement( 'script' );
+		script.id = RUNTIME_SCRIPT_ID;
+		script.src = '/sortable.js';
+		script.setAttribute( RUNTIME_SCRIPT_STATE_ATTRIBUTE, 'loading' );
+		document.head.append( script );
+		const runtime = createRuntime();
+
+		const loading = ensureSortableRuntime( document, window, '/sortable.js' );
+		getSortableWindow().Sortable = runtime;
 
 		await expect( loading ).resolves.toBe( runtime );
 		expect( script.hasAttribute( RUNTIME_SCRIPT_STATE_ATTRIBUTE ) ).toBe( false );
