@@ -167,11 +167,11 @@ export const createReorderGuidance = (
 						viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
 				  )
 				: toolbarTop === null
-					? GUIDANCE_VIEWPORT_OFFSET_PX
-					: Math.max(
-							GUIDANCE_VIEWPORT_OFFSET_PX,
-							toolbarTop - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
-					  );
+				? GUIDANCE_VIEWPORT_OFFSET_PX
+				: Math.max(
+						GUIDANCE_VIEWPORT_OFFSET_PX,
+						toolbarTop - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+				  );
 		guidance.style.top = `${ top }px`;
 	};
 	const setPosition = ( nextPosition: ReorderGuidancePosition ) => {
