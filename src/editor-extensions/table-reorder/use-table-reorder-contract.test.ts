@@ -221,20 +221,17 @@ describe( 'useTableReorder local contract', () => {
 			type: 'snackbar',
 		} );
 		expect( resolveTableContextMock ).toHaveBeenCalledWith(
-		expect.any( HTMLSpanElement ),
-		'table-client-id'
+			expect.any( HTMLSpanElement ),
+			'table-client-id'
 		);
 		expect( announceLiveStatusMock ).toHaveBeenCalledWith(
-		context.document,
-		getNoMovableRowsAnnouncement()
+			context.document,
+			getNoMovableRowsAnnouncement()
 		);
 	} );
 
 	it( 'blocks touch reorder when rowspan makes every row non-movable', () => {
-		const body = [
-			{ cells: [ { content: 'a', rowspan: 2 } ] },
-			{ cells: [ { content: 'b' } ] },
-		];
+		const body = [ { cells: [ { content: 'a', rowspan: 2 } ] }, { cells: [ { content: 'b' } ] } ];
 		resolveTableContextMock.mockReturnValue( null );
 		mountHook( { body, rowspanProperty: 'rowspan' } );
 
