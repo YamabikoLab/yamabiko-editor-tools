@@ -1,5 +1,4 @@
 import { createElement, createRoot } from '@wordpress/element';
-import type { ReactNode } from 'react';
 
 import { useTableReorder } from './use-table-reorder';
 import { withTableReorder } from './with-table-reorder';
@@ -11,44 +10,48 @@ jest.mock( '@wordpress/block-editor', () => ( {
 } ) );
 
 jest.mock( '@wordpress/components', () => {
-	const React = jest.requireActual< typeof import('react') >( 'react' );
-	type ButtonProps = {
-		'aria-label'?: string;
-		children?: ReactNode;
-		className?: string;
-		onClick?: () => void;
-	};
-	type PopoverProps = {
-		children?: ReactNode;
-		className?: string;
-	};
-	type ToolbarButtonProps = {
-		'aria-describedby'?: string;
-		children?: ReactNode;
-		className?: string;
-		label?: string;
-		onClick?: () => void;
-	};
+	const React = jest.requireActual< typeof import( 'react' ) >( 'react' );
 
 	return {
-		Button: ( { 'aria-label': ariaLabel, children, className, onClick }: ButtonProps ) =>
-			React.createElement( 'button', { 'aria-label': ariaLabel, className, onClick }, children ),
-		Popover: ( { children, className }: PopoverProps ) =>
-			React.createElement( 'div', { className }, children ),
-		ToolbarButton: React.forwardRef< HTMLButtonElement, ToolbarButtonProps >(
-			( { 'aria-describedby': ariaDescribedBy, children, className, label, onClick }, ref ) =>
-				React.createElement(
-					'button',
-					{
-						'aria-describedby': ariaDescribedBy,
-						'aria-label': label,
-						className,
-						onClick,
-						ref,
-					},
-					children
-				)
-		),
+		Button: ( {
+			'aria-label': ariaLabel,
+			children,
+			className,
+			onClick,
+		}: {
+			'aria-label'?: string;
+			children?: import( 'react' ).ReactNode;
+			className?: string;
+			onClick?: () => void;
+		} ) => React.createElement( 'button', { 'aria-label': ariaLabel, className, onClick }, children ),
+		Popover: ( {
+			children,
+			className,
+		}: {
+			children?: import( 'react' ).ReactNode;
+			className?: string;
+		} ) => React.createElement( 'div', { className }, children ),
+		ToolbarButton: React.forwardRef<
+			HTMLButtonElement,
+			{
+				'aria-describedby'?: string;
+				children?: import( 'react' ).ReactNode;
+				className?: string;
+				label?: string;
+				onClick?: () => void;
+			}
+		>( ( { 'aria-describedby': ariaDescribedBy, children, className, label, onClick }, ref ) =>
+			React.createElement(
+				'button',
+				{
+					'aria-describedby': ariaDescribedBy,
+					'aria-label': label,
+					className,
+					onClick,
+					ref,
+				},
+				children
+			) ),
 	};
 } );
 
