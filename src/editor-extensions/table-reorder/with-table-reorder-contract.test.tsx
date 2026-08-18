@@ -11,7 +11,7 @@ jest.mock( '@wordpress/block-editor', () => ( {
 } ) );
 
 jest.mock( '@wordpress/components', () => {
-	const React = jest.requireActual< typeof import( 'react' ) >( 'react' );
+	const React = jest.requireActual< typeof import('react') >( 'react' );
 	type ButtonProps = {
 		'aria-label'?: string;
 		children?: ReactNode;
@@ -31,23 +31,12 @@ jest.mock( '@wordpress/components', () => {
 	};
 
 	return {
-		Button: ( {
-			'aria-label': ariaLabel,
-			children,
-			className,
-			onClick,
-		}: ButtonProps ) =>
+		Button: ( { 'aria-label': ariaLabel, children, className, onClick }: ButtonProps ) =>
 			React.createElement( 'button', { 'aria-label': ariaLabel, className, onClick }, children ),
 		Popover: ( { children, className }: PopoverProps ) =>
 			React.createElement( 'div', { className }, children ),
 		ToolbarButton: React.forwardRef< HTMLButtonElement, ToolbarButtonProps >(
-			( {
-				'aria-describedby': ariaDescribedBy,
-				children,
-				className,
-				label,
-				onClick,
-			}, ref ) =>
+			( { 'aria-describedby': ariaDescribedBy, children, className, label, onClick }, ref ) =>
 				React.createElement(
 					'button',
 					{
