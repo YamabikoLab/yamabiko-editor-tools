@@ -11,6 +11,9 @@ import {
 /** 操作中の案内に付与するclass。 */
 const GUIDANCE_CLASS = 'yamabiko-table-reorder-pointer-guidance';
 
+/** 操作中案内の非表示状態に付与するclass。 */
+const GUIDANCE_HIDDEN_CLASS = 'is-hidden';
+
 /** 操作中案内の内容補助iconに付与するclass。 */
 const GUIDANCE_ICON_CLASS = 'yamabiko-table-reorder-guidance-icon';
 
@@ -19,6 +22,9 @@ const KEYBOARD_SCROLL_MARGIN_PX = 24;
 
 /** 操作案内をviewport端から離す余白。 */
 const GUIDANCE_VIEWPORT_OFFSET_PX = 8;
+
+/** PC / keyboardの上側案内をGutenberg headerから離す距離。 */
+const RIGHT_GUIDANCE_TOP_PX = 64;
 
 /** Touchの微小な揺れをswipe方向の変更として扱わない距離。 */
 const TOUCH_SWIPE_DIRECTION_THRESHOLD_PX = 8;
@@ -80,6 +86,7 @@ const isRightAlignedGuidance = ( message: string ) =>
  * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内では一定距離以上のswipeを
  * 検出したとき、上方向なら上側、下方向なら下側へ切り替え、反対方向を検出するまで維持する。
  * PC / keyboardの操作中案内はToolbar位置を計算せずviewport右側へ固定する。
+ * 対象Tableがviewportから完全に外れた場合は案内を隠し、戻ると再表示する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -93,6 +100,7 @@ export const createReorderGuidance = (
 ): ReorderGuidanceUi => {
 	const view = document.defaultView;
 	const table = tbody.closest( 'table' );
+	const guidanceTarget = table ?? tbody;
 	const guidance = document.createElement( 'div' );
 	guidance.className = GUIDANCE_CLASS;
 	guidance.contentEditable = 'false';
@@ -112,6 +120,7 @@ export const createReorderGuidance = (
 	document.body.append( guidance );
 	let position: ReorderGuidancePosition = 'top';
 	let touchPointer: { pointerId: number; y: number } | null = null;
+	let explicitlyHidden = false;
 	const trackTouchSwipe = isTouchSwipeGuidance( message );
 	const alignRight = isRightAlignedGuidance( message );
 
@@ -121,6 +130,10 @@ export const createReorderGuidance = (
 			view?.innerHeight ?? document.documentElement.clientHeight
 		);
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
+		const tableRect = guidanceTarget.getBoundingClientRect();
+		const isTableVisible = tableRect.bottom > 0 && tableRect.top < viewportHeight;
+		guidance.classList.toggle( GUIDANCE_HIDDEN_CLASS, explicitlyHidden || ! isTableVisible );
+
 		const availableViewportWidth = Math.max( 0, viewportWidth - GUIDANCE_VIEWPORT_OFFSET_PX * 2 );
 		guidance.style.maxWidth = `${ availableViewportWidth }px`;
 
@@ -128,7 +141,6 @@ export const createReorderGuidance = (
 			guidance.style.left = '';
 			guidance.style.right = `${ GUIDANCE_VIEWPORT_OFFSET_PX }px`;
 		} else {
-			const tableRect = ( table ?? tbody ).getBoundingClientRect();
 			const guidanceWidth = guidance.getBoundingClientRect().width;
 			const minLeft = GUIDANCE_VIEWPORT_OFFSET_PX;
 			const maxLeft = Math.max(
@@ -147,7 +159,9 @@ export const createReorderGuidance = (
 						GUIDANCE_VIEWPORT_OFFSET_PX,
 						viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
 				  )
-				: GUIDANCE_VIEWPORT_OFFSET_PX;
+				: alignRight
+					? RIGHT_GUIDANCE_TOP_PX
+					: GUIDANCE_VIEWPORT_OFFSET_PX;
 		guidance.style.top = `${ top }px`;
 	};
 	const setPosition = ( nextPosition: ReorderGuidancePosition ) => {
@@ -207,7 +221,8 @@ export const createReorderGuidance = (
 	return {
 		element: guidance,
 		setHidden: ( isHidden ) => {
-			guidance.hidden = isHidden;
+			explicitlyHidden = isHidden;
+			updatePosition();
 		},
 		cleanup: () => {
 			view?.removeEventListener( 'resize', updatePosition );
