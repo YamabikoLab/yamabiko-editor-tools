@@ -1,9 +1,7 @@
 name: Coverage Probe
 
 on:
-  push:
-    branches:
-      - agent/314-jest-coverage-plan
+  pull_request:
 
 permissions:
   contents: read
