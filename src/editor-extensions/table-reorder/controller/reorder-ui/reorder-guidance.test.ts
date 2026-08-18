@@ -1,5 +1,6 @@
 import {
 	getKeyboardActiveMessage,
+	getPcPointerActiveMessage,
 	getTouchModeMessage,
 	getTouchPointerActiveMessage,
 } from '../../messages';
@@ -52,6 +53,30 @@ describe( 'reorder-guidance', () => {
 		expect( icon?.getAttribute( 'aria-hidden' ) ).toBe( 'true' );
 		guidance.cleanup();
 	} );
+
+	it.each( [ getKeyboardActiveMessage(), getPcPointerActiveMessage() ] )(
+		'places PC and keyboard guidance on the viewport right for %s',
+		( message ) => {
+			const { tbody } = createTable();
+			const guidance = createReorderGuidance( document, tbody, message );
+
+			expect( guidance.element.style.left ).toBe( '' );
+			expect( guidance.element.style.right ).toBe( '8px' );
+			guidance.cleanup();
+		}
+	);
+
+	it.each( [ getTouchModeMessage(), getTouchPointerActiveMessage() ] )(
+		'keeps touch guidance on the left for %s',
+		( message ) => {
+			const { tbody } = createTable();
+			const guidance = createReorderGuidance( document, tbody, message );
+
+			expect( guidance.element.style.left ).not.toBe( '' );
+			expect( guidance.element.style.right ).toBe( '' );
+			guidance.cleanup();
+		}
+	);
 
 	it.each( [ getTouchModeMessage(), getTouchPointerActiveMessage() ] )(
 		'moves touch guidance with swipe direction and keeps the last position for %s',
