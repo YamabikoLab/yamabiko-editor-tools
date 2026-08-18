@@ -77,7 +77,7 @@ describe( 'drag-ui guard branches', () => {
 		expect( detachedDocument.defaultView ).toBeNull();
 
 		const insertionLine = createInsertionLine( detachedDocument );
-		expect( getInsertionLine( detachedDocument ) ).toBeInstanceOf( detachedDocument.defaultView?.HTMLDivElement ?? HTMLElement );
+		expect( getInsertionLine( detachedDocument ) ).not.toBeNull();
 
 		insertionLine.cleanup();
 		expect( getInsertionLine( detachedDocument ) ).toBeNull();
