@@ -1,11 +1,5 @@
-import {
-	getKeyboardActiveMessage,
-	getTouchModeMessage,
-} from '../../messages';
-import {
-	createReorderGuidance,
-	scrollKeyboardDestinationIntoView,
-} from './reorder-guidance';
+import { getKeyboardActiveMessage, getTouchModeMessage } from '../../messages';
+import { createReorderGuidance, scrollKeyboardDestinationIntoView } from './reorder-guidance';
 import { createRowControls, getRowRepresentativeText } from './row-controls';
 import { createRowMoveTargets } from './row-move-targets';
 
