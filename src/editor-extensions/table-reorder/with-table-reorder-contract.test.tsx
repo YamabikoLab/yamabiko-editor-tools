@@ -10,7 +10,7 @@ jest.mock( '@wordpress/block-editor', () => ( {
 } ) );
 
 jest.mock( '@wordpress/components', () => {
-	const React = jest.requireActual< typeof import( 'react' ) >( 'react' );
+	const React = jest.requireActual< typeof import('react') >( 'react' );
 
 	return {
 		Button: ( {
@@ -20,22 +20,23 @@ jest.mock( '@wordpress/components', () => {
 			onClick,
 		}: {
 			'aria-label'?: string;
-			children?: import( 'react' ).ReactNode;
+			children?: import('react').ReactNode;
 			className?: string;
 			onClick?: () => void;
-		} ) => React.createElement( 'button', { 'aria-label': ariaLabel, className, onClick }, children ),
+		} ) =>
+			React.createElement( 'button', { 'aria-label': ariaLabel, className, onClick }, children ),
 		Popover: ( {
 			children,
 			className,
 		}: {
-			children?: import( 'react' ).ReactNode;
+			children?: import('react').ReactNode;
 			className?: string;
 		} ) => React.createElement( 'div', { className }, children ),
 		ToolbarButton: React.forwardRef<
 			HTMLButtonElement,
 			{
 				'aria-describedby'?: string;
-				children?: import( 'react' ).ReactNode;
+				children?: import('react').ReactNode;
 				className?: string;
 				label?: string;
 				onClick?: () => void;
@@ -51,7 +52,8 @@ jest.mock( '@wordpress/components', () => {
 					ref,
 				},
 				children
-			) ),
+			)
+		),
 	};
 } );
 
