@@ -20,7 +20,7 @@
 		"format:css": "wp-scripts lint-style \"src/**/*.{css,scss}\" --fix",
 		"typecheck": "tsc --noEmit",
 		"knip": "knip",
-		"test": "npm run format:check && npm run lint:js && npm run lint:css && npm run typecheck && npm run test:unit",
+		"test": "npm run format:check && npm run lint:js && npm run lint:css && npm run typecheck && npm run test:unit:coverage",
 		"test:unit": "wp-scripts test-unit-js",
 		"test:unit:coverage": "wp-scripts test-unit-js --coverage",
 		"test:e2e": "playwright test",
