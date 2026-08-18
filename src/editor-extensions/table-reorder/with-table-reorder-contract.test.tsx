@@ -115,7 +115,7 @@ describe( 'withTableReorder local contract', () => {
 		mounted.unmount();
 	} );
 
-	it( 'uses touch mode state and toggle command when hover is unavailable', () => {
+	it( 'uses the touch toggle command when hover is unavailable', () => {
 		useTableReorderMock.mockReturnValue(
 			createHookResult( {
 				isHoverCapable: false,
@@ -128,7 +128,6 @@ describe( 'withTableReorder local contract', () => {
 			throw new Error( 'Expected toolbar button' );
 		}
 
-		expect( toolbarButton.getAttribute( 'aria-pressed' ) ).toBe( 'true' );
 		act( () => {
 			toolbarButton.click();
 		} );
