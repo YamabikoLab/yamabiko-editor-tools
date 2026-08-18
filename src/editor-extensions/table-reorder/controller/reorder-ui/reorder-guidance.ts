@@ -153,15 +153,13 @@ export const createReorderGuidance = (
 		}
 
 		const guidanceHeight = guidance.getBoundingClientRect().height;
-		const top =
-			position === 'bottom'
-				? Math.max(
-						GUIDANCE_VIEWPORT_OFFSET_PX,
-						viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
-				  )
-				: alignRight
-					? RIGHT_GUIDANCE_TOP_PX
-					: GUIDANCE_VIEWPORT_OFFSET_PX;
+		let top = alignRight ? RIGHT_GUIDANCE_TOP_PX : GUIDANCE_VIEWPORT_OFFSET_PX;
+		if ( position === 'bottom' ) {
+			top = Math.max(
+				GUIDANCE_VIEWPORT_OFFSET_PX,
+				viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+			);
+		}
 		guidance.style.top = `${ top }px`;
 	};
 	const setPosition = ( nextPosition: ReorderGuidancePosition ) => {
