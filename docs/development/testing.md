@@ -172,7 +172,7 @@ UI Mode listens on `0.0.0.0:9323` inside the Dev Container so VS Code can forwar
 
 Playwright writes authentication state to `.playwright/`, HTML reports to `playwright-report/`, and test artifacts to `test-results/`. Failed tests retain trace, screenshot, and video artifacts for investigation. All of these paths are excluded from Git.
 
-WordPress-specific browser operations should use `@wordpress/e2e-test-utils-playwright` where the package provides an appropriate helper. The minimal smoke test uses its admin fixture to verify that Yamabiko Editor Tools is active.
+WordPress-specific browser operations should use `@wordpress/e2e-test-utils-playwright` where the package provides an appropriate helper. Prefer those helpers when creating WordPress or Gutenberg state, and use direct click, keyboard, pointer, or touch input when that input path itself is part of the behavior under test. When iframe / non-iframe compatibility matters, verify the upstream helper implementation instead of assuming that an official helper abstracts both environments.
 
 ## PHP
 
