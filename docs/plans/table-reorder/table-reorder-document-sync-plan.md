@@ -3,9 +3,9 @@
 ## References
 
 - Parent issue: #338
-- Basic requirements: `docs/requirements/table-reorder/table-reorder-sortablejs-requirements.md`
-- Accessibility requirements: `docs/requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md`
-- Accessibility design: `docs/design/table-reorder/table-reorder-sortablejs-accessibility-design.md`
+- Basic requirements: `docs/requirements/table-reorder/table-reorder-requirements.md`
+- Accessibility requirements: `docs/requirements/table-reorder/table-reorder-accessibility-requirements.md`
+- Accessibility design: `docs/design/table-reorder/table-reorder-accessibility-design.md`
 - Current behavior: current `main`
 
 ## Goal
@@ -89,9 +89,9 @@
 ### Included
 
 - 現在の `main` と次の文書との差分整理。
-  - `table-reorder-sortablejs-requirements.md`
-  - `table-reorder-sortablejs-accessibility-requirements.md`
-  - `table-reorder-sortablejs-accessibility-design.md`
+  - `table-reorder-requirements.md`
+  - `table-reorder-accessibility-requirements.md`
+  - `table-reorder-accessibility-design.md`
 - 通常操作を扱う基本設計書を新設する必要性と責務の整理。
 - 対応するTableブロック、PC / タッチ / キーボード / ドラッグを必要としない操作、結合セル、Undo、フォーカス、案内、支援技術への情報提供、iframe / non-iframeについて、どの文書で扱うかの整理。
 - 後続Issueへ分割できる更新順序の整理。
@@ -201,7 +201,7 @@ iframe / non-iframeの両方で同じ意味の操作を提供する要件は、�
 
 ### Basic requirements
 
-`table-reorder-sortablejs-requirements.md` は、Table Reorderとして **何を提供するか** を定義する。
+`table-reorder-requirements.md` は、Table Reorderとして **何を提供するか** を定義する。
 
 主な責務:
 
@@ -218,7 +218,7 @@ iframe / non-iframeの両方で同じ意味の操作を提供する要件は、�
 
 ### Accessibility requirements
 
-`table-reorder-sortablejs-accessibility-requirements.md` は、Table Reorderとして **アクセシビリティ上何を満たす必要があるか** を定義する。
+`table-reorder-accessibility-requirements.md` は、Table Reorderとして **アクセシビリティ上何を満たす必要があるか** を定義する。
 
 主な責務:
 
@@ -252,7 +252,7 @@ iframe / non-iframeの両方で同じ意味の操作を提供する要件は、�
 
 ### Accessibility design
 
-`table-reorder-sortablejs-accessibility-design.md` は、アクセシビリティ要件を **利用者向けの操作・状態・情報提供としてどのように実現するか** を定義する。
+`table-reorder-accessibility-design.md` は、アクセシビリティ要件を **利用者向けの操作・状態・情報提供としてどのように実現するか** を定義する。
 
 主な責務:
 
