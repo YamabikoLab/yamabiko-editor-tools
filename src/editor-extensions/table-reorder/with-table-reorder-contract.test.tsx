@@ -1,4 +1,5 @@
 import { createElement, createRoot } from '@wordpress/element';
+import type { ReactNode } from 'react';
 
 import { useTableReorder } from './use-table-reorder';
 import { withTableReorder } from './with-table-reorder';
@@ -9,11 +10,58 @@ jest.mock( '@wordpress/block-editor', () => ( {
 	BlockControls: 'div',
 } ) );
 
-jest.mock( '@wordpress/components', () => ( {
-	Button: 'button',
-	Popover: 'div',
-	ToolbarButton: 'button',
-} ) );
+jest.mock( '@wordpress/components', () => {
+	const React = jest.requireActual< typeof import( 'react' ) >( 'react' );
+	type ButtonProps = {
+		'aria-label'?: string;
+		children?: ReactNode;
+		className?: string;
+		onClick?: () => void;
+	};
+	type PopoverProps = {
+		children?: ReactNode;
+		className?: string;
+	};
+	type ToolbarButtonProps = {
+		'aria-describedby'?: string;
+		children?: ReactNode;
+		className?: string;
+		label?: string;
+		onClick?: () => void;
+	};
+
+	return {
+		Button: ( {
+			'aria-label': ariaLabel,
+			children,
+			className,
+			onClick,
+		}: ButtonProps ) =>
+			React.createElement( 'button', { 'aria-label': ariaLabel, className, onClick }, children ),
+		Popover: ( { children, className }: PopoverProps ) =>
+			React.createElement( 'div', { className }, children ),
+		ToolbarButton: React.forwardRef< HTMLButtonElement, ToolbarButtonProps >(
+			( {
+				'aria-describedby': ariaDescribedBy,
+				children,
+				className,
+				label,
+				onClick,
+			}, ref ) =>
+				React.createElement(
+					'button',
+					{
+						'aria-describedby': ariaDescribedBy,
+						'aria-label': label,
+						className,
+						onClick,
+						ref,
+					},
+					children
+				)
+		),
+	};
+} );
 
 jest.mock( './use-table-reorder', () => ( {
 	useTableReorder: jest.fn(),
