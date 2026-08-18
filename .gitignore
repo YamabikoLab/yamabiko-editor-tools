@@ -11,6 +11,7 @@ node_modules/
 build/
 vendor/
 *.zip
+coverage/
 
 .playwright/
 playwright-report/
