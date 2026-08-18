@@ -160,18 +160,18 @@ export const createReorderGuidance = (
 		const toolbarTop = avoidBlockContextualToolbar
 			? getBlockContextualToolbarTop( document, view )
 			: null;
-		const top =
-			position === 'bottom'
-				? Math.max(
-						GUIDANCE_VIEWPORT_OFFSET_PX,
-						viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
-				  )
-				: toolbarTop === null
-				? GUIDANCE_VIEWPORT_OFFSET_PX
-				: Math.max(
-						GUIDANCE_VIEWPORT_OFFSET_PX,
-						toolbarTop - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
-				  );
+		let top = GUIDANCE_VIEWPORT_OFFSET_PX;
+		if ( position === 'bottom' ) {
+			top = Math.max(
+				GUIDANCE_VIEWPORT_OFFSET_PX,
+				viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+			);
+		} else if ( toolbarTop !== null ) {
+			top = Math.max(
+				GUIDANCE_VIEWPORT_OFFSET_PX,
+				toolbarTop - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+			);
+		}
 		guidance.style.top = `${ top }px`;
 	};
 	const setPosition = ( nextPosition: ReorderGuidancePosition ) => {
