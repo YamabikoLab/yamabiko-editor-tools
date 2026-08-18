@@ -20,9 +20,9 @@
 
 ### 既存文書
 
-- `docs/requirements/table-reorder/table-reorder-sortablejs-requirements.md`
-- `docs/requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md`
-- `docs/design/table-reorder/table-reorder-sortablejs-accessibility-design.md`
+- `docs/requirements/table-reorder/table-reorder-requirements.md`
+- `docs/requirements/table-reorder/table-reorder-accessibility-requirements.md`
+- `docs/design/table-reorder/table-reorder-accessibility-design.md`
 
 ### 現行仕様の確認に使用した主な実装
 
