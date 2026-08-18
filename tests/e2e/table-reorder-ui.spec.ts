@@ -1,3 +1,4 @@
+import type { FrameLocator, Page } from '@playwright/test';
 import type { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
@@ -23,6 +24,17 @@ async function setTableReorderCoachmarkDismissal(
 	} );
 }
 
+async function getEditorContext(
+	page: Page,
+	editorCanvas: FrameLocator
+): Promise< Page | FrameLocator > {
+	if ( ( await page.locator( 'iframe[name="editor-canvas"]' ).count() ) > 0 ) {
+		return editorCanvas;
+	}
+
+	return page;
+}
+
 test.describe( 'Table Reorder UI', () => {
 	test.use( {
 		hasTouch: false,
@@ -35,41 +47,45 @@ test.describe( 'Table Reorder UI', () => {
 		await editor.setContent( BASIC_TABLE_CONTENT );
 	} );
 
-	test( 'starts from the minimal table content', async ( { editor } ) => {
-		await expect( editor.canvas.getByText( 'Alpha', { exact: true } ) ).toBeVisible();
-		await expect( editor.canvas.getByText( 'Bravo', { exact: true } ) ).toBeVisible();
-		await expect( editor.canvas.getByText( 'Charlie', { exact: true } ) ).toBeVisible();
-		await expect( editor.canvas.getByText( 'Outside table', { exact: true } ) ).toBeVisible();
+	test( 'starts from the minimal table content', async ( { editor, page } ) => {
+		const editorContext = await getEditorContext( page, editor.canvas );
+
+		await expect( editorContext.getByText( 'Alpha', { exact: true } ) ).toBeVisible();
+		await expect( editorContext.getByText( 'Bravo', { exact: true } ) ).toBeVisible();
+		await expect( editorContext.getByText( 'Charlie', { exact: true } ) ).toBeVisible();
+		await expect( editorContext.getByText( 'Outside table', { exact: true } ) ).toBeVisible();
 	} );
 
 	test( 'shows the toolbar entry only for a supported Table block', async ( { editor, page } ) => {
+		const editorContext = await getEditorContext( page, editor.canvas );
 		const reorderRowsButton = page.getByRole( 'button', {
 			name: /^(Reorder rows|行を並べ替え)$/,
 		} );
 
-		await editor.canvas.getByText( 'Alpha', { exact: true } ).click();
+		await editorContext.getByText( 'Alpha', { exact: true } ).click();
 		await expect( reorderRowsButton ).toBeVisible();
 
-		await editor.canvas.getByText( 'Outside table', { exact: true } ).click();
+		await editorContext.getByText( 'Outside table', { exact: true } ).click();
 		await expect( reorderRowsButton ).toHaveCount( 0 );
 	} );
 
-	test( 'shows a row control while its row is hovered on desktop', async ( { editor } ) => {
-		const firstRow = editor.canvas.locator( 'tbody tr' ).filter( { hasText: 'Alpha' } );
-		const firstRowControl = editor.canvas.getByRole( 'button', {
+	test( 'shows a row control while its row is hovered on desktop', async ( { editor, page } ) => {
+		const editorContext = await getEditorContext( page, editor.canvas );
+		const firstRow = editorContext.locator( 'tbody tr' ).filter( { hasText: 'Alpha' } );
+		const firstRowControl = editorContext.getByRole( 'button', {
 			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
 		} );
 
-		await editor.canvas.getByText( 'Alpha', { exact: true } ).click();
+		await editorContext.getByText( 'Alpha', { exact: true } ).click();
 		await expect( firstRowControl ).toBeAttached();
 
-		await editor.canvas.getByText( 'Outside table', { exact: true } ).hover();
+		await editorContext.getByText( 'Outside table', { exact: true } ).hover();
 		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
 
 		await firstRow.hover();
 		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'true' );
 
-		await editor.canvas.getByText( 'Outside table', { exact: true } ).hover();
+		await editorContext.getByText( 'Outside table', { exact: true } ).hover();
 		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
 	} );
 
@@ -77,6 +93,7 @@ test.describe( 'Table Reorder UI', () => {
 		editor,
 		page,
 	} ) => {
+		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableListViewItem = page.getByRole( 'link', {
 			name: /^(Table|テーブル)$/,
 		} );
@@ -86,7 +103,7 @@ test.describe( 'Table Reorder UI', () => {
 		const keyboardCoachmark = page.getByText(
 			/^(Reorder rows with the keyboard\. Select “Reorder rows” in the toolbar\.|キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択)$/
 		);
-		const firstRowControl = editor.canvas.getByRole( 'button', {
+		const firstRowControl = editorContext.getByRole( 'button', {
 			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
 		} );
 
@@ -116,20 +133,21 @@ test.describe( 'Table Reorder touch UI', () => {
 	} );
 
 	test( 'shows the touch coachmark and toggles reorder mode', async ( { editor, page } ) => {
+		const editorContext = await getEditorContext( page, editor.canvas );
 		const reorderRowsButton = page.getByRole( 'button', {
 			name: /^(Reorder rows|行を並べ替え)$/,
 		} );
 		const touchCoachmark = page.getByText(
 			/^(Tap “Reorder rows” in the toolbar to begin\.|ツールバーの「行を並べ替え」をタップして開始)$/
 		);
-		const touchGuidance = editor.canvas.getByText(
+		const touchGuidance = editorContext.getByText(
 			/^(Handle: drag to move \/ tap to choose destination\sCell: tap to edit|ハンドル: ドラッグで移動 \/ タップで移動先選択\sセル: タップで編集)$/
 		);
-		const firstRowControl = editor.canvas.getByRole( 'button', {
+		const firstRowControl = editorContext.getByRole( 'button', {
 			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
 		} );
 
-		await editor.canvas.getByText( 'Alpha', { exact: true } ).tap();
+		await editorContext.getByText( 'Alpha', { exact: true } ).tap();
 		await expect( touchCoachmark ).toBeVisible();
 		await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'false' );
 
