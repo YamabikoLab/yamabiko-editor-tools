@@ -101,3 +101,46 @@ test.describe( 'Table Reorder UI', () => {
 		await expect( firstRowControl ).toBeFocused();
 	} );
 } );
+
+test.describe( 'Table Reorder touch UI', () => {
+	test.use( {
+		hasTouch: true,
+		isMobile: true,
+		viewport: { height: 844, width: 390 },
+	} );
+
+	test.beforeEach( async ( { admin, editor, requestUtils } ) => {
+		await setTableReorderCoachmarkDismissal( requestUtils, false );
+		await admin.createNewPost();
+		await editor.setContent( BASIC_TABLE_CONTENT );
+	} );
+
+	test( 'shows the touch coachmark and toggles reorder mode', async ( { editor, page } ) => {
+		const reorderRowsButton = page.getByRole( 'button', {
+			name: /^(Reorder rows|行を並べ替え)$/,
+		} );
+		const touchCoachmark = page.getByText(
+			/^(Tap “Reorder rows” in the toolbar to begin\.|ツールバーの「行を並べ替え」をタップして開始)$/
+		);
+		const touchGuidance = editor.canvas.getByText(
+			/^(Handle: drag to move \/ tap to choose destination\sCell: tap to edit|ハンドル: ドラッグで移動 \/ タップで移動先選択\sセル: タップで編集)$/
+		);
+		const firstRowControl = editor.canvas.getByRole( 'button', {
+			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
+		} );
+
+		await editor.canvas.getByText( 'Alpha', { exact: true } ).tap();
+		await expect( touchCoachmark ).toBeVisible();
+		await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'false' );
+
+		await reorderRowsButton.tap();
+		await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'true' );
+		await expect( touchGuidance ).toBeVisible();
+		await expect( firstRowControl ).toBeVisible();
+
+		await reorderRowsButton.tap();
+		await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'false' );
+		await expect( touchGuidance ).toHaveCount( 0 );
+		await expect( firstRowControl ).toHaveCount( 0 );
+	} );
+} );
