@@ -272,6 +272,12 @@ iframe / non-iframeの両方で同じ意味の操作を提供する要件は、�
 
 ### Phase 1: 文書原則と現行仕様との差分を確定する
 
+**Status: Completed**
+
+成果物:
+
+`docs/plans/table-reorder/table-reorder-document-sync-gap-analysis.md`
+
 - Outcome:
   - 後続文書更新で、何をどの文書へ書くかが明確になる。
 - Tasks:
