@@ -14,6 +14,9 @@ const GUIDANCE_CLASS = 'yamabiko-table-reorder-pointer-guidance';
 /** 操作中案内の内容補助iconに付与するclass。 */
 const GUIDANCE_ICON_CLASS = 'yamabiko-table-reorder-guidance-icon';
 
+/** Gutenbergの追従block toolbarに付与されるclass。 */
+const BLOCK_CONTEXTUAL_TOOLBAR_SELECTOR = '.block-editor-block-contextual-toolbar';
+
 /** keyboard scroll追従でviewport端に確保する最小余白。 */
 const KEYBOARD_SCROLL_MARGIN_PX = 24;
 
@@ -63,11 +66,46 @@ const isTouchSwipeGuidance = ( message: string ) =>
 	message === getTouchModeMessage() || message === getTouchPointerActiveMessage();
 
 /**
+ * 表示中のGutenberg追従block toolbarの下端をeditor viewport座標で返す。
+ *
+ * iframe editorではtoolbarが親documentにあるため、iframe上端を差し引いて座標を合わせる。
+ * toolbarが存在しない、または表示領域を持たない場合はnullを返す。
+ *
+ * @param document editor document。
+ * @param view     editor window。
+ * @return toolbar下端のeditor viewport座標。解決できない場合はnull。
+ */
+const getBlockContextualToolbarBottom = ( document: Document, view: Window | null ) => {
+	const frame = view?.frameElement;
+	const parentDocument = frame?.ownerDocument;
+	const parentToolbar = parentDocument?.querySelector< HTMLElement >(
+		BLOCK_CONTEXTUAL_TOOLBAR_SELECTOR
+	);
+	if ( parentToolbar ) {
+		const toolbarRect = parentToolbar.getBoundingClientRect();
+		if ( toolbarRect.width > 0 && toolbarRect.height > 0 ) {
+			return toolbarRect.bottom - ( frame?.getBoundingClientRect().top ?? 0 );
+		}
+	}
+
+	const toolbar = document.querySelector< HTMLElement >( BLOCK_CONTEXTUAL_TOOLBAR_SELECTOR );
+	if ( ! toolbar ) {
+		return null;
+	}
+	const toolbarRect = toolbar.getBoundingClientRect();
+	if ( toolbarRect.width <= 0 || toolbarRect.height <= 0 ) {
+		return null;
+	}
+	return toolbarRect.bottom;
+};
+
+/**
  * Tableに関連付く操作中案内をowning documentへ追加する。
  *
  * fixed配置でスクロール中も確認できる状態を保つ。既定はviewport上側で、keyboard入力時は
  * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内では一定距離以上のswipeを
  * 検出したとき、上方向なら上側、下方向なら下側へ切り替え、反対方向を検出するまで維持する。
+ * PCの移動先選択案内だけは、表示中のGutenberg追従block toolbarがある場合、その直下へ配置する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -101,6 +139,7 @@ export const createReorderGuidance = (
 	let position: ReorderGuidancePosition = 'top';
 	let touchPointer: { pointerId: number; y: number } | null = null;
 	const trackTouchSwipe = isTouchSwipeGuidance( message );
+	const avoidBlockContextualToolbar = message === getPcPointerActiveMessage();
 
 	const updatePosition = () => {
 		const tableRect = ( table ?? tbody ).getBoundingClientRect();
@@ -118,13 +157,19 @@ export const createReorderGuidance = (
 		guidance.style.width = `${ Math.max( 0, Math.min( tableRect.width, availableWidth ) ) }px`;
 
 		const guidanceHeight = guidance.getBoundingClientRect().height;
+		const toolbarBottom = avoidBlockContextualToolbar
+			? getBlockContextualToolbarBottom( document, view )
+			: null;
 		const top =
 			position === 'bottom'
 				? Math.max(
 						GUIDANCE_VIEWPORT_OFFSET_PX,
 						viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
 				  )
-				: GUIDANCE_VIEWPORT_OFFSET_PX;
+				: Math.max(
+						GUIDANCE_VIEWPORT_OFFSET_PX,
+						( toolbarBottom ?? 0 ) + GUIDANCE_VIEWPORT_OFFSET_PX
+				  );
 		guidance.style.top = `${ top }px`;
 	};
 	const setPosition = ( nextPosition: ReorderGuidancePosition ) => {
