@@ -105,13 +105,15 @@ describe( 'createSortableController guard branches', () => {
 		runtimeOptions.onChoose( { item: draggedRow } );
 		runtimeOptions.onStart();
 
-		expect(
-			runtimeOptions.onMove( { related: forbiddenRelatedRow, willInsertAfter: true } )
-		).toBe( false );
+		expect( runtimeOptions.onMove( { related: forbiddenRelatedRow, willInsertAfter: true } ) ).toBe(
+			false
+		);
 
 		const unrelated = document.createElement( 'div' );
 		document.body.append( unrelated );
-		expect( runtimeOptions.onMove( { related: unrelated, willInsertAfter: false } ) ).toBeUndefined();
+		expect(
+			runtimeOptions.onMove( { related: unrelated, willInsertAfter: false } )
+		).toBeUndefined();
 
 		runtimeOptions.onEnd( { oldIndex: 0, newIndex: 0 } );
 		expect( onCommit ).not.toHaveBeenCalled();
