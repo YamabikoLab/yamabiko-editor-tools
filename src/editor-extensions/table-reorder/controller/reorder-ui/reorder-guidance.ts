@@ -109,10 +109,7 @@ export const createReorderGuidance = (
 			view?.innerHeight ?? document.documentElement.clientHeight
 		);
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
-		const availableViewportWidth = Math.max(
-			0,
-			viewportWidth - GUIDANCE_VIEWPORT_OFFSET_PX * 2
-		);
+		const availableViewportWidth = Math.max( 0, viewportWidth - GUIDANCE_VIEWPORT_OFFSET_PX * 2 );
 		guidance.style.maxWidth = `${ availableViewportWidth }px`;
 
 		const guidanceWidth = guidance.getBoundingClientRect().width;
