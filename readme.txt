@@ -3,7 +3,7 @@ Tags: block editor, gutenberg, table
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,12 @@ The generated archive is `yamabiko-editor-tools.zip`.
 4. Activate Yamabiko Editor Tools.
 
 == Changelog ==
+
+= 0.3.2 =
+
+* Changed: Shortened the Table Reorder operation guidance and improved it with a compact pill-style UI.
+* Changed: Moved PC and Keyboard operation guidance to the right side of the screen to reduce overlap with editor toolbars.
+* Changed: Hide operation guidance when the target table moves outside the viewport and show it again when the table returns.
 
 = 0.3.1 =
 
