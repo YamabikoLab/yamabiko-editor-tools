@@ -63,11 +63,23 @@ const isTouchSwipeGuidance = ( message: string ) =>
 	message === getTouchModeMessage() || message === getTouchPointerActiveMessage();
 
 /**
+ * viewport右側へ固定する案内文かを返す。
+ *
+ * Toolbarとの座標比較は行わず、PC / keyboardの操作中案内だけを常に右側へ配置する。
+ *
+ * @param message 表示する案内文。
+ * @return 右側へ固定する場合はtrue。
+ */
+const isRightAlignedGuidance = ( message: string ) =>
+	message === getKeyboardActiveMessage() || message === getPcPointerActiveMessage();
+
+/**
  * Tableに関連付く操作中案内をowning documentへ追加する。
  *
  * fixed配置でスクロール中も確認できる状態を保つ。既定はviewport上側で、keyboard入力時は
  * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内では一定距離以上のswipeを
  * 検出したとき、上方向なら上側、下方向なら下側へ切り替え、反対方向を検出するまで維持する。
+ * PC / keyboardの操作中案内はToolbar位置を計算せずviewport右側へ固定する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -101,9 +113,9 @@ export const createReorderGuidance = (
 	let position: ReorderGuidancePosition = 'top';
 	let touchPointer: { pointerId: number; y: number } | null = null;
 	const trackTouchSwipe = isTouchSwipeGuidance( message );
+	const alignRight = isRightAlignedGuidance( message );
 
 	const updatePosition = () => {
-		const tableRect = ( table ?? tbody ).getBoundingClientRect();
 		const viewportHeight = Math.max(
 			0,
 			view?.innerHeight ?? document.documentElement.clientHeight
@@ -112,14 +124,21 @@ export const createReorderGuidance = (
 		const availableViewportWidth = Math.max( 0, viewportWidth - GUIDANCE_VIEWPORT_OFFSET_PX * 2 );
 		guidance.style.maxWidth = `${ availableViewportWidth }px`;
 
-		const guidanceWidth = guidance.getBoundingClientRect().width;
-		const minLeft = GUIDANCE_VIEWPORT_OFFSET_PX;
-		const maxLeft = Math.max(
-			minLeft,
-			viewportWidth - guidanceWidth - GUIDANCE_VIEWPORT_OFFSET_PX
-		);
-		const left = Math.min( Math.max( tableRect.left, minLeft ), maxLeft );
-		guidance.style.left = `${ left }px`;
+		if ( alignRight ) {
+			guidance.style.left = '';
+			guidance.style.right = `${ GUIDANCE_VIEWPORT_OFFSET_PX }px`;
+		} else {
+			const tableRect = ( table ?? tbody ).getBoundingClientRect();
+			const guidanceWidth = guidance.getBoundingClientRect().width;
+			const minLeft = GUIDANCE_VIEWPORT_OFFSET_PX;
+			const maxLeft = Math.max(
+				minLeft,
+				viewportWidth - guidanceWidth - GUIDANCE_VIEWPORT_OFFSET_PX
+			);
+			const left = Math.min( Math.max( tableRect.left, minLeft ), maxLeft );
+			guidance.style.left = `${ left }px`;
+			guidance.style.right = '';
+		}
 
 		const guidanceHeight = guidance.getBoundingClientRect().height;
 		const top =
