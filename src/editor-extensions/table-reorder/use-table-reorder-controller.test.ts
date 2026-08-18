@@ -56,7 +56,7 @@ const createContext = ( matches = true ): TableContext => {
 const createMockController = ( focusResult = true ): MockController => ( {
 	destroy: jest.fn(),
 	focusRowControl: jest.fn( () => 'focused' ),
-	focusRowControlAt: jest.fn( () => focusResult ),
+	focusRowControlAt: jest.fn( ( _rowIndex: number ) => focusResult ),
 } );
 
 const Harness = ( options: HookOptions ) => {
