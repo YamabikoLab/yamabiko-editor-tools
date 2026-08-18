@@ -35,3 +35,6 @@ jobs:
 
       - name: Run Jest coverage
         run: npm run test:unit:coverage
+
+      - name: Probe marker
+        run: echo "coverage probe"
