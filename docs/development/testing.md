@@ -23,18 +23,24 @@ npm run format:check
 npm run lint:js
 npm run lint:css
 npm run typecheck
-npm run test:unit
+npm run test:unit:coverage
 ```
 
 Use the individual commands when iterating on a focused problem. Before handoff for JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes, use `npm test` so the same quality gate is shared by local development and PR Validation.
 
-Run Jest with coverage reporting when you want to inspect the current unit test coverage baseline:
+Run Jest without coverage when you want a faster focused unit test run:
+
+```bash
+npm run test:unit
+```
+
+Run Jest with coverage reporting directly when you want to inspect the unit test coverage result:
 
 ```bash
 npm run test:unit:coverage
 ```
 
-The coverage report includes Statements, Branches, Functions, and Lines. Coverage thresholds are intentionally not enforced at this stage.
+The coverage report includes Statements, Branches, Functions, and Lines. The global threshold is 80% for each metric, and Jest fails when any metric falls below the threshold. `npm test` includes this coverage run, so PR Validation enforces the same threshold without running Jest twice.
 
 ### Jest responsibility map
 
