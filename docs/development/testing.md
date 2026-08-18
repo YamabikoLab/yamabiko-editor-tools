@@ -36,6 +36,88 @@ npm run test:unit:coverage
 
 The coverage report includes Statements, Branches, Functions, and Lines. Coverage thresholds are intentionally not enforced at this stage.
 
+### Jest responsibility map
+
+The current Jest suite is concentrated in Table Reorder. Organize the existing test coverage by responsibility rather than by file count.
+
+#### Table and row logic
+
+These tests cover the core rules that can be verified without a real browser or WordPress editor session.
+
+- `src/editor-extensions/table-reorder/block-support.test.ts`
+  - supported block detection
+- `src/editor-extensions/table-reorder/table-context.test.ts`
+  - table and row context resolution
+- `src/editor-extensions/table-reorder/rowspan.test.ts`
+  - vertical merge (`rowspan`) constraints and boundary handling
+- `src/editor-extensions/table-reorder/controller/row-order.test.ts`
+  - row order calculation and movement rules
+- `src/editor-extensions/table-reorder/messages.test.ts`
+  - user-facing message selection and formatting
+
+#### Reorder UI
+
+These tests cover DOM-level UI state and guidance that can be exercised in jsdom.
+
+- `src/editor-extensions/table-reorder/controller/drag-ui.test.ts`
+  - drag UI state and visual helper behavior
+- `src/editor-extensions/table-reorder/controller/reorder-ui/live-status.test.ts`
+  - live-region status updates
+- `src/editor-extensions/table-reorder/controller/reorder-ui/reorder-guidance.test.ts`
+  - reorder guidance display and positioning behavior
+- `src/editor-extensions/table-reorder/controller/reorder-ui/row-controls.test.ts`
+  - row handle and control behavior
+- `src/editor-extensions/table-reorder/controller/reorder-ui/row-move-targets.test.ts`
+  - destination target generation and selection behavior
+
+#### Interaction and controller
+
+These tests cover the controller state machine and input-specific branches while mocking browser or SortableJS integration where appropriate.
+
+- `src/editor-extensions/table-reorder/controller/sortable-controller.test.ts`
+  - shared controller lifecycle and state transitions
+- `src/editor-extensions/table-reorder/controller/sortable-controller-keyboard.test.ts`
+  - keyboard reorder behavior and edge cases
+- `src/editor-extensions/table-reorder/controller/sortable-controller-pointer.test.ts`
+  - pointer interaction behavior
+- `src/editor-extensions/table-reorder/controller/sortable-controller-touch.test.ts`
+  - touch-specific controller behavior
+- `src/editor-extensions/table-reorder/controller/sortable-runtime-loader.test.ts`
+  - SortableJS runtime loading and failure handling
+
+#### WordPress and React integration boundary
+
+These tests verify the local integration contract around hooks, wrappers, and supported WordPress block behavior without treating Jest as a replacement for browser-level integration tests.
+
+- `src/editor-extensions/table-reorder/use-table-reorder.test.ts`
+  - controller hook wiring
+- `src/editor-extensions/table-reorder/use-table-reorder-interaction.test.ts`
+  - interaction hook behavior
+- `src/editor-extensions/table-reorder/with-table-reorder.test.tsx`
+  - component wrapper integration
+- `src/editor-extensions/table-reorder/flexible-table-block.test.tsx`
+  - Flexible Table Block integration contract
+
+### Jest and Playwright E2E responsibilities
+
+Use Jest for logic and branches that can be isolated reliably and quickly:
+
+- pure logic and boundary conditions
+- small conditional branches
+- UI state that can be verified in jsdom
+- Keyboard / Pointer / Touch controller logic
+- WordPress API and SortableJS integration code where mocks provide a stable contract
+
+Use Playwright E2E for behavior that depends on the real WordPress editor and browser environment:
+
+- actual WordPress / Gutenberg behavior
+- real mouse, touch, and keyboard interaction in the browser
+- iframe and non-iframe editor environments
+- integration with the real SortableJS runtime
+- end-to-end flows from user input through completed row movement
+
+This is a responsibility boundary, not a statement that every Playwright area is already covered. Keep Jest focused on fast, deterministic logic checks and add browser-level scenarios to Playwright as those suites are expanded.
+
 Create the production build separately:
 
 ```bash
