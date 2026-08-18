@@ -1,7 +1,10 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"webpack": true,
-	"jest": true,
+	"jest": {
+		"config": [ "jest-unit.config.js" ]
+	},
 	"eslint": true,
+	"ignoreDependencies": [ "@wordpress/jest-preset-default" ],
 	"ignoreBinaries": [ "wp" ]
 }
