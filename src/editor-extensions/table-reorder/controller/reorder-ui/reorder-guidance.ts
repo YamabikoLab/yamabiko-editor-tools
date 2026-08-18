@@ -109,13 +109,20 @@ export const createReorderGuidance = (
 			view?.innerHeight ?? document.documentElement.clientHeight
 		);
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
-		const left = Math.max( GUIDANCE_VIEWPORT_OFFSET_PX, tableRect.left );
-		const availableWidth =
-			viewportWidth > GUIDANCE_VIEWPORT_OFFSET_PX * 2
-				? viewportWidth - left - GUIDANCE_VIEWPORT_OFFSET_PX
-				: tableRect.width;
+		const availableViewportWidth = Math.max(
+			0,
+			viewportWidth - GUIDANCE_VIEWPORT_OFFSET_PX * 2
+		);
+		guidance.style.maxWidth = `${ availableViewportWidth }px`;
+
+		const guidanceWidth = guidance.getBoundingClientRect().width;
+		const minLeft = GUIDANCE_VIEWPORT_OFFSET_PX;
+		const maxLeft = Math.max(
+			minLeft,
+			viewportWidth - guidanceWidth - GUIDANCE_VIEWPORT_OFFSET_PX
+		);
+		const left = Math.min( Math.max( tableRect.left, minLeft ), maxLeft );
 		guidance.style.left = `${ left }px`;
-		guidance.style.width = `${ Math.max( 0, Math.min( tableRect.width, availableWidth ) ) }px`;
 
 		const guidanceHeight = guidance.getBoundingClientRect().height;
 		const top =
