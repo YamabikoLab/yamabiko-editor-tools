@@ -54,19 +54,19 @@ describe( 'reorder-guidance', () => {
 		guidance.cleanup();
 	} );
 
-	it( 'places only PC pointer guidance below a visible contextual block toolbar', () => {
+	it( 'places only PC pointer guidance above a visible contextual block toolbar', () => {
 		const toolbar = document.createElement( 'div' );
 		toolbar.className = 'block-editor-block-contextual-toolbar';
 		toolbar.getBoundingClientRect = () =>
 			( {
-				bottom: 64,
+				bottom: 128,
 				height: 48,
 				left: 0,
 				right: 320,
-				top: 16,
+				top: 80,
 				width: 320,
 				x: 0,
-				y: 16,
+				y: 80,
 				toJSON: () => ( {} ),
 			} ) as DOMRect;
 		document.body.append( toolbar );
