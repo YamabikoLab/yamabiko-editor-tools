@@ -29,8 +29,10 @@ const createTable = () => {
 	tbody.append( row );
 	table.append( tbody );
 	document.body.append( table );
-	jest.spyOn( table, 'getBoundingClientRect' ).mockReturnValue( createRect( 100, 300 ) );
-	return { table, tbody };
+	const tableRect = jest
+		.spyOn( table, 'getBoundingClientRect' )
+		.mockReturnValue( createRect( 100, 300 ) );
+	return { tableRect, tbody };
 };
 
 const dispatchTouchPointer = ( type: string, pointerId: number, clientY: number ) => {
@@ -89,14 +91,13 @@ describe( 'reorder-guidance', () => {
 
 			expect( guidance.element.style.left ).not.toBe( '' );
 			expect( guidance.element.style.right ).toBe( '' );
-		guidance.cleanup();
+			guidance.cleanup();
 		}
 	);
 
 	it( 'hides guidance when the table leaves the viewport and shows it again when it returns', () => {
-		const { table, tbody } = createTable();
+		const { tableRect, tbody } = createTable();
 		const guidance = createReorderGuidance( document, tbody, getPcPointerActiveMessage() );
-		const tableRect = jest.spyOn( table, 'getBoundingClientRect' );
 
 		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( false );
 
@@ -112,9 +113,8 @@ describe( 'reorder-guidance', () => {
 	} );
 
 	it( 'keeps explicitly hidden guidance hidden after the table returns to the viewport', () => {
-		const { table, tbody } = createTable();
+		const { tableRect, tbody } = createTable();
 		const guidance = createReorderGuidance( document, tbody, getTouchModeMessage() );
-		const tableRect = jest.spyOn( table, 'getBoundingClientRect' );
 
 		guidance.setHidden( true );
 		tableRect.mockReturnValue( createRect( window.innerHeight + 20, window.innerHeight + 220 ) );
