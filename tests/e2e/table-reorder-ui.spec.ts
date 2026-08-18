@@ -72,4 +72,32 @@ test.describe( 'Table Reorder UI', () => {
 		await editor.canvas.getByText( 'Outside table', { exact: true } ).hover();
 		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
 	} );
+
+	test( 'shows the keyboard coachmark and focuses the first row control', async ( {
+		editor,
+		page,
+	} ) => {
+		const tableListViewItem = page.getByRole( 'link', {
+			name: /^(Table|テーブル)$/,
+		} );
+		const reorderRowsButton = page.getByRole( 'button', {
+			name: /^(Reorder rows|行を並べ替え)$/,
+		} );
+		const keyboardCoachmark = page.getByText(
+			/^(Reorder rows with the keyboard\. Select “Reorder rows” in the toolbar\.|キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択)$/
+		);
+		const firstRowControl = editor.canvas.getByRole( 'button', {
+			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
+		} );
+
+		await page.keyboard.press( 'Shift+Alt+KeyO' );
+		await tableListViewItem.focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( keyboardCoachmark ).toBeVisible();
+
+		await reorderRowsButton.focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( keyboardCoachmark ).toHaveCount( 0 );
+		await expect( firstRowControl ).toBeFocused();
+	} );
 } );
