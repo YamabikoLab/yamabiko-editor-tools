@@ -100,6 +100,7 @@ export const useTableReorderInteraction = (
 		useState( false );
 	const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
 	const [ isTouchToolbarFocusRequested, setIsTouchToolbarFocusRequested ] = useState( false );
+	const hasHandledInitialTouchGestureRef = useRef( false );
 	const suppressNextTableClickRef = useRef( false );
 
 	const isKeyboardCoachmarkVisible =
@@ -171,6 +172,7 @@ export const useTableReorderInteraction = (
 			setInputModality( 'pointer' );
 
 			if (
+				hasHandledInitialTouchGestureRef.current ||
 				isHoverCapable ||
 				isTouchCoachmarkDismissed ||
 				isTouchCoachmarkDismissedLocally ||
@@ -179,6 +181,7 @@ export const useTableReorderInteraction = (
 				return;
 			}
 
+			hasHandledInitialTouchGestureRef.current = true;
 			event.preventDefault();
 			event.stopPropagation();
 			suppressNextTableClickRef.current = true;

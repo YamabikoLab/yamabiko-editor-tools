@@ -153,6 +153,34 @@ describe( 'touch coachmark toolbar focus request', () => {
 		expect( getResult().isTouchToolbarFocusRequested ).toBe( false );
 	} );
 
+	it( 'guards only the first table gesture before the touch coachmark is dismissed', () => {
+		const context = createContext();
+		resolveTableContextMock.mockReturnValue( context );
+		mountHook( false );
+		const cell = context.tbody.querySelector( 'td' );
+		const firstPointerDown = new Event( 'pointerdown', { bubbles: true, cancelable: true } );
+		const firstClick = new MouseEvent( 'click', { bubbles: true, cancelable: true } );
+
+		act( () => {
+			cell?.dispatchEvent( firstPointerDown );
+			cell?.dispatchEvent( firstClick );
+			getResult().consumeTouchToolbarFocusRequest();
+		} );
+
+		const secondPointerDown = new Event( 'pointerdown', { bubbles: true, cancelable: true } );
+		const secondClick = new MouseEvent( 'click', { bubbles: true, cancelable: true } );
+		act( () => {
+			cell?.dispatchEvent( secondPointerDown );
+			cell?.dispatchEvent( secondClick );
+		} );
+
+		expect( firstPointerDown.defaultPrevented ).toBe( true );
+		expect( firstClick.defaultPrevented ).toBe( true );
+		expect( secondPointerDown.defaultPrevented ).toBe( false );
+		expect( secondClick.defaultPrevented ).toBe( false );
+		expect( getResult().isTouchToolbarFocusRequested ).toBe( false );
+	} );
+
 	it( 'does not guard the table after the touch coachmark is dismissed', () => {
 		preferenceValues.set(
 			`${ PREFERENCES_SCOPE }:${ TOUCH_COACHMARK_DISMISSED_PREFERENCE }`,
