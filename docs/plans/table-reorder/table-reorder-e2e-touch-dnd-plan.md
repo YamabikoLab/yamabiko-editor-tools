@@ -187,7 +187,8 @@ Tasks:
 - Toolbar の「行を並べ替え」を touch で実行し、並べ替えモードへ入る helper を用意する。
 - row control は role / accessible name など利用者向け semantic locator を優先する。
 - Touch drag が通常 Playwright API で十分表現できない場合だけ、Chromium CDP の `Input.dispatchTouchEvent` を使う最小 helper を追加する。
-- helper は固定時間待機や SortableJS 内部 class へ依存しない。
+- Touch drag の同期処理は `waitForTimeout()` の固定時間待機にせず、Sortable runtime / drag が利用可能になったことを deterministic に待つ。行ハンドル表示だけを準備完了条件にしない。
+- SortableJS の内部状態を待機条件として観測する場合は E2E の同期処理に限定し、製品仕様の assertion には使わない。
 
 Validation:
 
