@@ -57,6 +57,7 @@ const useTableReorderInteractionMock = useTableReorderInteraction as jest.Mocked
 >;
 
 const createNoticeMock = jest.fn();
+const consumeTouchToolbarFocusRequestMock = jest.fn();
 const dismissKeyboardCoachmarkMock = jest.fn();
 const dismissTouchCoachmarkMock = jest.fn();
 const focusRowControlMock = jest.fn();
@@ -87,6 +88,7 @@ const createBody = ( ...labels: string[] ): unknown[] =>
 const createInteractionResult = (
 	overrides: Partial< InteractionResult > = {}
 ): InteractionResult => ( {
+	consumeTouchToolbarFocusRequest: consumeTouchToolbarFocusRequestMock,
 	dismissKeyboardCoachmark: dismissKeyboardCoachmarkMock,
 	dismissTouchCoachmark: dismissTouchCoachmarkMock,
 	interactionMode: 'hover',
@@ -94,6 +96,7 @@ const createInteractionResult = (
 	isKeyboardCoachmarkVisible: false,
 	isTouchCoachmarkVisible: false,
 	isTouchReorderMode: false,
+	isTouchToolbarFocusRequested: false,
 	toggleTouchReorderMode: toggleTouchReorderModeMock,
 	...overrides,
 } );
@@ -141,6 +144,7 @@ beforeEach( () => {
 	latestResult = null;
 	activeRoot = null;
 	createNoticeMock.mockReset();
+	consumeTouchToolbarFocusRequestMock.mockReset();
 	dismissKeyboardCoachmarkMock.mockReset();
 	dismissTouchCoachmarkMock.mockReset();
 	focusRowControlMock.mockReset();
