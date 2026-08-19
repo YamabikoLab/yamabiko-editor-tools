@@ -98,7 +98,7 @@ test.describe( 'Table Reorder UI', () => {
 		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
 	} );
 
-	test( 'shows the keyboard coachmark and focuses the first row control', async ( {
+	test( 'shows the keyboard coachmark and focuses the current row control', async ( {
 		editor,
 		page,
 	} ) => {
@@ -112,19 +112,22 @@ test.describe( 'Table Reorder UI', () => {
 		const keyboardCoachmark = page.getByText(
 			/^(Reorder rows with the keyboard\. Select “Reorder rows” in the toolbar\.|キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択)$/
 		);
-		const firstRowControl = editorContext.getByRole( 'button', {
-			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
+		const secondRowCell = editorContext.getByText( 'Bravo', { exact: true } );
+		const secondRowControl = editorContext.getByRole( 'button', {
+			name: /^(Reorder row 2: Bravo|2行目「Bravo」を並べ替え)$/,
 		} );
 
 		await page.keyboard.press( 'Shift+Alt+KeyO' );
 		await tableListViewItem.focus();
 		await page.keyboard.press( 'Enter' );
 		await expect( keyboardCoachmark ).toBeVisible();
+		await expect( secondRowControl ).toBeAttached();
 
+		await secondRowCell.focus();
 		await reorderRowsButton.focus();
 		await page.keyboard.press( 'Enter' );
 		await expect( keyboardCoachmark ).toHaveCount( 0 );
-		await expect( firstRowControl ).toBeFocused();
+		await expect( secondRowControl ).toBeFocused();
 	} );
 } );
 
