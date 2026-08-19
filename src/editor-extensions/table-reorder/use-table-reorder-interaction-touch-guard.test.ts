@@ -129,8 +129,7 @@ describe( 'touch coachmark cell edit guard', () => {
 		useSelectMock.mockImplementation(
 			( selector: ( registrySelect: ( storeName: string ) => unknown ) => unknown ) =>
 				selector( () => ( {
-					get: ( _scope: string, name: string ) =>
-						name === 'tableReorderTouchCoachmarkDismissed',
+					get: ( _scope: string, name: string ) => name === 'tableReorderTouchCoachmarkDismissed',
 				} ) )
 		);
 		const context = createContext();
