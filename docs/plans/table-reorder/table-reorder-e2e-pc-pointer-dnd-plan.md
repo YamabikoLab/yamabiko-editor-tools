@@ -25,9 +25,6 @@ PC の行ハンドルを実際にドラッグして本文行を並べ替える�
 - ドラッグ中に有効な挿入位置が視覚的に示されることの代表確認
 - 元と同じ位置へ戻した場合に行順を変更しないことの代表確認
 - セルからのドラッグでは行並べ替えを開始しないことの代表確認
-- `rowspan` 範囲外の移動可能行が、結合範囲全体を越えて移動できることの代表確認
-- `rowspan` 範囲内の移動不能行に通常の移動可能ハンドルを提供しないことの代表確認
-- `colspan` だけを含む移動可能行を通常どおりドラッグできることの代表確認
 - iframe / non-iframe の両方で PC ポインター DnD が成立すること
 - `core/table` を基準にした代表シナリオ
 
@@ -36,13 +33,14 @@ PC の行ハンドルを実際にドラッグして本文行を並べ替える�
 - 行ハンドルのクリックによるドラッグ不要の移動先選択フロー（#256）
 - キーボードによる開始・移動・確定・キャンセル（#257）
 - タッチ環境のドラッグ操作（#258）
+- 結合セルと移動制約（#259）
 - データ保持の詳細な属性・装飾パターンの網羅
 - Undo / Redo の E2E（後続分類で扱う）
 - live region の文言や通知順序
 - 行ハンドルの target size の数値検証
 - ドラッグ UI の CSS 座標、opacity、transform など実装詳細
 - SortableJS の内部 state やイベント発火順序の直接検証
-- Core Table / Flexible Table Block、iframe / non-iframe、通常幅 / 全幅、結合セル有無の全組み合わせ網羅
+- Core Table / Flexible Table Block、iframe / non-iframe、通常幅 / 全幅の全組み合わせ網羅
 - Flexible Table Block を E2E のためだけに新規導入・セットアップすること
 
 ## Approach
@@ -63,7 +61,7 @@ Playwright では `mouse` を使って、利用者が行ハンドルを掴み、
 
 ### Jest と責務を重複させない
 
-Jest は移動計算、`rowspan` 境界、controller の pointer 分岐、drag UI state などを担当している。
+Jest は移動計算、controller の pointer 分岐、drag UI state などを担当している。
 
 Playwright では細かな移動候補を全列挙せず、次の統合境界だけを確認する。
 
@@ -102,17 +100,6 @@ Playwright では細かな移動候補を全列挙せず、次の統合境界だ
 - 元位置へ戻す no-op
 - セル操作と行ハンドル操作の分離
 
-### `mergedTableContent`
-
-必要最小限の結合セルだけを含む Table を使う。
-
-要件:
-
-- `rowspan` 範囲内の移動不能行を識別できる。
-- `rowspan` 範囲外に、結合範囲全体を越えて移動できる通常行を置く。
-- `colspan` だけを含む移動可能行を1行含める。
-- 結合セル以外の装飾や複雑なセル内容は入れない。
-
 ## Implementation phases
 
 ### Phase 1: PC DnD の共通準備を整える
@@ -124,7 +111,7 @@ Outcome:
 Tasks:
 
 - `tests/e2e/table-reorder-pointer-dnd.spec.ts` を追加する。
-- `basicTableContent` と `mergedTableContent` を定義する。
+- `basicTableContent` を定義する。
 - `admin.createNewPost()` と `editor.setContent()` を使い、各テストを独立させる。
 - iframe / non-iframe の editor canvas 取得は `@wordpress/e2e-test-utils-playwright` の既存 fixture / helper を優先する。
 - 行ハンドルは role / accessible name など利用者向けの semantic locator を優先して取得する。
@@ -172,24 +159,7 @@ Validation policy:
 - pointer controller の内部状態は検証しない。
 - 最終的に Table 内容の行順が変化していないことを確認する。
 
-### Phase 4: 結合セル境界の代表 DnD を固定する
-
-Outcome:
-
-- 実ブラウザの DnD でも、通常要件で定義された `rowspan` / `colspan` の代表制約が維持されることを固定する。
-
-Representative scenarios:
-
-1. `rowspan` 範囲内の移動不能行には、通常の移動可能ハンドルが提供されないことを確認する。
-2. `rowspan` 範囲外の通常行を、結合範囲全体を越えた有効位置へドラッグし、正常に確定できることを確認する。
-3. `colspan` だけを含む移動可能行を有効位置へドラッグし、正常に確定できることを確認する。
-
-Validation policy:
-
-- `rowspan` の全境界パターンは Jest に留める。
-- E2E では「移動不能行」「結合範囲越え」「colspan 行」の各代表1ケースに絞る。
-
-### Phase 5: iframe / non-iframe の境界を確認する
+### Phase 4: iframe / non-iframe の境界を確認する
 
 Outcome:
 
@@ -199,7 +169,7 @@ Tasks:
 
 - Phase 2 の基本 DnD を両環境で確認する。
 - 環境差による locator / mouse 座標取得の違いは helper 層で吸収する。
-- 結合セルなどの追加シナリオまで両環境へ機械的に複製しない。
+- no-op や通常編集との分離まで両環境へ機械的に複製しない。
 
 Validation:
 
@@ -222,7 +192,6 @@ E2E は互換性のある `wp-dev` 環境で実施する。手動環境検証は
 - 有効な別位置へのドロップで Table の行順が更新される。
 - ドラッグ中の有効な挿入位置を利用者が確認できる代表ケースがある。
 - 元位置への no-op と、セルからの通常操作で行順が変わらない代表ケースがある。
-- `rowspan` の移動不能行、結合範囲越え、`colspan` 行について代表ケースがある。
 - 基本 DnD が iframe / non-iframe の両方で成立する。
-- #256 / #257 / #258 の責務を取り込まず、PC ポインター DnD に限定されている。
+- #256 / #257 / #258 / #259 の責務を取り込まず、PC ポインター DnD に限定されている。
 - Jest で十分な細かな境界条件を Playwright へ重複させていない。
