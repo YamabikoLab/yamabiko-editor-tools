@@ -14,7 +14,7 @@
 		"networking": true
 	},
 	"login": true,
-	"landingPage": "/",
+	"landingPage": "/wp-admin/post.php?post=100&action=edit",
 	"steps": [
 		{
 			"step": "setSiteLanguage",
