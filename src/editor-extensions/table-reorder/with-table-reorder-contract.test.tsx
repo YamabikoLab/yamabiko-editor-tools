@@ -44,14 +44,7 @@ jest.mock( '@wordpress/components', () => {
 			}
 		>(
 			(
-				{
-					'aria-describedby': ariaDescribedBy,
-					children,
-					className,
-					label,
-					onClick,
-					showTooltip,
-				},
+				{ 'aria-describedby': ariaDescribedBy, children, className, label, onClick, showTooltip },
 				ref
 			) =>
 				React.createElement(
