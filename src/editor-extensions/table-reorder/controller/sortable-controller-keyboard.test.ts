@@ -29,14 +29,18 @@ type RuntimeOptions = {
 	onUnchoose: () => void;
 };
 
-type KeyModifiers = Pick< KeyboardEventInit, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' >;
+type KeyModifiers = Pick<
+	KeyboardEventInit,
+	'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey'
+>;
 
 const pressKey = (
 	control: HTMLButtonElement,
 	key: string,
 	modifiers: KeyModifiers | boolean = false
 ) => {
-	const modifierOptions = typeof modifiers === 'boolean' ? { shiftKey: modifiers } : modifiers;
+	const modifierOptions =
+		typeof modifiers === 'boolean' ? { shiftKey: modifiers } : modifiers;
 	const event = new KeyboardEvent( 'keydown', {
 		bubbles: true,
 		cancelable: true,
@@ -368,8 +372,8 @@ describe( 'createSortableController keyboard reorder', () => {
 		pressKey( control, 'ArrowDown' );
 		const guidance = document.querySelector( '.yamabiko-table-reorder-pointer-guidance' );
 		const insertionLine = document.querySelector< HTMLDivElement >(
-			'.yamabiko-table-reorder-insertion-line' )
-		;
+			'.yamabiko-table-reorder-insertion-line'
+		);
 		expect( guidance ).not.toBeNull();
 		expect( insertionLine?.style.display ).toBe( 'block' );
 
