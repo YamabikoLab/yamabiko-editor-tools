@@ -18,13 +18,19 @@
 	"steps": [
 		{
 			"step": "setSiteLanguage",
-			"language": "ja"
+			"language": "ja",
+			"progress": {
+				"caption": "日本語環境を設定中..."
+			}
 		},
 		{
 			"step": "setSiteOptions",
 			"options": {
 				"blogname": "Yamabiko Table Reorder Demo",
 				"blogdescription": "Yamabiko Editor Tools の Table Reorder 体験デモ"
+			},
+			"progress": {
+				"caption": "デモサイトを設定中..."
 			}
 		},
 		{
@@ -59,6 +65,9 @@
 			"data": {
 				"resource": "url",
 				"url": "https://raw.githubusercontent.com/YamabikoLab/yamabiko-editor-tools/main/demo/create-demo.php"
+			},
+			"progress": {
+				"caption": "デモデータを準備中..."
 			}
 		},
 		{
