@@ -88,7 +88,10 @@ test.describe( 'Table Reorder UI', () => {
 		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
 	} );
 
-	test( 'shows the keyboard coachmark and focuses the toolbar entry', async ( { editor, page } ) => {
+	test( 'shows the keyboard coachmark and focuses the toolbar entry', async ( {
+		editor,
+		page,
+	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableListViewItem = page.getByRole( 'link', {
 			name: /^(Table|テーブル)$/,
