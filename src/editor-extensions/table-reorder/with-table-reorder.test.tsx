@@ -114,7 +114,7 @@ describe( 'withTableReorder', () => {
 		const toolbarButton = mounted.container.querySelector< HTMLButtonElement >( 'button' );
 
 		expect( toolbarButton ).not.toBeNull();
-		expect( toolbarButton ).toBe( document.activeElement );
+		expect( toolbarButton ).toBe( toolbarButton?.ownerDocument.activeElement );
 		expect( toolbarButton ).not.toHaveClass( 'yamabiko-table-reorder-coachmark-target' );
 
 		mounted.unmount();
