@@ -81,12 +81,14 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 	const [ toolbarButton, setToolbarButton ] = useState< HTMLButtonElement | null >( null );
 	const {
 		anchorRef,
+		consumeTouchToolbarFocusRequest,
 		dismissKeyboardCoachmark,
 		dismissTouchCoachmark,
 		isHoverCapable,
 		isKeyboardCoachmarkVisible,
 		isTouchCoachmarkVisible,
 		isTouchReorderMode,
+		isTouchToolbarFocusRequested,
 		requestRowControlFocus,
 		toggleTouchReorderMode,
 	} = useTableReorder( {
@@ -103,6 +105,20 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 			toolbarButton.focus( { preventScroll: true } );
 		}
 	}, [ isKeyboardCoachmarkVisible, toolbarButton ] );
+
+	useEffect( () => {
+		if ( ! isTouchToolbarFocusRequested || ! isTouchCoachmarkVisible || ! toolbarButton ) {
+			return;
+		}
+
+		toolbarButton.focus( { preventScroll: true } );
+		consumeTouchToolbarFocusRequest();
+	}, [
+		consumeTouchToolbarFocusRequest,
+		isTouchCoachmarkVisible,
+		isTouchToolbarFocusRequested,
+		toolbarButton,
+	] );
 
 	const toolbarLabel = getToolbarReorderName();
 	const toolbarDescription = getToolbarReorderDescription();
@@ -132,7 +148,7 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 						label={ toolbarLabel }
 						onClick={ isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode }
 						ref={ setToolbarButton }
-						showTooltip
+						showTooltip={ ! isCoachmarkVisible }
 					/>
 					<span className="yamabiko-table-reorder-description" id={ toolbarDescriptionId }>
 						{ toolbarDescription }
