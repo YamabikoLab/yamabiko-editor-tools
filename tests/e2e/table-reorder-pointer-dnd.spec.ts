@@ -120,6 +120,9 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 		await expect
 			.poll( () => getTableRowOrder( tableRows ) )
 			.toEqual( [ 'Alpha', 'Charlie', 'Delta', 'Bravo' ] );
+		expect( await editor.getEditedPostContent() ).toContain(
+			'<tbody><tr><td>Alpha</td></tr><tr><td>Charlie</td></tr><tr><td>Delta</td></tr><tr><td>Bravo</td></tr></tbody>'
+		);
 	} );
 
 	test( 'keeps the row order when dropped back at the original position', async ( {
