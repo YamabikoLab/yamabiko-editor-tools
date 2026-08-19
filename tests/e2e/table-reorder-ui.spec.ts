@@ -78,9 +78,15 @@ test.describe( 'Table Reorder UI', () => {
 		const firstRowControl = editorContext.getByRole( 'button', {
 			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
 		} );
+		const reorderRowsButton = page.getByRole( 'button', {
+			name: /^(Reorder rows|行を並べ替え)$/,
+		} );
 
 		await editor.selectBlocks( tableBlock );
 		await expect( firstRowControl ).toBeAttached();
+
+		// hover 以外の表示理由を取り除く
+		await reorderRowsButton.focus();
 
 		await editorContext.getByText( 'Outside table', { exact: true } ).hover();
 		await expect( firstRowControl ).toHaveAttribute( 'data-visible', 'false' );
