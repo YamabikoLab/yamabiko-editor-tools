@@ -4,9 +4,9 @@
 
 - Parent issue: #215
 - Requirements:
-  - `docs/requirements/table-reorder/table-reorder-sortablejs-requirements.md`
-  - `docs/requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md`
-- Design: `docs/design/table-reorder/table-reorder-sortablejs-accessibility-design.md`
+  - `docs/requirements/table-reorder/table-reorder-requirements.md`
+  - `docs/requirements/table-reorder/table-reorder-accessibility-requirements.md`
+- Design: `docs/design/table-reorder/table-reorder-accessibility-design.md`
 - Current implementation overview: `src/editor-extensions/table-reorder/README.md`
 - Plan template: `docs/plans/TEMPLATE.md`
 - Historical reference only: `docs/plans/table-reorder/archive/table-reorder-accessibility-plan.md`

@@ -7,13 +7,13 @@
 | 機能名 | Table Reorder アクセシビリティ |
 | 対象 | WordPress Core Table と Flexible Table Block |
 | 文書種別 | アクセシビリティ要件定義書 |
-| 基礎要件 | `table-reorder-sortablejs-requirements.md` |
+| 基礎要件 | `table-reorder-requirements.md` |
 
 ## 2. 目的と責務
 
 本書は Table Reorder について、利用者が何をできる必要があるか、どのアクセシビリティ上の性質を追加で満たす必要があるかを定義する。
 
-通常の PC・タッチ操作、データ保持、Undo、結合セルの基本的な移動制約、対象範囲などは `table-reorder-sortablejs-requirements.md` を正とし、本書では重複して定義しない。
+通常の PC・タッチ操作、データ保持、Undo、結合セルの基本的な移動制約、対象範囲などは `table-reorder-requirements.md` を正とし、本書では重複して定義しない。
 
 具体的なキー割り当て、画面構成、操作フロー、状態遷移、フォーカス遷移、案内の表示条件・文言、支援技術への情報提供方法など、利用者向けの具体的な実現方法は基本設計で扱う。
 
@@ -158,7 +158,7 @@ Table Reorder が追加・変更する UI について、**WCAG 2.2 Level AA** �
 
 ## 関連
 
-- 基本要件: `docs/requirements/table-reorder/table-reorder-sortablejs-requirements.md`
+- 基本要件: `docs/requirements/table-reorder/table-reorder-requirements.md`
 - 文書同期プラン: `docs/plans/table-reorder/table-reorder-document-sync-plan.md`
 - 文書同期 差分分析: `docs/plans/table-reorder/table-reorder-document-sync-gap-analysis.md`
 - WCAG 2.2: https://www.w3.org/TR/WCAG22/

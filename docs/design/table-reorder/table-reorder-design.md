@@ -7,8 +7,8 @@
 | 機能名 | Table Reorder |
 | 対象 | WordPress Core Table と Flexible Table Block |
 | 文書種別 | 基本設計書 |
-| 基本要件 | `../../requirements/table-reorder/table-reorder-sortablejs-requirements.md` |
-| アクセシビリティ要件 | `../../requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md` |
+| 基本要件 | `../../requirements/table-reorder/table-reorder-requirements.md` |
+| アクセシビリティ要件 | `../../requirements/table-reorder/table-reorder-accessibility-requirements.md` |
 
 ## 2. 目的と責務
 
@@ -195,8 +195,8 @@ Table Reorder は iframe・non-iframe の両方で、利用者から見て同じ
 
 ## 関連
 
-- 基本要件: `../../requirements/table-reorder/table-reorder-sortablejs-requirements.md`
-- アクセシビリティ要件: `../../requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md`
-- アクセシビリティ基本設計: `table-reorder-sortablejs-accessibility-design.md`
+- 基本要件: `../../requirements/table-reorder/table-reorder-requirements.md`
+- アクセシビリティ要件: `../../requirements/table-reorder/table-reorder-accessibility-requirements.md`
+- アクセシビリティ基本設計: `table-reorder-accessibility-design.md`
 - 文書同期プラン: `../../plans/table-reorder/table-reorder-document-sync-plan.md`
 - 文書同期 差分分析: `../../plans/table-reorder/table-reorder-document-sync-gap-analysis.md`

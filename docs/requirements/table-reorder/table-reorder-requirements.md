@@ -117,6 +117,6 @@ PC・タッチでどの画面や操作入口を利用し、どのような手順
 
 ## 関連
 
-- アクセシビリティ要件: `docs/requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md`
+- アクセシビリティ要件: `docs/requirements/table-reorder/table-reorder-accessibility-requirements.md`
 - 文書同期プラン: `docs/plans/table-reorder/table-reorder-document-sync-plan.md`
 - 文書同期 差分分析: `docs/plans/table-reorder/table-reorder-document-sync-gap-analysis.md`

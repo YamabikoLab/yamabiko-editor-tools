@@ -7,8 +7,8 @@
 | 機能名 | Table Reorder アクセシビリティ |
 | 対象 | WordPress Core Table と Flexible Table Block |
 | 文書種別 | 基本設計書 |
-| アクセシビリティ要件 | `../../requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md` |
-| 基本要件 | `../../requirements/table-reorder/table-reorder-sortablejs-requirements.md` |
+| アクセシビリティ要件 | `../../requirements/table-reorder/table-reorder-accessibility-requirements.md` |
+| 基本要件 | `../../requirements/table-reorder/table-reorder-requirements.md` |
 | 通常操作基本設計 | `table-reorder-design.md` |
 
 ## 2. 目的と責務
@@ -339,8 +339,8 @@ iframe・non-iframe の両方で、次を同じ意味で成立させる。
 
 ## 関連
 
-- 基本要件: `../../requirements/table-reorder/table-reorder-sortablejs-requirements.md`
-- アクセシビリティ要件: `../../requirements/table-reorder/table-reorder-sortablejs-accessibility-requirements.md`
+- 基本要件: `../../requirements/table-reorder/table-reorder-requirements.md`
+- アクセシビリティ要件: `../../requirements/table-reorder/table-reorder-accessibility-requirements.md`
 - 通常操作基本設計: `table-reorder-design.md`
 - 文書同期プラン: `../../plans/table-reorder/table-reorder-document-sync-plan.md`
 - 文書同期 差分分析: `../../plans/table-reorder/table-reorder-document-sync-gap-analysis.md`
