@@ -519,13 +519,15 @@ export const createSortableController = (
 		}
 
 		if ( session.kind === 'idle' ) {
-			if (
+			// 待機中のフォーカス移動を防ぐため、修飾キーなしの上下矢印だけを抑止する。
+			const isUnmodifiedArrowKey =
 				( event.key === 'ArrowUp' || event.key === 'ArrowDown' ) &&
 				! event.shiftKey &&
 				! event.ctrlKey &&
 				! event.altKey &&
-				! event.metaKey
-			) {
+				! event.metaKey;
+
+			if ( isUnmodifiedArrowKey ) {
 				event.preventDefault();
 				event.stopPropagation();
 				return;
