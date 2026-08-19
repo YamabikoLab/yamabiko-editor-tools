@@ -63,6 +63,7 @@ jest.mock( './use-table-reorder', () => ( {
 
 const useTableReorderMock = useTableReorder as jest.MockedFunction< typeof useTableReorder >;
 
+const consumeTouchToolbarFocusRequestMock = jest.fn();
 const dismissKeyboardCoachmarkMock = jest.fn();
 const dismissTouchCoachmarkMock = jest.fn();
 const requestRowControlFocusMock = jest.fn();
@@ -72,12 +73,14 @@ const createHookResult = (
 	overrides: Partial< ReturnType< typeof useTableReorder > > = {}
 ): ReturnType< typeof useTableReorder > => ( {
 	anchorRef: { current: null },
+	consumeTouchToolbarFocusRequest: consumeTouchToolbarFocusRequestMock,
 	dismissKeyboardCoachmark: dismissKeyboardCoachmarkMock,
 	dismissTouchCoachmark: dismissTouchCoachmarkMock,
 	isHoverCapable: true,
 	isKeyboardCoachmarkVisible: false,
 	isTouchCoachmarkVisible: false,
 	isTouchReorderMode: false,
+	isTouchToolbarFocusRequested: false,
 	requestRowControlFocus: requestRowControlFocusMock,
 	toggleTouchReorderMode: toggleTouchReorderModeMock,
 	...overrides,
@@ -122,6 +125,7 @@ beforeEach( () => {
 	document.body.replaceChildren();
 	BlockEdit.mockClear();
 	useTableReorderMock.mockReset();
+	consumeTouchToolbarFocusRequestMock.mockReset();
 	dismissKeyboardCoachmarkMock.mockReset();
 	dismissTouchCoachmarkMock.mockReset();
 	requestRowControlFocusMock.mockReset();
