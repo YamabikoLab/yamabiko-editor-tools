@@ -519,6 +519,18 @@ export const createSortableController = (
 		}
 
 		if ( session.kind === 'idle' ) {
+			if (
+				( event.key === 'ArrowUp' || event.key === 'ArrowDown' ) &&
+				! event.shiftKey &&
+				! event.ctrlKey &&
+				! event.altKey &&
+				! event.metaKey
+			) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+
 			if ( event.key === 'Tab' ) {
 				const entryIndex = entries.indexOf( entry );
 				const nextEntry = entries[ entryIndex + ( event.shiftKey ? -1 : 1 ) ];
