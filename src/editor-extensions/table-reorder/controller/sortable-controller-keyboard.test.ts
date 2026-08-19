@@ -203,6 +203,28 @@ describe( 'createSortableController keyboard reorder', () => {
 		controller.destroy();
 	} );
 
+	it( 'moves Tab and Shift+Tab between idle row controls', () => {
+		const { context, tbody } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit: jest.fn(),
+			rows: [ 'a', 'b', 'c', 'd' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		const secondControl = getControl( tbody, 1 );
+		const thirdControl = getControl( tbody, 2 );
+		secondControl.focus();
+
+		expect( pressKey( secondControl, 'Tab' ).defaultPrevented ).toBe( true );
+		expect( tbody.ownerDocument.activeElement ).toBe( thirdControl );
+		expect( pressKey( thirdControl, 'Tab', true ).defaultPrevented ).toBe( true );
+		expect( tbody.ownerDocument.activeElement ).toBe( secondControl );
+		controller.destroy();
+	} );
+
 	it( 'ignores pointer start while a keyboard session is active', () => {
 		const { context, tbody } = createContext();
 		const onCommit = jest.fn();

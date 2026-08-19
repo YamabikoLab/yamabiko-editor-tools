@@ -182,6 +182,7 @@ export const createRowControls = (
 					'aria-pressed': isPressed,
 					className: HANDLE_ZONE_CLASS,
 					contentEditable: false,
+					tabIndex: 0,
 					type: 'button',
 				},
 				createElement(
