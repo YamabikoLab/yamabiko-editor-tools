@@ -100,7 +100,7 @@ test.describe( 'Table Reorder UI', () => {
 			name: /^(Reorder rows|行を並べ替え)$/,
 		} );
 		const keyboardCoachmark = page.getByText(
-			/^(Reorder rows with the keyboard\. Select “Reorder rows” in the toolbar, then use Tab \/ Shift\+Tab to choose a row to reorder\.|キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab \/ Shift\+Tab で並べ替える行を選びます。)$/
+			/^(Reorder rows with the keyboard\. Select “Reorder rows” in the toolbar, then use Tab \/ Shift\+Tab to choose a row to reorder\.|キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab \/ Shift\+Tab で並べ替える行を選べます。)$/
 		);
 		const secondRowCell = editorContext.getByText( 'Bravo', { exact: true } );
 		const secondRowControl = editorContext.getByRole( 'button', {
