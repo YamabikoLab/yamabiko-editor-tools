@@ -40,6 +40,11 @@ type PreferencesActions = {
 	set: ( scope: string, name: string, value: unknown ) => Promise< unknown > | unknown;
 };
 
+/** WordPress block editor actionsの利用部分。 */
+type BlockEditorActions = {
+	selectBlock: ( clientId: string ) => void;
+};
+
 /** interaction hookへ渡すTable block側の入力。 */
 type UseTableReorderInteractionOptions = {
 	anchorRef: RefObject< HTMLSpanElement >;
@@ -71,6 +76,7 @@ export const useTableReorderInteraction = (
 ): TableReorderInteraction => {
 	const { anchorRef, clientId, enabled, isSelected } = options;
 	const preferencesActions = useDispatch( 'core/preferences' ) as unknown as PreferencesActions;
+	const { selectBlock } = useDispatch( 'core/block-editor' ) as unknown as BlockEditorActions;
 	const isKeyboardCoachmarkDismissed = useSelect( ( registrySelect ) => {
 		const preferences = registrySelect( 'core/preferences' ) as unknown as PreferencesSelector;
 		return preferences.get( PREFERENCES_SCOPE, KEYBOARD_COACHMARK_DISMISSED_PREFERENCE ) === true;
@@ -151,9 +157,26 @@ export const useTableReorderInteraction = (
 				setInputModality( 'keyboard' );
 			}
 		};
-		const onPointerDown = () => {
+		const onPointerDown = ( event: PointerEvent ) => {
 			inputModalityRef.current = 'pointer';
 			setInputModality( 'pointer' );
+
+			const target = event.target as Node | null;
+			const table = context?.tbody.closest( 'table' );
+			if (
+				isHoverCapable ||
+				isTouchCoachmarkDismissed ||
+				isTouchCoachmarkDismissedLocally ||
+				! target ||
+				! table?.contains( target )
+			) {
+				return;
+			}
+
+			event.preventDefault();
+			if ( ! isSelected ) {
+				selectBlock( clientId );
+			}
 		};
 		const onFocusIn = ( event: FocusEvent ) => {
 			const target = event.target as Element | null;
@@ -189,7 +212,17 @@ export const useTableReorderInteraction = (
 				document.removeEventListener( 'focusin', onFocusIn, true );
 			}
 		};
-	}, [ anchorRef, clientId, enabled, preferencesActions ] );
+	}, [
+		anchorRef,
+		clientId,
+		enabled,
+		isHoverCapable,
+		isSelected,
+		isTouchCoachmarkDismissed,
+		isTouchCoachmarkDismissedLocally,
+		preferencesActions,
+		selectBlock,
+	] );
 
 	useEffect( () => {
 		if ( ! isSelected ) {
