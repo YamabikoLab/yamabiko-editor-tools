@@ -105,7 +105,7 @@ $flexible_rows = [
 	[ 23, 'Masherbrum', '7,821 m', 'パキスタン' ],
 	[ 24, 'Nanda Devi', '7,816 m', 'インド' ],
 	[ 25, 'Chomo Lonzo', '7,804 m', '中国' ],
-	[ 26, 'Batura Sar', '7,795 m', '中国' ],
+	[ 26, 'Batura Sar', '7,795 m', 'パキスタン' ],
 	[ 27, 'Rakaposhi', '7,788 m', 'パキスタン' ],
 	[ 28, 'Namcha Barwa', '7,782 m', '中国' ],
 	[ 29, 'Kanjut Sar', '7,760 m', 'パキスタン' ],
