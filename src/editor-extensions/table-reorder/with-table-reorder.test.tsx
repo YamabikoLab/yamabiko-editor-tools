@@ -113,9 +113,14 @@ describe( 'withTableReorder', () => {
 		const mounted = render( props );
 		const toolbarButton = mounted.container.querySelector< HTMLButtonElement >( 'button' );
 
-		expect( toolbarButton ).not.toBeNull();
-		expect( toolbarButton ).toBe( toolbarButton?.ownerDocument.activeElement );
-		expect( toolbarButton ).not.toHaveClass( 'yamabiko-table-reorder-coachmark-target' );
+		if ( ! toolbarButton ) {
+			throw new Error( 'Toolbar button was not rendered.' );
+		}
+
+		expect( toolbarButton ).toBe( toolbarButton.ownerDocument.activeElement );
+		expect( toolbarButton.classList.contains( 'yamabiko-table-reorder-coachmark-target' ) ).toBe(
+			false
+		);
 
 		mounted.unmount();
 	} );
