@@ -1,6 +1,7 @@
-import type { FrameLocator, Page } from '@playwright/test';
 import type { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
+
+import { getEditorContext } from './editor-context';
 
 const BASIC_TABLE_CONTENT = `<!-- wp:table -->
 <figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td>Alpha</td></tr><tr><td>Bravo</td></tr><tr><td>Charlie</td></tr></tbody></table></figure>
@@ -22,17 +23,6 @@ async function setTableReorderCoachmarkDismissal(
 		[ KEYBOARD_COACHMARK_DISMISSED_PREFERENCE ]: dismissed,
 		[ TOUCH_COACHMARK_DISMISSED_PREFERENCE ]: dismissed,
 	} );
-}
-
-async function getEditorContext(
-	page: Page,
-	editorCanvas: FrameLocator
-): Promise< Page | FrameLocator > {
-	if ( ( await page.locator( 'iframe[name="editor-canvas"]' ).count() ) > 0 ) {
-		return editorCanvas;
-	}
-
-	return page;
 }
 
 test.describe( 'Table Reorder UI', () => {
