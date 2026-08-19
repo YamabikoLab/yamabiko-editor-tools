@@ -56,8 +56,6 @@
   - 新しい英語 msgid と日本語訳を同期する。
 - `src/editor-extensions/table-reorder/controller/sortable-controller-keyboard.test.ts`
   - idle plain Arrow の抑止と modifier Arrow の passthrough を固定する。
-- `src/editor-extensions/table-reorder/with-table-reorder.test.tsx`
-  - キーボードコーチマーク時の ToolbarButton focus と追加強調なしを固定する。
 - `tests/e2e/table-reorder-keyboard.spec.ts`
   - 実 Gutenberg 上で plain Arrow がフォーカスを動かさず、Tab が引き続き移動することを確認する。
 - `tests/e2e/table-reorder-ui.spec.ts`
@@ -88,8 +86,7 @@
   - 翻訳 JSON の msgid / 日本語訳を更新する。
   - 待機中ツールチップは変更しない。
 - Validation:
-  - `with-table-reorder.test.tsx` で focus と追加強調なしを確認する。
-  - `table-reorder-ui.spec.ts` でコーチマーク表示直後の focus と `Enter` 入口を確認する。
+  - `table-reorder-ui.spec.ts` でコーチマーク表示直後の focus と `Enter` 入口を実 Gutenberg 上で確認する。
 
 ### Phase 3: Gutenberg E2E を更新
 
@@ -158,4 +155,5 @@
 ## Notes
 
 - idle Arrow の実装は row control 自身の `keydown` に限定し、Gutenberg の内部 DOM や `WritingFlow` 実装への依存を追加しない。
+- キーボード初回コーチマークの実フォーカスは、簡易 DOM mock ではなく実 Gutenberg 上の E2E で確認する。
 - 検証はユーザーが実施する。
