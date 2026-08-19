@@ -29,12 +29,19 @@ type RuntimeOptions = {
 	onUnchoose: () => void;
 };
 
-const pressKey = ( control: HTMLButtonElement, key: string, shiftKey = false ) => {
+type KeyModifiers = Pick< KeyboardEventInit, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' >;
+
+const pressKey = (
+	control: HTMLButtonElement,
+	key: string,
+	modifiers: KeyModifiers | boolean = false
+) => {
+	const modifierOptions = typeof modifiers === 'boolean' ? { shiftKey: modifiers } : modifiers;
 	const event = new KeyboardEvent( 'keydown', {
 		bubbles: true,
 		cancelable: true,
 		key,
-		shiftKey,
+		...modifierOptions,
 	} );
 	control.dispatchEvent( event );
 	return event;
@@ -225,6 +232,43 @@ describe( 'createSortableController keyboard reorder', () => {
 		controller.destroy();
 	} );
 
+	it( 'blocks unmodified idle Arrow keys and passes modified Arrow keys through', () => {
+		const { context, tbody } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit: jest.fn(),
+			rows: [ 'a', 'b', 'c', 'd' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		const control = getControl( tbody, 1 );
+		const onKeyDown = jest.fn();
+		document.addEventListener( 'keydown', onKeyDown );
+		control.focus();
+
+		expect( pressKey( control, 'ArrowUp' ).defaultPrevented ).toBe( true );
+		expect( pressKey( control, 'ArrowDown' ).defaultPrevented ).toBe( true );
+		expect( onKeyDown ).not.toHaveBeenCalled();
+
+		const modifiers: KeyModifiers[] = [
+			{ shiftKey: true },
+			{ ctrlKey: true },
+			{ altKey: true },
+			{ metaKey: true },
+		];
+		for ( const modifier of modifiers ) {
+			for ( const key of [ 'ArrowUp', 'ArrowDown' ] as const ) {
+				expect( pressKey( control, key, modifier ).defaultPrevented ).toBe( false );
+			}
+		}
+		expect( onKeyDown ).toHaveBeenCalledTimes( 8 );
+
+		document.removeEventListener( 'keydown', onKeyDown );
+		controller.destroy();
+	} );
+
 	it( 'ignores pointer start while a keyboard session is active', () => {
 		const { context, tbody } = createContext();
 		const onCommit = jest.fn();
@@ -324,8 +368,8 @@ describe( 'createSortableController keyboard reorder', () => {
 		pressKey( control, 'ArrowDown' );
 		const guidance = document.querySelector( '.yamabiko-table-reorder-pointer-guidance' );
 		const insertionLine = document.querySelector< HTMLDivElement >(
-			'.yamabiko-table-reorder-insertion-line'
-		);
+			'.yamabiko-table-reorder-insertion-line' )
+		;
 		expect( guidance ).not.toBeNull();
 		expect( insertionLine?.style.display ).toBe( 'block' );
 
