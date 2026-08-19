@@ -164,7 +164,7 @@ export const getMoveCommittedAnnouncement = (
 };
 
 /**
- * 行移動のキャンセル結果を支援技術へ伝える文言を返す。
+ * 行移動のキャンセルを支援技術へ伝える文言を返す。
  *
  * @param rowLabel  対象行の代表情報。
  * @param rowNumber 1始まりの維持された行位置。
