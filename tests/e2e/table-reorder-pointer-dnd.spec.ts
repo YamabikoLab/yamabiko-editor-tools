@@ -1,57 +1,15 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
-import { getEditorContext, type EditorContext } from './editor-context';
-
-const basicTableContent = `<!-- wp:table -->
-<figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td>Alpha</td></tr><tr><td>Bravo</td></tr><tr><td>Charlie</td></tr><tr><td>Delta</td></tr></tbody></table></figure>
-<!-- /wp:table -->`;
-
-const basicRowLabels = [ 'Alpha', 'Bravo', 'Charlie', 'Delta' ] as const;
-
-function getTableRows( editorContext: EditorContext ): Locator {
-	return editorContext.locator( '[data-type="core/table"][data-block] tbody tr' );
-}
-
-function getTableRow( tableRows: Locator, rowLabel: string ): Locator {
-	return tableRows.filter( { hasText: rowLabel } );
-}
-
-async function getTableRowOrder( tableRows: Locator ): Promise< string[] > {
-	const rows = await tableRows.all();
-
-	return Promise.all(
-		rows.map( async ( row ) => {
-			for ( const label of basicRowLabels ) {
-				if ( ( await row.getByText( label, { exact: true } ).count() ) > 0 ) {
-					return label;
-				}
-			}
-
-			throw new Error( 'Could not identify a table row from its visible text.' );
-		} )
-	);
-}
-
-async function getRowHandle(
-	editorContext: EditorContext,
-	tableRows: Locator,
-	rowNumber: number,
-	rowLabel: string
-): Promise< Locator > {
-	const row = getTableRow( tableRows, rowLabel );
-	const handle = editorContext.getByRole( 'button', {
-		name: new RegExp(
-			`^(Reorder row ${ rowNumber }: ${ rowLabel }|${ rowNumber }行目「${ rowLabel }」を並べ替え)$`
-		),
-	} );
-
-	await row.hover();
-	await expect( handle ).toHaveAttribute( 'data-visible', 'true' );
-	await expect( handle ).toBeVisible();
-
-	return handle;
-}
+import { getEditorContext } from './editor-context';
+import {
+	basicRowLabels,
+	basicTableContent,
+	getRowHandle,
+	getTableRow,
+	getTableRowOrder,
+	getTableRows,
+} from './table-reorder';
 
 type VerticalTarget = 'before' | 'center' | 'after';
 
