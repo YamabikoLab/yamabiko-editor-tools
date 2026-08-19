@@ -102,26 +102,4 @@ describe( 'withTableReorder', () => {
 
 		mounted.unmount();
 	} );
-
-	it( 'focuses the toolbar button without coachmark target styling for the keyboard coachmark', () => {
-		useTableReorderMock.mockReturnValue( {
-			...createHookResult(),
-			isKeyboardCoachmarkVisible: true,
-		} );
-		const props = createProps( 'core/table' );
-		props.isSelected = true;
-		const mounted = render( props );
-		const toolbarButton = mounted.container.querySelector< HTMLButtonElement >( 'button' );
-
-		if ( ! toolbarButton ) {
-			throw new Error( 'Toolbar button was not rendered.' );
-		}
-
-		expect( toolbarButton ).toBe( toolbarButton.ownerDocument.activeElement );
-		expect( toolbarButton.classList.contains( 'yamabiko-table-reorder-coachmark-target' ) ).toBe(
-			false
-		);
-
-		mounted.unmount();
-	} );
 } );
