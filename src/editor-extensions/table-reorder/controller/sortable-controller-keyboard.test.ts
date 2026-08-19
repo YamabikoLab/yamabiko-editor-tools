@@ -29,18 +29,14 @@ type RuntimeOptions = {
 	onUnchoose: () => void;
 };
 
-type KeyModifiers = Pick<
-	KeyboardEventInit,
-	'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey'
->;
+type KeyModifiers = Pick< KeyboardEventInit, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' >;
 
 const pressKey = (
 	control: HTMLButtonElement,
 	key: string,
 	modifiers: KeyModifiers | boolean = false
 ) => {
-	const modifierOptions =
-		typeof modifiers === 'boolean' ? { shiftKey: modifiers } : modifiers;
+	const modifierOptions = typeof modifiers === 'boolean' ? { shiftKey: modifiers } : modifiers;
 	const event = new KeyboardEvent( 'keydown', {
 		bubbles: true,
 		cancelable: true,
