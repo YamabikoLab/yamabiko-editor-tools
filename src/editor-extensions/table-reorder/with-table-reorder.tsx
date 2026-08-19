@@ -148,7 +148,7 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 						label={ toolbarLabel }
 						onClick={ isHoverCapable ? requestRowControlFocus : toggleTouchReorderMode }
 						ref={ setToolbarButton }
-						showTooltip
+						showTooltip={ ! isCoachmarkVisible }
 					/>
 					<span className="yamabiko-table-reorder-description" id={ toolbarDescriptionId }>
 						{ toolbarDescription }
