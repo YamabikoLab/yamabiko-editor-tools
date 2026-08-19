@@ -8,6 +8,7 @@
 	<config name="minimum_wp_version" value="6.8"/>
 
 	<exclude-pattern>*/build/*</exclude-pattern>
+	<exclude-pattern>*/demo/create-demo.php</exclude-pattern>
 	<exclude-pattern>*/dist/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
