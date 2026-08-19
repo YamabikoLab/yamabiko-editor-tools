@@ -11,6 +11,10 @@ jest.mock( '@wordpress/data', () => ( {
 	useSelect: jest.fn(),
 } ) );
 
+jest.mock( './controller/reorder-ui', () => ( {
+	HANDLE_ZONE_CLASS: 'yamabiko-table-reorder-handle-zone',
+} ) );
+
 jest.mock( './table-context', () => ( {
 	resolveTableContext: jest.fn(),
 } ) );
