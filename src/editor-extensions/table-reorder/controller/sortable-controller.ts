@@ -519,6 +519,20 @@ export const createSortableController = (
 		}
 
 		if ( session.kind === 'idle' ) {
+			// 待機中のフォーカス移動を防ぐため、修飾キーなしの上下矢印だけを抑止する。
+			const isUnmodifiedArrowKey =
+				( event.key === 'ArrowUp' || event.key === 'ArrowDown' ) &&
+				! event.shiftKey &&
+				! event.ctrlKey &&
+				! event.altKey &&
+				! event.metaKey;
+
+			if ( isUnmodifiedArrowKey ) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+
 			if ( event.key === 'Tab' ) {
 				const entryIndex = entries.indexOf( entry );
 				const nextEntry = entries[ entryIndex + ( event.shiftKey ? -1 : 1 ) ];

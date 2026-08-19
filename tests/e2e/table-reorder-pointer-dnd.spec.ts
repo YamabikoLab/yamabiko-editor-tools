@@ -91,9 +91,9 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 		const tableRows = getTableRows( editorContext );
 		const originalContent = await editor.getEditedPostContent();
 		const bravoHandle = await getRowHandle( editorContext, tableRows, 2, 'Bravo' );
-		const alphaRow = getTableRow( tableRows, 'Alpha' );
+		const bravoRow = getTableRow( tableRows, 'Bravo' );
 
-		await dragWithMouse( page, bravoHandle, alphaRow, 'after' );
+		await dragWithMouse( page, bravoHandle, bravoRow, 'center' );
 
 		expect( await getTableRowOrder( tableRows ) ).toEqual( basicRowLabels );
 		expect( await editor.getEditedPostContent() ).toBe( originalContent );

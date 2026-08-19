@@ -33,7 +33,7 @@ export const getTouchPointerActiveMessage = (): string =>
 /** PC keyboard利用時に初回だけ表示するcoachmark文言を返す。 */
 export const getKeyboardCoachmarkMessage = (): string =>
 	__(
-		'Reorder rows with the keyboard. Select “Reorder rows” in the toolbar.',
+		'Reorder rows with the keyboard. Select “Reorder rows” in the toolbar, then use Tab / Shift+Tab to choose a row to reorder.',
 		'yamabiko-editor-tools'
 	);
 

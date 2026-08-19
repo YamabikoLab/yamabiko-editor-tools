@@ -117,7 +117,7 @@ test.describe( 'Table Reorder keyboard operation', () => {
 		await editor.selectBlocks( editorContext.locator( '[data-type="core/table"][data-block]' ) );
 	} );
 
-	test( 'enters row controls from the toolbar and tabs in logical order', async ( {
+	test( 'keeps idle Arrow focus and tabs row controls in logical order', async ( {
 		editor,
 		page,
 	} ) => {
@@ -131,6 +131,11 @@ test.describe( 'Table Reorder keyboard operation', () => {
 			'Bravo'
 		);
 		const charlieControl = getRowControl( editorContext, 3, 'Charlie' );
+
+		await page.keyboard.press( 'ArrowDown' );
+		await expect( bravoControl ).toBeFocused();
+		await page.keyboard.press( 'ArrowUp' );
+		await expect( bravoControl ).toBeFocused();
 
 		await page.keyboard.press( 'Tab' );
 		await expect( charlieControl ).toBeFocused();

@@ -7,7 +7,7 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { Button, Popover, ToolbarButton } from '@wordpress/components';
-import { useState, type ComponentType } from '@wordpress/element';
+import { useEffect, useState, type ComponentType } from '@wordpress/element';
 import { dragHandle, Icon, keyboard } from '@wordpress/icons';
 
 import {
@@ -98,6 +98,12 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 		setAttributes,
 	} );
 
+	useEffect( () => {
+		if ( isKeyboardCoachmarkVisible && toolbarButton ) {
+			toolbarButton.focus( { preventScroll: true } );
+		}
+	}, [ isKeyboardCoachmarkVisible, toolbarButton ] );
+
 	const toolbarLabel = getToolbarReorderName();
 	const toolbarDescription = getToolbarReorderDescription();
 	const toolbarDescriptionId = `yamabiko-table-reorder-toolbar-description-${ clientId }`;
@@ -118,7 +124,9 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 				<BlockControls>
 					<ToolbarButton
 						aria-describedby={ toolbarDescriptionId }
-						className={ isCoachmarkVisible ? 'yamabiko-table-reorder-coachmark-target' : undefined }
+						className={
+							isTouchCoachmarkVisible ? 'yamabiko-table-reorder-coachmark-target' : undefined
+						}
 						icon="sort"
 						isPressed={ isHoverCapable ? undefined : isTouchReorderMode }
 						label={ toolbarLabel }
