@@ -180,7 +180,7 @@ PC で行ハンドルをクリックして移動対象を選択した場合は�
 hover 可能な環境では、キーボード操作で対象 Table を選択した初回に、ツールバーの「行を並べ替え」に関連付けて次の案内を表示する。
 
 - English: `Reorder rows with the keyboard. Select “Reorder rows” in the toolbar, then use Tab / Shift+Tab to choose a row to reorder.`
-- 日本語: `キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab / Shift+Tab で並べ替える行を選びます。`
+- 日本語: `キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab / Shift+Tab で並べ替える行を選べます。`
 
 利用者が案内を閉じた場合、または「行を並べ替え」を実行して行の並べ替え操作へ入った場合に表示を終了する。
 
