@@ -40,6 +40,11 @@ type PreferencesActions = {
 	set: ( scope: string, name: string, value: unknown ) => Promise< unknown > | unknown;
 };
 
+/** WordPress block editor actionsの利用部分。 */
+type BlockEditorActions = {
+	selectBlock: ( clientId: string ) => void;
+};
+
 /** interaction hookへ渡すTable block側の入力。 */
 type UseTableReorderInteractionOptions = {
 	anchorRef: RefObject< HTMLSpanElement >;
@@ -50,6 +55,7 @@ type UseTableReorderInteractionOptions = {
 
 /** interaction hookが親へ公開するstate / command。 */
 type TableReorderInteraction = {
+	consumeTouchToolbarFocusRequest: () => void;
 	dismissKeyboardCoachmark: () => void;
 	dismissTouchCoachmark: () => void;
 	interactionMode: ReorderInteractionMode | null;
@@ -57,6 +63,7 @@ type TableReorderInteraction = {
 	isKeyboardCoachmarkVisible: boolean;
 	isTouchCoachmarkVisible: boolean;
 	isTouchReorderMode: boolean;
+	isTouchToolbarFocusRequested: boolean;
 	toggleTouchReorderMode: () => void;
 };
 
@@ -71,6 +78,7 @@ export const useTableReorderInteraction = (
 ): TableReorderInteraction => {
 	const { anchorRef, clientId, enabled, isSelected } = options;
 	const preferencesActions = useDispatch( 'core/preferences' ) as unknown as PreferencesActions;
+	const { selectBlock } = useDispatch( 'core/block-editor' ) as unknown as BlockEditorActions;
 	const isKeyboardCoachmarkDismissed = useSelect( ( registrySelect ) => {
 		const preferences = registrySelect( 'core/preferences' ) as unknown as PreferencesSelector;
 		return preferences.get( PREFERENCES_SCOPE, KEYBOARD_COACHMARK_DISMISSED_PREFERENCE ) === true;
@@ -91,6 +99,9 @@ export const useTableReorderInteraction = (
 	const [ isTouchCoachmarkDismissedLocally, setIsTouchCoachmarkDismissedLocally ] =
 		useState( false );
 	const [ isTouchReorderMode, setIsTouchReorderMode ] = useState( false );
+	const [ isTouchToolbarFocusRequested, setIsTouchToolbarFocusRequested ] = useState( false );
+	const hasHandledInitialTouchGestureRef = useRef( false );
+	const suppressNextTableClickRef = useRef( false );
 
 	const isKeyboardCoachmarkVisible =
 		enabled &&
@@ -145,15 +156,48 @@ export const useTableReorderInteraction = (
 			documents.add( context.document );
 		}
 
+		const isTargetInsideTable = ( target: EventTarget | null ) => {
+			const node = target as Node | null;
+			const table = context?.tbody.closest( 'table' );
+			return Boolean( node && table?.contains( node ) );
+		};
 		const onKeyDown = ( event: KeyboardEvent ) => {
 			if ( ! MODIFIER_KEYS.has( event.key ) ) {
 				inputModalityRef.current = 'keyboard';
 				setInputModality( 'keyboard' );
 			}
 		};
-		const onPointerDown = () => {
+		const onPointerDown = ( event: PointerEvent ) => {
 			inputModalityRef.current = 'pointer';
 			setInputModality( 'pointer' );
+
+			if (
+				hasHandledInitialTouchGestureRef.current ||
+				isHoverCapable ||
+				isTouchCoachmarkDismissed ||
+				isTouchCoachmarkDismissedLocally ||
+				! isTargetInsideTable( event.target )
+			) {
+				return;
+			}
+
+			hasHandledInitialTouchGestureRef.current = true;
+			event.preventDefault();
+			event.stopPropagation();
+			suppressNextTableClickRef.current = true;
+			setIsTouchToolbarFocusRequested( true );
+			if ( ! isSelected ) {
+				selectBlock( clientId );
+			}
+		};
+		const onClick = ( event: MouseEvent ) => {
+			if ( ! suppressNextTableClickRef.current || ! isTargetInsideTable( event.target ) ) {
+				return;
+			}
+
+			suppressNextTableClickRef.current = false;
+			event.preventDefault();
+			event.stopPropagation();
 		};
 		const onFocusIn = ( event: FocusEvent ) => {
 			const target = event.target as Element | null;
@@ -180,16 +224,28 @@ export const useTableReorderInteraction = (
 		for ( const document of documents ) {
 			document.addEventListener( 'keydown', onKeyDown, true );
 			document.addEventListener( 'pointerdown', onPointerDown, true );
+			document.addEventListener( 'click', onClick, true );
 			document.addEventListener( 'focusin', onFocusIn, true );
 		}
 		return () => {
 			for ( const document of documents ) {
 				document.removeEventListener( 'keydown', onKeyDown, true );
 				document.removeEventListener( 'pointerdown', onPointerDown, true );
+				document.removeEventListener( 'click', onClick, true );
 				document.removeEventListener( 'focusin', onFocusIn, true );
 			}
 		};
-	}, [ anchorRef, clientId, enabled, preferencesActions ] );
+	}, [
+		anchorRef,
+		clientId,
+		enabled,
+		isHoverCapable,
+		isSelected,
+		isTouchCoachmarkDismissed,
+		isTouchCoachmarkDismissedLocally,
+		preferencesActions,
+		selectBlock,
+	] );
 
 	useEffect( () => {
 		if ( ! isSelected ) {
@@ -240,6 +296,9 @@ export const useTableReorderInteraction = (
 	}
 
 	return {
+		consumeTouchToolbarFocusRequest: () => {
+			setIsTouchToolbarFocusRequested( false );
+		},
 		dismissKeyboardCoachmark,
 		dismissTouchCoachmark,
 		interactionMode,
@@ -247,6 +306,7 @@ export const useTableReorderInteraction = (
 		isKeyboardCoachmarkVisible,
 		isTouchCoachmarkVisible,
 		isTouchReorderMode,
+		isTouchToolbarFocusRequested,
 		toggleTouchReorderMode: () => {
 			setIsTouchReorderMode( ( isActive ) => ! isActive );
 		},
