@@ -165,22 +165,16 @@ $flexible_table =
 	'</figure>' .
 	'<!-- /wp:flexible-table-block/table -->';
 
-$edit_url = '/wp-admin/post.php?post=' . $page_id . '&action=edit';
-
 $content =
 	'<!-- wp:paragraph -->' .
-	'<p>マウス・タッチ・キーボードで、WordPress Core Table と Flexible Table Block の行を並べ替えられます。</p>' .
+	'<p>マウス・タッチ・キーボードで、WordPress Core Table と Flexible Table Block の行を並べ替えられます。まずは下の30秒チャレンジを試してみてください。</p>' .
 	'<!-- /wp:paragraph -->' .
-	'<!-- wp:paragraph -->' .
-	'<p>下のボタンから編集画面を開いて、2種類のテーブルで Table Reorder を試してみてください。どちらも縦結合・横結合を含みます。</p>' .
-	'<!-- /wp:paragraph -->' .
-	'<!-- wp:buttons -->' .
-	'<div class="wp-block-buttons">' .
-	'<!-- wp:button -->' .
-	'<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="' . esc_url( $edit_url ) . '">行の並べ替えを試す</a></div>' .
-	'<!-- /wp:button -->' .
-	'</div>' .
-	'<!-- /wp:buttons -->' .
+	'<!-- wp:heading {"level":3} -->' .
+	'<h3 class="wp-block-heading">30秒チャレンジ</h3>' .
+	'<!-- /wp:heading -->' .
+	'<!-- wp:list {"ordered":true} -->' .
+	'<ol class="wp-block-list"><li>通常の行を1つ動かす</li><li>Undo で元に戻す</li><li>7〜8行目の縦結合行を動かそうとして、制限されることを確認する</li></ol>' .
+	'<!-- /wp:list -->' .
 	'<!-- wp:separator -->' .
 	'<hr class="wp-block-separator has-alpha-channel-opacity"/>' .
 	'<!-- /wp:separator -->' .
@@ -188,7 +182,7 @@ $content =
 	'<h2 class="wp-block-heading">WordPress Core Table：日本の山30座</h2>' .
 	'<!-- /wp:heading -->' .
 	'<!-- wp:paragraph -->' .
-	'<p>7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。</p>' .
+	'<p>基本の行並べ替えを試すエリアです。7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。</p>' .
 	'<!-- /wp:paragraph -->' .
 	$core_table .
 	'<!-- wp:separator -->' .
@@ -198,7 +192,7 @@ $content =
 	'<h2 class="wp-block-heading">Flexible Table Block：世界の山30座</h2>' .
 	'<!-- /wp:heading -->' .
 	'<!-- wp:paragraph -->' .
-	'<p>標高順の30座です。7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。RichText、リンク、インラインコード、改行、scope、class、セルスタイルも含めています。</p>' .
+	'<p>書式付きセルや結合セルなどを試せる実験的なエリアです。標高順の30座で、7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。RichText、リンク、インラインコード、改行、scope、class、セルスタイルも含めています。</p>' .
 	'<!-- /wp:paragraph -->' .
 	$flexible_table .
 	'<!-- wp:paragraph -->' .
