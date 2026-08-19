@@ -21,6 +21,9 @@
 - 並べ替え開始後の `ArrowUp / ArrowDown` による移動先変更を維持する。
 - `Tab / Shift+Tab` による idle row control 間のフォーカス移動を維持する。
 - キーボード初回コーチマークへ `Tab / Shift+Tab` の案内を追加する。
+- キーボード初回コーチマーク表示時にツールバーの「行を並べ替え」へ実フォーカスを移す。
+- キーボード初回コーチマークでは追加の対象強調表示を使わず、実フォーカスの表示を利用する。
+- タッチ初回コーチマークの対象強調表示は維持する。
 - 日本語翻訳 JSON を新しいコーチマーク文言へ同期する。
 - unit / E2E テストを Issue #365 のテスト方針に沿って更新する。
 - アクセシビリティ基本設計書の §5.2、§5.3、§9、§10 / §10.1 を更新する。
@@ -39,20 +42,26 @@
 
 これにより Gutenberg `WritingFlow` への不要な伝播だけを狭い範囲で止め、修飾キー付き操作や並べ替え開始後の既存キーボード操作には介入しない。
 
+キーボード初回コーチマークは、表示と同時に既存の ToolbarButton へフォーカスする。専用の強調クラスはタッチ初回コーチマークだけに残し、キーボードでは実フォーカスと見た目を一致させる。
+
 ## Architecture
 
 - `src/editor-extensions/table-reorder/controller/sortable-controller.ts`
   - idle row control の keydown 境界で plain Arrow を抑止する。
+- `src/editor-extensions/table-reorder/with-table-reorder.tsx`
+  - キーボード初回コーチマーク表示時に ToolbarButton へフォーカスし、強調クラスはタッチ時だけ付与する。
 - `src/editor-extensions/table-reorder/messages.ts`
   - キーボード初回コーチマーク文言を更新する。
 - `languages/yamabiko-editor-tools-ja-yamabiko-editor-tools-table-reorder-index.json`
   - 新しい英語 msgid と日本語訳を同期する。
 - `src/editor-extensions/table-reorder/controller/sortable-controller-keyboard.test.ts`
   - idle plain Arrow の抑止と modifier Arrow の passthrough を固定する。
+- `src/editor-extensions/table-reorder/with-table-reorder.test.tsx`
+  - キーボードコーチマーク時の ToolbarButton focus と追加強調なしを固定する。
 - `tests/e2e/table-reorder-keyboard.spec.ts`
   - 実 Gutenberg 上で plain Arrow がフォーカスを動かさず、Tab が引き続き移動することを確認する。
 - `tests/e2e/table-reorder-ui.spec.ts`
-  - 新しいコーチマーク文言を確認する。
+  - 新しいコーチマーク文言、ToolbarButton focus、表示直後の Enter 入口を確認する。
 - `docs/design/table-reorder/table-reorder-accessibility-design.md`
   - 利用者向け操作仕様と初回案内を実装に同期する。
 
@@ -69,15 +78,18 @@
 - Validation:
   - `sortable-controller-keyboard.test.ts` で default prevention と propagation を確認する。
 
-### Phase 2: 初回コーチマークと翻訳を同期
+### Phase 2: 初回コーチマーク・フォーカス・翻訳を同期
 
-- Outcome: キーボード利用者が初回だけ `Tab / Shift+Tab` による行選択方法を把握できる。
+- Outcome: キーボード利用者が初回だけ `Tab / Shift+Tab` による行選択方法を把握でき、案内表示直後の `Enter` からそのまま操作へ入れる。
 - Tasks:
   - `getKeyboardCoachmarkMessage()` を Issue #365 の確定文言へ更新する。
+  - キーボード初回コーチマーク表示時に ToolbarButton へフォーカスする。
+  - キーボードでは追加強調クラスを付けず、タッチでは既存の強調表示を維持する。
   - 翻訳 JSON の msgid / 日本語訳を更新する。
   - 待機中ツールチップは変更しない。
 - Validation:
-  - `table-reorder-ui.spec.ts` の期待文言を更新する。
+  - `with-table-reorder.test.tsx` で focus と追加強調なしを確認する。
+  - `table-reorder-ui.spec.ts` でコーチマーク表示直後の focus と `Enter` 入口を確認する。
 
 ### Phase 3: Gutenberg E2E を更新
 
@@ -96,6 +108,7 @@
   - active session の Arrow 移動を明記する。
   - `Tab / Shift+Tab` は常時案内せず初回案内だけに含めることを明記する。
   - §10.1 の英語・日本語文言を Issue #365 の確定文言へ更新する。
+  - キーボード初回案内時の ToolbarButton focus と追加強調なしを明記する。
 - Validation:
   - Issue #365 の完了条件と設計書を突き合わせる。
 
@@ -103,13 +116,15 @@
 
 ### Decide before implementation
 
-- None. Issue #365 で実装境界、modifier passthrough、文言、テスト対象まで確定済み。
+- None. Issue #365 で実装境界、modifier passthrough、初回案内の文言・フォーカス、テスト対象まで確定済み。
 
 ### Validate during implementation
 
 - plain Arrow の抑止が row control の `keydown` だけで Gutenberg のフォーカス移動を止められること。
 - modifier Arrow が Table Reorder では抑止されないこと。
 - idle の変更が active keyboard session の Arrow 移動に影響しないこと。
+- キーボード初回コーチマーク表示時に ToolbarButton へフォーカスし、そのまま `Enter` で row control へ入れること。
+- タッチ初回コーチマークの既存強調表示が維持されること。
 
 ## Issue breakdown
 
@@ -135,10 +150,12 @@
 - idle の修飾キー付き `ArrowUp / ArrowDown` は Table Reorder で抑止されない。
 - 並べ替え開始後は `ArrowUp / ArrowDown` で従来どおり移動先を変更できる。
 - 初回コーチマークで `Tab / Shift+Tab` による行選択を案内する。
+- キーボード初回コーチマーク表示時は ToolbarButton にフォーカスがあり、そのまま `Enter` で row control へ入れる。
+- キーボード初回コーチマークでは追加強調表示を行わず、タッチ初回コーチマークの強調表示は維持される。
 - 新しい英語コーチマーク文言に対応する日本語翻訳が翻訳 JSON に反映される。
 - unit / E2E の対象テストとアクセシビリティ基本設計が実装に一致する。
 
 ## Notes
 
-- 実装は row control 自身の `keydown` に限定し、Gutenberg の内部 DOM や `WritingFlow` 実装への依存を追加しない。
+- idle Arrow の実装は row control 自身の `keydown` に限定し、Gutenberg の内部 DOM や `WritingFlow` 実装への依存を追加しない。
 - 検証はユーザーが実施する。
