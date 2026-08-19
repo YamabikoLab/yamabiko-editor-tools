@@ -33,7 +33,7 @@ export const getTouchPointerActiveMessage = (): string =>
 /** PC keyboard利用時に初回だけ表示するcoachmark文言を返す。 */
 export const getKeyboardCoachmarkMessage = (): string =>
 	__(
-		'Reorder rows with the keyboard. Select “Reorder rows” in the toolbar.',
+		'Reorder rows with the keyboard. Select “Reorder rows” in the toolbar, then use Tab / Shift+Tab to choose a row to reorder.',
 		'yamabiko-editor-tools'
 	);
 
@@ -164,7 +164,7 @@ export const getMoveCommittedAnnouncement = (
 };
 
 /**
- * 行移動のキャンセルを支援技術へ伝える文言を返す。
+ * 行移動のキャンセル結果を支援技術へ伝える文言を返す。
  *
  * @param rowLabel  対象行の代表情報。
  * @param rowNumber 1始まりの維持された行位置。
