@@ -1,5 +1,5 @@
 {
-	"translation-revision-date": "2026-08-18 09:48+0900",
+	"translation-revision-date": "2026-08-20 06:05+0900",
 	"generator": "Yamabiko Editor Tools",
 	"domain": "yamabiko-editor-tools",
 	"locale_data": {
@@ -22,8 +22,8 @@
 				"ハンドル: ドラッグで移動 / タップで移動先選択　セル: タップで編集"
 			],
 			"Tap destination": [ "移動先をタップ" ],
-			"Reorder rows with the keyboard. Select “Reorder rows” in the toolbar.": [
-				"キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択"
+			"Reorder rows with the keyboard. Select “Reorder rows” in the toolbar, then use Tab / Shift+Tab to choose a row to reorder.": [
+				"キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab / Shift+Tab で並べ替える行を選べます。"
 			],
 			"Tap “Reorder rows” in the toolbar to begin.": [
 				"ツールバーの「行を並べ替え」をタップして開始"

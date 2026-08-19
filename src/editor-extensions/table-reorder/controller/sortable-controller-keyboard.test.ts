@@ -29,12 +29,19 @@ type RuntimeOptions = {
 	onUnchoose: () => void;
 };
 
-const pressKey = ( control: HTMLButtonElement, key: string, shiftKey = false ) => {
+type KeyModifiers = Pick< KeyboardEventInit, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' >;
+
+const pressKey = (
+	control: HTMLButtonElement,
+	key: string,
+	modifiers: KeyModifiers | boolean = false
+) => {
+	const modifierOptions = typeof modifiers === 'boolean' ? { shiftKey: modifiers } : modifiers;
 	const event = new KeyboardEvent( 'keydown', {
 		bubbles: true,
 		cancelable: true,
 		key,
-		shiftKey,
+		...modifierOptions,
 	} );
 	control.dispatchEvent( event );
 	return event;
@@ -200,6 +207,65 @@ describe( 'createSortableController keyboard reorder', () => {
 		expect( pressKey( control, 'Tab' ).defaultPrevented ).toBe( true );
 		expect( pressKey( control, 'Tab', true ).defaultPrevented ).toBe( true );
 		expect( tbody.ownerDocument.activeElement ).toBe( control );
+		controller.destroy();
+	} );
+
+	it( 'moves Tab and Shift+Tab between idle row controls', () => {
+		const { context, tbody } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit: jest.fn(),
+			rows: [ 'a', 'b', 'c', 'd' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		const secondControl = getControl( tbody, 1 );
+		const thirdControl = getControl( tbody, 2 );
+		secondControl.focus();
+
+		expect( pressKey( secondControl, 'Tab' ).defaultPrevented ).toBe( true );
+		expect( tbody.ownerDocument.activeElement ).toBe( thirdControl );
+		expect( pressKey( thirdControl, 'Tab', true ).defaultPrevented ).toBe( true );
+		expect( tbody.ownerDocument.activeElement ).toBe( secondControl );
+		controller.destroy();
+	} );
+
+	it( 'blocks unmodified idle Arrow keys and passes modified Arrow keys through', () => {
+		const { context, tbody } = createContext();
+		const controller = createSortableController( {
+			context,
+			forbiddenInsertionIndices: [],
+			interactionMode: 'hover',
+			nonMovableRowIndices: [],
+			onCommit: jest.fn(),
+			rows: [ 'a', 'b', 'c', 'd' ],
+			runtimeUrl: '/sortable.js',
+		} );
+		const control = getControl( tbody, 1 );
+		const onKeyDown = jest.fn();
+		document.addEventListener( 'keydown', onKeyDown );
+		control.focus();
+
+		expect( pressKey( control, 'ArrowUp' ).defaultPrevented ).toBe( true );
+		expect( pressKey( control, 'ArrowDown' ).defaultPrevented ).toBe( true );
+		expect( onKeyDown ).not.toHaveBeenCalled();
+
+		const modifiers: KeyModifiers[] = [
+			{ shiftKey: true },
+			{ ctrlKey: true },
+			{ altKey: true },
+			{ metaKey: true },
+		];
+		for ( const modifier of modifiers ) {
+			for ( const key of [ 'ArrowUp', 'ArrowDown' ] as const ) {
+				expect( pressKey( control, key, modifier ).defaultPrevented ).toBe( false );
+			}
+		}
+		expect( onKeyDown ).toHaveBeenCalledTimes( 8 );
+
+		document.removeEventListener( 'keydown', onKeyDown );
 		controller.destroy();
 	} );
 
