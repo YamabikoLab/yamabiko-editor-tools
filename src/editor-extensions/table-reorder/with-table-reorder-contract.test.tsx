@@ -40,19 +40,32 @@ jest.mock( '@wordpress/components', () => {
 				className?: string;
 				label?: string;
 				onClick?: () => void;
+				showTooltip?: boolean;
 			}
-		>( ( { 'aria-describedby': ariaDescribedBy, children, className, label, onClick }, ref ) =>
-			React.createElement(
-				'button',
+		>(
+			(
 				{
 					'aria-describedby': ariaDescribedBy,
-					'aria-label': label,
+					children,
 					className,
+					label,
 					onClick,
-					ref,
+					showTooltip,
 				},
-				children
-			)
+				ref
+			) =>
+				React.createElement(
+					'button',
+					{
+						'aria-describedby': ariaDescribedBy,
+						'aria-label': label,
+						className,
+						'data-show-tooltip': showTooltip ? 'true' : 'false',
+						onClick,
+						ref,
+					},
+					children
+				)
 		),
 	};
 } );
@@ -184,7 +197,16 @@ describe( 'withTableReorder local contract', () => {
 		mounted.unmount();
 	} );
 
-	it( 'renders keyboard coachmark and dismisses it through the close action', () => {
+	it( 'shows the toolbar tooltip when no coachmark is visible', () => {
+		const mounted = render( createProps() );
+		const toolbarButton = mounted.container.querySelector< HTMLButtonElement >( 'button' );
+
+		expect( toolbarButton?.dataset.showTooltip ).toBe( 'true' );
+
+		mounted.unmount();
+	} );
+
+	it( 'renders keyboard coachmark and suppresses the toolbar tooltip', () => {
 		useTableReorderMock.mockReturnValue(
 			createHookResult( {
 				isKeyboardCoachmarkVisible: true,
@@ -194,6 +216,7 @@ describe( 'withTableReorder local contract', () => {
 		const buttons = mounted.container.querySelectorAll< HTMLButtonElement >( 'button' );
 
 		expect( mounted.container.querySelector( '.yamabiko-table-reorder-coachmark' ) ).not.toBeNull();
+		expect( buttons[ 0 ]?.dataset.showTooltip ).toBe( 'false' );
 		expect( buttons ).toHaveLength( 2 );
 		act( () => {
 			buttons[ 1 ]?.click();
@@ -205,7 +228,7 @@ describe( 'withTableReorder local contract', () => {
 		mounted.unmount();
 	} );
 
-	it( 'renders touch coachmark and dismisses it through the close action', () => {
+	it( 'renders touch coachmark and suppresses the toolbar tooltip', () => {
 		useTableReorderMock.mockReturnValue(
 			createHookResult( {
 				isHoverCapable: false,
@@ -216,6 +239,7 @@ describe( 'withTableReorder local contract', () => {
 		const buttons = mounted.container.querySelectorAll< HTMLButtonElement >( 'button' );
 
 		expect( mounted.container.querySelector( '.yamabiko-table-reorder-coachmark' ) ).not.toBeNull();
+		expect( buttons[ 0 ]?.dataset.showTooltip ).toBe( 'false' );
 		act( () => {
 			buttons[ 1 ]?.click();
 		} );
