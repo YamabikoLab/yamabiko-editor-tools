@@ -105,7 +105,7 @@ $flexible_rows = [
 	[ 23, 'Masherbrum', '7,821 m', 'パキスタン' ],
 	[ 24, 'Nanda Devi', '7,816 m', 'インド' ],
 	[ 25, 'Chomo Lonzo', '7,804 m', '中国' ],
-	[ 26, 'Batura Sar', '7,795 m', 'パキスタン' ],
+	[ 26, 'Batura Sar', '7,795 m', '中国' ],
 	[ 27, 'Rakaposhi', '7,788 m', 'パキスタン' ],
 	[ 28, 'Namcha Barwa', '7,782 m', '中国' ],
 	[ 29, 'Kanjut Sar', '7,760 m', 'パキスタン' ],
@@ -169,8 +169,8 @@ $content =
 	'<!-- wp:paragraph -->' .
 	'<p>マウス・タッチ・キーボードで、WordPress Core Table と Flexible Table Block の行を並べ替えられます。まずは下の30秒チャレンジを試してみてください。</p>' .
 	'<!-- /wp:paragraph -->' .
-	'<!-- wp:heading {"level":3} -->' .
-	'<h3 class="wp-block-heading">30秒チャレンジ</h3>' .
+	'<!-- wp:heading -->' .
+	'<h2 class="wp-block-heading">30秒チャレンジ</h2>' .
 	'<!-- /wp:heading -->' .
 	'<!-- wp:list {"ordered":true} -->' .
 	'<ol class="wp-block-list"><li>通常の行を1つ動かす</li><li>Undo で元に戻す</li><li>7〜8行目の縦結合行を動かそうとして、制限されることを確認する</li></ol>' .
