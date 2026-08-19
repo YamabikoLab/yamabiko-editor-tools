@@ -78,6 +78,18 @@ jobs:
             exit 1
           fi
 
+          demo_version="$(sed -nE 's#.*releases/download/v([0-9]+\.[0-9]+\.[0-9]+)/yamabiko-editor-tools\.zip.*#\1#p' demo/blueprint.json | head -n 1)"
+
+          if [ -z "${demo_version}" ]; then
+            echo "::error::Could not determine the Yamabiko Editor Tools release version from demo/blueprint.json."
+            exit 1
+          fi
+
+          if [ "${demo_version}" != "${plugin_version}" ]; then
+            echo "::error::Demo release version ${demo_version} does not match plugin Version ${plugin_version}."
+            exit 1
+          fi
+
           package_version="$(node -p "require('./package.json').version")"
           lock_version="$(node -p "require('./package-lock.json').version")"
           lock_root_version="$(node -p "require('./package-lock.json').packages[''].version")"
