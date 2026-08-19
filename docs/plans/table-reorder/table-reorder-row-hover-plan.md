@@ -3,7 +3,7 @@
 ## References
 
 - Parent issue: #227
-- Requirements: `docs/requirements/table-reorder/table-reorder-sortablejs-requirements.md`
+- Requirements: `docs/requirements/table-reorder/table-reorder-requirements.md`
 - Current implementation: `src/editor-extensions/table-reorder/controller/sortable-controller.ts`
 - Current UI helper: `src/editor-extensions/table-reorder/controller/drag-ui.ts`
 
