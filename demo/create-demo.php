@@ -257,3 +257,28 @@ if ( is_wp_error( $result ) ) {
 
 update_option( 'show_on_front', 'page' );
 update_option( 'page_on_front', $page_id );
+
+global $wpdb;
+
+$user = get_user_by( 'login', 'admin' );
+
+if ( $user ) {
+	$meta_key    = $wpdb->get_blog_prefix() . 'persisted_preferences';
+	$preferences = get_user_meta( $user->ID, $meta_key, true );
+
+	if (
+		is_array( $preferences ) &&
+		isset( $preferences['yamabiko-editor-tools'] )
+	) {
+		unset(
+			$preferences['yamabiko-editor-tools']['tableReorderKeyboardCoachmarkDismissed'],
+			$preferences['yamabiko-editor-tools']['tableReorderTouchCoachmarkDismissed']
+		);
+
+		if ( empty( $preferences['yamabiko-editor-tools'] ) ) {
+			unset( $preferences['yamabiko-editor-tools'] );
+		}
+
+		update_user_meta( $user->ID, $meta_key, $preferences );
+	}
+}
