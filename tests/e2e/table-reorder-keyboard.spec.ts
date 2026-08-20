@@ -5,6 +5,7 @@ import { getEditorContext, type EditorContext } from './editor-context';
 import {
 	basicRowLabels,
 	basicTableContent,
+	expectNotFullyCovered,
 	getRowControl,
 	getTableRow,
 	getTableRowOrder,
@@ -266,6 +267,7 @@ test.describe( 'Table Reorder keyboard operation in a long table', () => {
 		await expect( insertionLine ).toBeVisible();
 		expectToBeInsideViewport( await getViewportGeometry( insertionLine ) );
 		await expect( guidance ).toBeVisible();
+		await expectNotFullyCovered( insertionLine, guidance );
 		const downGuidanceGeometry = await getViewportGeometry( guidance );
 		expect( downGuidanceGeometry.centerY ).toBeLessThan( downGuidanceGeometry.viewportHeight / 2 );
 
