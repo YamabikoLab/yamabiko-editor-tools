@@ -35,7 +35,7 @@ Table Reorder の結合セル制約について、`rowspan` / `colspan` を含�
 ### Included
 
 - `core/table` の `tbody` に通常行、`colspan` 行、`rowspan` 範囲を含む代表 fixture
-- `rowspan` 範囲内の行が移動対象として利用できないこと
+- `rowspan` 範囲内の行に、移動可能行と同じ row control / handle が提供されないこと
 - `rowspan` 範囲の途中が移動先として利用できないこと
 - `rowspan` 範囲外の通常行を、結合範囲全体の前から後、または後から前へ越えて移動できること
 - 上記の禁止操作では行順が変更されないこと
@@ -62,7 +62,7 @@ Table Reorder の結合セル制約について、`rowspan` / `colspan` を含�
 
 | Source of truth | Required behavior | #259 E2E observation |
 | --- | --- | --- |
-| 基本要件 §5.1 | `rowspan` 範囲内の行そのものは移動できない | 対象行に移動可能行と同じ row control が提供されない、または操作しても移動開始できず行順が不変 |
+| 基本要件 §5.1 | `rowspan` 範囲内の行そのものは移動できない | `Rowspan start` / `Rowspan covered` に移動可能行と同じ row control / handle が提供されない |
 | 基本要件 §5.1 / 基本設計 §7, §8.1 | `rowspan` 範囲途中へ挿入できない | 単一ポインター / キーボードの移動先候補から除外され、禁止位置へ確定できない |
 | 基本要件 §5.1 / 基本設計 §8.1 | 範囲外の行は結合範囲全体を越えて移動できる | 結合範囲前後の有効位置へ実際に移動し、行順が更新される |
 | 基本要件 §5.1 | 禁止操作ではデータを変更しない | 操作前後の行順が同一 |
@@ -174,7 +174,7 @@ fixture の具体的な HTML は現在の Core Table 保存形式に合わせ、
 
 - `mergedCellsTable` を表示する。
 - Table Reorder の操作入口へ入る。
-- `Rowspan start` と `Rowspan covered` が通常の移動可能行と同じ row control を提供しないこと、または設計どおり移動開始できないことを確認する。
+- `Rowspan start` と `Rowspan covered` に、移動可能行と同じ row control / handle が提供されないことを必須 assertion として確認する。
 - 操作前後で行順が変わらないことを確認する。
 - Touch でも同じ制約が成立することを代表確認する。
 
@@ -299,7 +299,7 @@ Validation:
 
 ## Completion criteria
 
-- `rowspan` 範囲内の行そのものが移動対象にならない E2E がある。
+- `Rowspan start` / `Rowspan covered` に、移動可能行と同じ row control / handle が提供されないことを確認する E2E がある。
 - `rowspan` 範囲途中が有効な移動先にならない E2E がある。
 - `rowspan` 範囲外の行が結合範囲全体を越えて前後の有効位置へ移動できる E2E がある。
 - 禁止された操作では Table の行順が変更されないことを確認している。
