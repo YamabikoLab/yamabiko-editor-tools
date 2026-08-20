@@ -18,7 +18,6 @@ import {
 	enterTouchReorderMode,
 	getVerticalScrollPosition,
 	interpolateTouchPoints,
-	type TouchPoint,
 } from './table-reorder-touch';
 
 type VerticalTarget = 'after' | 'center';
