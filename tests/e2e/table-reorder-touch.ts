@@ -111,23 +111,3 @@ export function interpolateTouchPoints(
 		};
 	} );
 }
-
-export async function getVerticalScrollPosition( source: Locator ): Promise< number > {
-	return source.evaluate( ( element ) => {
-		const view = element.ownerDocument.defaultView;
-		let ancestor = element.parentElement;
-
-		while ( ancestor ) {
-			const overflowY = view?.getComputedStyle( ancestor ).overflowY ?? '';
-			if (
-				/(auto|scroll)/.test( overflowY ) &&
-				ancestor.scrollHeight > ancestor.clientHeight + 1
-			) {
-				return ancestor.scrollTop;
-			}
-			ancestor = ancestor.parentElement;
-		}
-
-		return element.ownerDocument.scrollingElement?.scrollTop ?? view?.scrollY ?? 0;
-	} );
-}

@@ -9,6 +9,7 @@ import {
 	getTableRow,
 	getTableRowOrder,
 	getTableRows,
+	getVerticalScrollPosition,
 	longRowLabels,
 	longTableContent,
 } from './table-reorder';
@@ -16,7 +17,6 @@ import {
 	dismissTouchCoachmark,
 	dispatchTouchGesture,
 	enterTouchReorderMode,
-	getVerticalScrollPosition,
 	interpolateTouchPoints,
 } from './table-reorder-touch';
 
