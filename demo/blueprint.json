@@ -37,7 +37,7 @@
 			"step": "installPlugin",
 			"pluginData": {
 				"resource": "url",
-				"url": "https://github.com/YamabikoLab/yamabiko-editor-tools/releases/download/v0.3.2/yamabiko-editor-tools.zip"
+				"url": "https://github.com/YamabikoLab/yamabiko-editor-tools/releases/download/v0.3.3/yamabiko-editor-tools.zip"
 			},
 			"options": {
 				"activate": true
