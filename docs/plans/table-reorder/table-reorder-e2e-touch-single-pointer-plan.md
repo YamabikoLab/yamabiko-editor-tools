@@ -159,7 +159,7 @@ scroll gesture のシナリオでは、縦に十分な長さの Table を使い�
 主要な期待値は次とする。
 
 - gesture 前後で editor / page の縦スクロール位置が変化する
-- gesture だけでは Table の行順が変わらない
+- gesture 前後の `editor.getEditedPostContent()` が同一で、Table データが変化していない
 - gesture だけでは移動先選択が終了しない
 - destination UI が残り、あらためて明示的に tap すると行移動を確定できる
 - 上方向の swipe では Touch pointer guidance が viewport 上側へ移動する
@@ -168,7 +168,7 @@ scroll gesture のシナリオでは、縦に十分な長さの Table を使い�
 
 Touch pointer guidance の確認は `top: 8px` や要素高から算出した pixel 値などを固定せず、viewport の上半分 / 下半分など利用者から見た表示側として判定する。微小な揺れを無視する `8px` の内部しきい値は Jest の責務とする。
 
-固定時間の `waitForTimeout()` は使わず、scroll position、destination の存在、guidance の表示側、Table 行順など観測可能な状態を待つ。
+固定時間の `waitForTimeout()` は使わず、scroll position、destination の存在、guidance の表示側、Table 編集内容など観測可能な状態を待つ。
 
 Playwright の通常 API だけで destination 上からの連続 touch gesture を十分に表現できない場合は、Chromium CDP の `Input.dispatchTouchEvent` を使う最小 helper を E2E 側に限定して利用する。#258 の実装で同等 helper が追加済みなら再利用を優先し、同種の CDP helper を重複して増やさない。
 
@@ -205,7 +205,9 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - destination を accessible name で取得する helper
 - destination 上から縦 touch scroll gesture を送る helper
 - guidance が viewport 上側 / 下側のどちらに表示されているかを判定する小さな helper
-- Table の現在行順を読み取る既存 helper の再利用
+- `basicTableContent` の行順確認では、Table の現在行順を読み取る既存 helper を再利用する
+
+`getTableRowOrder()` は `basicRowLabels`（Alpha / Bravo / Charlie / Delta）を前提としているため、`longTableContent` の非確定確認には再利用しない。Phase 6 では `editor.getEditedPostContent()` の操作前後比較で、scroll gesture により Table データが変化していないことを確認する。
 
 #258 の実装で Touch gesture helper が共通化されている場合は、それを利用できる範囲だけ再利用する。#360 固有の destination tap / cancel / mode-off cancel / scroll / guidance position assertion は本 spec 側に残す。
 
@@ -310,12 +312,13 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - Outcome: 移動先探索中に縦 scroll gesture を行っても、その gesture が destination tap として確定されず、Touch pointer guidance が swipe 方向に応じて viewport 上側 / 下側へ切り替わる。
 - Tasks:
   - `longTableContent` を使い、Touch reorder mode で row control を tap して destination を表示する。
+  - scroll gesture 前の `editor.getEditedPostContent()` を保存する。
   - destination 上から上方向の実 Touch gesture を送り、scroll position が変わり、guidance が viewport 上側に表示されることを確認する。
-  - 行順が変わらず、destination UI が残ることを確認する。
+  - `editor.getEditedPostContent()` が操作前から変わらず、destination UI が残ることを確認する。
   - swipe 終了後も guidance が上側を維持することを確認する。
   - 続けて下方向の実 Touch gesture を送り、guidance が viewport 下側へ切り替わることを確認する。
-  - 行順が変わらず、移動先選択が継続していることを確認する。
-  - scroll 後にあらためて destination を tap し、その時点では正常に行移動を確定できることを確認する。
+  - `editor.getEditedPostContent()` が操作前から変わらず、移動先選択が継続していることを確認する。
+  - scroll 後にあらためて destination を tap し、その時点では正常に行移動を確定して `editor.getEditedPostContent()` が更新されることを確認する。
   - guidance の厳密な pixel 座標や `8px` の swipe 判定しきい値は assertion にしない。
   - 通常 Playwright API で連続 Touch gesture を表現できない場合だけ CDP helper を使う。
 - Validation:
@@ -383,6 +386,7 @@ iframe / non-iframe の境界確認も本 E2E 実装には含めず、ユーザ�
 
 - #360 は WCAG 2.2 2.5.7 Dragging Movements に関係する Touch のドラッグ不要操作を、実ブラウザ上の利用者フローとして固定する E2E である。
 - `row-move-targets.ts` の pointer movement threshold と `reorder-guidance.ts` の swipe direction threshold は Jest 側で扱い、E2E では具体的な px 値ではなく「scroll gesture が tap 確定にならない」「swipe 方向に応じて guidance の表示側が切り替わる」という結果を確認する。
+- `longTableContent` の scroll gesture 非確定確認では、`getTableRowOrder()` ではなく `editor.getEditedPostContent()` の操作前後比較を使う。
 - Touch 初回案内は #382、Touch DnD は #258 に分離し、本 spec の setup では初回案内を dismissed にして単一ポインター操作だけへ集中する。
 - Flexible Table Block は Core Table の E2E 整備完了後に扱う。
 - iframe / non-iframe の境界確認はユーザー側で実施する。
