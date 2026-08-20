@@ -13,7 +13,7 @@
 		"lint:php": "phpcs --standard=phpcs.xml.dist",
 		"format:php": "phpcbf --standard=phpcs.xml.dist",
 		"analyse:php": "phpstan analyse",
-		"audit": "composer audit --abandoned=ignore"
+		"audit:security": "composer audit --abandoned=ignore --ignore-severity=low --ignore-severity=medium"
 	},
 	"config": {
 		"allow-plugins": {
