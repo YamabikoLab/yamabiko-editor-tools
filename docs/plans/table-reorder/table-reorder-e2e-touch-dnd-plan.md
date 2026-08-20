@@ -4,6 +4,7 @@
 
 - Parent issue: #252
 - Implementation issue: #258
+- Touch first-guidance E2E follow-up: #382
 - Test responsibility map: `docs/development/testing.md`
 - Requirements: `docs/requirements/table-reorder/table-reorder-requirements.md`
 - Accessibility requirements: `docs/requirements/table-reorder/table-reorder-accessibility-requirements.md`
@@ -41,7 +42,8 @@ Touch 環境で Table Reorder の並べ替えモードへ入り、表示され�
 - `rowspan` / `colspan` の詳細な移動制約（#259）
 - データ保持の詳細な属性・装飾パターンや Undo / Redo（#260）
 - accessible name / role / state、live region、通知文言などアクセシビリティ情報提供の網羅（#261）
-- Touch 初回案内や並べ替えモード ON/OFF 自体の再テスト（#253 で固定済み）
+- Touch 初回案内、最初の Table gesture の抑止、Toolbar の「行を並べ替え」への初回フォーカス移動の再テスト（#382）
+- 並べ替えモード ON/OFF 自体の再テスト（#253 で固定済み）
 - Touch drag 中の auto-scroll の全境界や速度・閾値の数値検証
 - CSS の座標、opacity、transform などドラッグ UI の実装詳細
 - SortableJS の内部 state、callback、class 名の直接検証
@@ -78,7 +80,13 @@ helper は次の責務に絞る。
 
 Touch では Table を選択しただけでは行ハンドルを常時表示せず、Toolbar の「行を並べ替え」を実行して並べ替えモードへ入ってから DnD を行う。
 
-代表シナリオは次の利用者操作を再現する。
+#258 では #382 のタッチ初回案内 E2E を混ぜない。各 Touch DnD テストの setup で `requestUtils.setPreferences()` を使い、次の preference を `true` に固定して初回案内終了済みの状態から開始する。
+
+```text
+yamabiko-editor-tools / tableReorderTouchCoachmarkDismissed = true
+```
+
+この共通 setup の後、代表シナリオは次の利用者操作を再現する。
 
 1. 対象 Table を選択する。
 2. Toolbar の「行を並べ替え」を touch で実行する。
@@ -88,6 +96,8 @@ Touch では Table を選択しただけでは行ハンドルを常時表示せ�
 6. ドラッグ中に現在の挿入位置が利用者から確認できる。
 7. touch を終了する。
 8. Gutenberg の Table 編集内容上の行順が期待どおり更新される。
+
+初回案内の表示、最初の Table gesture の抑止、Toolbar の「行を並べ替え」への初回フォーカス移動は #382 の責務とし、#258 の assertion には含めない。
 
 最終的な成立判定は SortableJS の内部状態ではなく、Table の編集内容を正とする。
 
@@ -176,13 +186,15 @@ Playwright では細かなイベント分岐を再列挙せず、次の実ブラ
 
 Outcome:
 
-- Touch 環境で並べ替えモードへ入り、行ハンドル取得と実 touch gesture を同じ方法で実行できる。
+- Touch 環境で初回案内終了済みの状態から並べ替えモードへ入り、行ハンドル取得と実 touch gesture を同じ方法で実行できる。
 
 Tasks:
 
 - `tests/e2e/table-reorder-touch-dnd.spec.ts` を追加する。
 - `hasTouch: true` / `isMobile: true` / スマートフォン相当 viewport を spec に設定する。
 - `admin.createNewPost()` と `editor.setContent()` を使い、各テストを独立させる。
+- `requestUtils.setPreferences()` を使い、`yamabiko-editor-tools / tableReorderTouchCoachmarkDismissed = true` に固定して各 Touch DnD テストを開始する。
+- 初回案内の表示、最初の Table gesture の抑止、Toolbar の「行を並べ替え」への初回フォーカス移動は #382 の責務とし、#258 の assertion に含めない。
 - iframe / non-iframe の editor canvas 取得は既存 `getEditorContext()` を再利用する。
 - Toolbar の「行を並べ替え」を touch で実行し、並べ替えモードへ入る helper を用意する。
 - row control は role / accessible name など利用者向け semantic locator を優先する。
@@ -192,6 +204,7 @@ Tasks:
 
 Validation:
 
+- #376 後の初回 gesture guard に Touch DnD の準備処理が影響されず、#382 と責務が分離されている。
 - Mouse input に置き換えず Touch 専用入力として成立する構成になっている。
 - 既存の `table-reorder.ts` / `editor-context.ts` と責務が重複しない。
 - Touch single-pointer (#360) の tap 操作を helper 内へ混ぜない。
@@ -201,6 +214,8 @@ Validation:
 Outcome:
 
 - Touch の行ハンドルをドラッグし、有効な別位置へドロップすると行順が更新されることを固定する。
+
+Phase 1 の共通 setup でタッチ初回案内を終了済みにしてから、次のシナリオを実行する。
 
 Scenario:
 
@@ -223,6 +238,8 @@ Validation policy:
 Outcome:
 
 - Touch DnD の無効操作と、セル上の通常スクロールが行移動を発生させないことを固定する。
+
+Phase 2 と同じ Phase 1 の共通 setup を使用し、初回案内処理は各シナリオへ重複して持ち込まない。
 
 Representative scenarios:
 
@@ -251,6 +268,8 @@ Outcome:
 
 - Touch DnD の代表シナリオが iframe / non-iframe の両環境で成立する。
 
+Phase 1 の共通 setup を両環境で使用し、初回案内の E2E は #382 に委ねる。
+
 Tasks:
 
 - Phase 2 の基本 Touch DnD を両環境で確認する。
@@ -265,6 +284,7 @@ Validation:
 
 ### Decide before implementation
 
+- 各 Touch DnD テストは `requestUtils.setPreferences()` で `tableReorderTouchCoachmarkDismissed = true` に固定し、#382 の初回案内シナリオを混ぜない。
 - Touch drag helper は、まず利用可能な Playwright API で実 touch gesture を表現できるか確認し、不足する場合だけ Chromium CDP を使用する。
 - CDP を使う場合も #258 の E2E helper に閉じ、製品コードや共通アプリケーション層へ持ち込まない。
 - 通常スクロール確認は Touch single-pointer (#360) の移動先選択状態へ入らず、Touch reorder mode の待機状態で行う。
@@ -303,6 +323,8 @@ E2E は互換性のある `wp-dev` 環境で実施する。手動環境検証は
 ## Completion criteria
 
 - Touch 環境が `hasTouch: true` / `isMobile: true` / スマートフォン相当 viewport として明示されている。
+- 各 Touch DnD テストを `tableReorderTouchCoachmarkDismissed = true` の初回案内終了済み状態から開始する計画になっている。
+- #382 の初回案内、最初の Table gesture 抑止、Toolbar 初回フォーカス移動を #258 の assertion に取り込んでいない。
 - Touch の Toolbar 入口から並べ替えモードへ入り、表示された行ハンドルから実 touch drag を開始する計画になっている。
 - 有効な別位置への touch drop で Table の行順が更新される代表ケースがある。
 - ドラッグ中の有効な挿入位置を利用者が確認できる代表ケースがある。
