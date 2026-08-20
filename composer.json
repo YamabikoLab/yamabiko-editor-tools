@@ -12,7 +12,8 @@
 	"scripts": {
 		"lint:php": "phpcs --standard=phpcs.xml.dist",
 		"format:php": "phpcbf --standard=phpcs.xml.dist",
-		"analyse:php": "phpstan analyse"
+		"analyse:php": "phpstan analyse",
+		"audit": "composer audit --abandoned=ignore"
 	},
 	"config": {
 		"allow-plugins": {
