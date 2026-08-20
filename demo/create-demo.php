@@ -2,7 +2,7 @@
 require_once '/wordpress/wp-load.php';
 
 $page_id      = 100;
-$demo_version = '0.3.2';
+$demo_version = '0.3.3';
 
 if ( get_post( $page_id ) ) {
 	wp_delete_post( $page_id, true );
@@ -257,3 +257,34 @@ if ( is_wp_error( $result ) ) {
 
 update_option( 'show_on_front', 'page' );
 update_option( 'page_on_front', $page_id );
+
+global $wpdb;
+
+$user = get_user_by( 'login', 'admin' );
+
+if ( $user ) {
+	$meta_key    = $wpdb->get_blog_prefix() . 'persisted_preferences';
+	$preferences = get_user_meta( $user->ID, $meta_key, true );
+
+	if ( ! is_array( $preferences ) ) {
+		$preferences = [];
+	}
+
+	if (
+		isset( $preferences['yamabiko-editor-tools'] ) &&
+		is_array( $preferences['yamabiko-editor-tools'] )
+	) {
+		unset(
+			$preferences['yamabiko-editor-tools']['tableReorderKeyboardCoachmarkDismissed'],
+			$preferences['yamabiko-editor-tools']['tableReorderTouchCoachmarkDismissed']
+		);
+
+		if ( empty( $preferences['yamabiko-editor-tools'] ) ) {
+			unset( $preferences['yamabiko-editor-tools'] );
+		}
+	}
+
+	$preferences['_modified'] = gmdate( 'c' );
+
+	update_user_meta( $user->ID, $meta_key, $preferences );
+}
