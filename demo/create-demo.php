@@ -266,9 +266,13 @@ if ( $user ) {
 	$meta_key    = $wpdb->get_blog_prefix() . 'persisted_preferences';
 	$preferences = get_user_meta( $user->ID, $meta_key, true );
 
+	if ( ! is_array( $preferences ) ) {
+		$preferences = [];
+	}
+
 	if (
-		is_array( $preferences ) &&
-		isset( $preferences['yamabiko-editor-tools'] )
+		isset( $preferences['yamabiko-editor-tools'] ) &&
+		is_array( $preferences['yamabiko-editor-tools'] )
 	) {
 		unset(
 			$preferences['yamabiko-editor-tools']['tableReorderKeyboardCoachmarkDismissed'],
@@ -278,7 +282,9 @@ if ( $user ) {
 		if ( empty( $preferences['yamabiko-editor-tools'] ) ) {
 			unset( $preferences['yamabiko-editor-tools'] );
 		}
-
-		update_user_meta( $user->ID, $meta_key, $preferences );
 	}
+
+	$preferences['_modified'] = gmdate( 'c' );
+
+	update_user_meta( $user->ID, $meta_key, $preferences );
 }
