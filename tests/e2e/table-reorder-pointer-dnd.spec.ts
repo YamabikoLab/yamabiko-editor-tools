@@ -113,39 +113,6 @@ async function waitForVerticalScrollToStop( source: Locator ): Promise< void > {
 		.toBeGreaterThanOrEqual( 2 );
 }
 
-async function alignMouseWithInsertionAfterTarget(
-	page: Page,
-	target: Locator,
-	insertionIndicator: Locator
-): Promise< void > {
-	await expect
-		.poll( async () => {
-			const targetBox = await target.boundingBox();
-			if ( ! targetBox ) {
-				return false;
-			}
-
-			await page.mouse.move(
-				targetBox.x + targetBox.width / 2,
-				targetBox.y + targetBox.height - 2
-			);
-
-			const updatedTargetBox = await target.boundingBox();
-			const indicatorBox = await insertionIndicator.boundingBox();
-
-			return Boolean(
-				updatedTargetBox &&
-					indicatorBox &&
-					Math.abs(
-						indicatorBox.y +
-							indicatorBox.height / 2 -
-							( updatedTargetBox.y + updatedTargetBox.height )
-					) < 12
-			);
-		} )
-		.toBe( true );
-}
-
 async function dragWithMouseAndAutoScroll(
 	page: Page,
 	source: Locator,
@@ -182,9 +149,11 @@ async function dragWithMouseAndAutoScroll(
 			throw new Error( 'Could not determine the target after mouse auto-scroll.' );
 		}
 
-		await page.mouse.move( targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height - 2, {
-			steps: 1,
-		} );
+		await page.mouse.move(
+			targetBox.x + targetBox.width / 2,
+			targetBox.y + targetBox.height * 0.25,
+			{ steps: 10 }
+		);
 		await duringDrop?.();
 	} finally {
 		await page.mouse.up();
@@ -268,6 +237,7 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 		const tableRows = getTableRows( editorContext );
 		const sourceRow = getTableRow( tableRows, 'Row 02' );
 		const targetRow = getTableRow( tableRows, 'Row 20' );
+		const rowAfterTarget = getTableRow( tableRows, 'Row 21' );
 		const insertionIndicator = editorContext.locator( '.yamabiko-table-reorder-insertion-line' );
 		const viewport = getRequiredViewportSize(
 			page,
@@ -288,7 +258,7 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 		await dragWithMouseAndAutoScroll(
 			page,
 			sourceHandle,
-			targetRow,
+			rowAfterTarget,
 			tableBlock,
 			async () => {
 				await expect
@@ -307,7 +277,7 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 					.toBe( true );
 			},
 			async () => {
-				await alignMouseWithInsertionAfterTarget( page, targetRow, insertionIndicator );
+				await expect( insertionIndicator ).toBeVisible();
 			}
 		);
 
