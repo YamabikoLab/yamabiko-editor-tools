@@ -15,8 +15,7 @@ import {
 } from './table-reorder';
 
 const reorderRowsButtonName = /^(Reorder rows|行を並べ替え)$/;
-const keyboardIdleGuidanceText =
-	/^(Enter \/ Space: start moving|Enter \/ Space: 移動開始)$/;
+const keyboardIdleGuidanceText = /^(Enter \/ Space: start moving|Enter \/ Space: 移動開始)$/;
 const keyboardGuidanceText =
 	/^(↑↓ Move\u3000Enter \/ Space Confirm\u3000Esc Cancel|↑↓ 移動\u3000Enter \/ Space 決定\u3000Esc キャンセル)$/;
 const pcPointerGuidanceText =
@@ -130,7 +129,10 @@ test.describe( 'Table Reorder accessibility integration', () => {
 		await expect( getRowControl( editorContext, 3, 'Bravo' ) ).toBeFocused();
 	} );
 
-	test( 'announces keyboard cancellation and restores the row focus', async ( { editor, page } ) => {
+	test( 'announces keyboard cancellation and restores the row focus', async ( {
+		editor,
+		page,
+	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
 		const originalContent = await editor.getEditedPostContent();
@@ -235,7 +237,10 @@ test.describe( 'Table Reorder accessibility integration', () => {
 		expect( await editor.getEditedPostContent() ).toBe( originalContent );
 	} );
 
-	test( 'announces why a row inside a rowspan range cannot be moved', async ( { editor, page } ) => {
+	test( 'announces why a row inside a rowspan range cannot be moved', async ( {
+		editor,
+		page,
+	} ) => {
 		await editor.setContent( partiallyRowspannedTableContent );
 		const editorContext = await getEditorContext( page, editor.canvas );
 		await editor.selectBlocks( editorContext.locator( '[data-type="core/table"][data-block]' ) );
@@ -270,6 +275,8 @@ test.describe( 'Table Reorder accessibility integration', () => {
 			/^(There are no rows that can be reordered in this table\.|この表には並べ替えできる行がありません。)$/
 		);
 		await expect( toolbarButton ).toBeFocused();
-		await expect( editorContext.getByRole( 'button', { name: /^(Reorder row|\d+行目「)/ } ) ).toHaveCount( 0 );
+		await expect(
+			editorContext.getByRole( 'button', { name: /^(Reorder row|\d+行目「)/ } )
+		).toHaveCount( 0 );
 	} );
 } );
