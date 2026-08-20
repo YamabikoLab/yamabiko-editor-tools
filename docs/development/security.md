@@ -27,16 +27,11 @@ DOM updates should continue to use React or safe DOM text/property APIs for user
 
 ## Dependency vulnerability checks
 
-The repository exposes focused dependency audit commands:
+Dependency audit commands and when to run them are documented in `testing.md`, which is the source of truth for validation commands.
 
-```bash
-npm run audit:security
-composer run audit:security
-```
+The audits fail for high or critical advisories. Lower-severity advisories are intentionally excluded from the blocking threshold so transitive development dependencies do not create excessive PR noise. Composer abandoned-package notices are also excluded from this security failure condition because abandonment is a maintenance concern rather than a vulnerability by itself.
 
-Both commands fail for high or critical advisories. Lower-severity advisories are intentionally excluded from the blocking threshold so transitive development dependencies do not create excessive PR noise. Composer abandoned-package notices are also excluded from this security failure condition because abandonment is a maintenance concern rather than a vulnerability by itself.
-
-PR Validation runs both audit commands after dependency installation. These checks complement rather than replace the existing quality gates:
+PR Validation runs both dependency audits after dependency installation. These checks complement rather than replace the existing quality gates:
 
 - Gitleaks: committed secrets across Git history;
 - ESLint / Stylelint / TypeScript: JavaScript, TypeScript, and stylesheet quality;
