@@ -1,8 +1,7 @@
-import type { CDPSession, Locator, Page } from '@playwright/test';
-import type { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
-import { getEditorContext, type EditorContext } from './editor-context';
+import { getEditorContext } from './editor-context';
 import {
 	basicRowLabels,
 	basicTableContent,
@@ -13,112 +12,16 @@ import {
 	longRowLabels,
 	longTableContent,
 } from './table-reorder';
-
-const PREFERENCES_SCOPE = 'yamabiko-editor-tools';
-const TOUCH_COACHMARK_DISMISSED_PREFERENCE = 'tableReorderTouchCoachmarkDismissed';
-const reorderRowsButtonName = /^(Reorder rows|行を並べ替え)$/;
-
-type TouchPoint = {
-	x: number;
-	y: number;
-};
+import {
+	dismissTouchCoachmark,
+	dispatchTouchGesture,
+	enterTouchReorderMode,
+	getVerticalScrollPosition,
+	interpolateTouchPoints,
+	type TouchPoint,
+} from './table-reorder-touch';
 
 type VerticalTarget = 'after' | 'center';
-
-type SortableWindow = Window & {
-	Sortable?: {
-		get?: ( element: Element ) => unknown;
-	};
-};
-
-async function dismissTouchCoachmark( requestUtils: RequestUtils ): Promise< void > {
-	await requestUtils.setPreferences( PREFERENCES_SCOPE, {
-		[ TOUCH_COACHMARK_DISMISSED_PREFERENCE ]: true,
-	} );
-}
-
-async function waitForSortableInstance( tableBody: Locator ): Promise< void > {
-	await expect
-		.poll( () =>
-			tableBody.evaluate( ( body ) => {
-				const view = body.ownerDocument.defaultView as SortableWindow | null;
-
-				return Boolean( view?.Sortable?.get?.( body ) );
-			} )
-		)
-		.toBe( true );
-}
-
-async function enterTouchReorderMode(
-	page: Page,
-	editorContext: EditorContext,
-	firstRowControl: Locator
-): Promise< void > {
-	const reorderRowsButton = page.getByRole( 'button', {
-		name: reorderRowsButtonName,
-	} );
-	const tableBody = editorContext.getByRole( 'table' ).locator( 'tbody' );
-
-	await expect( reorderRowsButton ).toBeVisible();
-	await reorderRowsButton.tap();
-	await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'true' );
-	await expect( firstRowControl ).toBeVisible();
-	await waitForSortableInstance( tableBody );
-}
-
-async function dispatchTouchPoint(
-	client: CDPSession,
-	type: 'touchMove' | 'touchStart',
-	point: TouchPoint
-): Promise< void > {
-	await client.send( 'Input.dispatchTouchEvent', {
-		touchPoints: [
-			{
-				force: 1,
-				id: 1,
-				radiusX: 1,
-				radiusY: 1,
-				x: point.x,
-				y: point.y,
-			},
-		],
-		type,
-	} );
-}
-
-async function dispatchTouchGesture(
-	page: Page,
-	start: TouchPoint,
-	points: TouchPoint[],
-	duringGesture?: () => Promise< void >
-): Promise< void > {
-	const client = await page.context().newCDPSession( page );
-
-	await dispatchTouchPoint( client, 'touchStart', start );
-	try {
-		for ( const point of points ) {
-			await dispatchTouchPoint( client, 'touchMove', point );
-		}
-		await duringGesture?.();
-	} finally {
-		await client.send( 'Input.dispatchTouchEvent', {
-			touchPoints: [],
-			type: 'touchEnd',
-		} );
-		await client.detach();
-	}
-}
-
-function interpolateTouchPoints( start: TouchPoint, end: TouchPoint, steps: number ): TouchPoint[] {
-	return Array.from( { length: steps }, ( _, index ) => {
-		const progress = ( index + 1 ) / steps;
-
-		return {
-			x: start.x + ( end.x - start.x ) * progress,
-			y: start.y + ( end.y - start.y ) * progress,
-		};
-	} );
-}
 
 async function dragWithTouch(
 	page: Page,
@@ -157,26 +60,6 @@ async function dragWithTouch(
 	];
 
 	await dispatchTouchGesture( page, start, points, duringDrag );
-}
-
-async function getVerticalScrollPosition( source: Locator ): Promise< number > {
-	return source.evaluate( ( element ) => {
-		const view = element.ownerDocument.defaultView;
-		let ancestor = element.parentElement;
-
-		while ( ancestor ) {
-			const overflowY = view?.getComputedStyle( ancestor ).overflowY ?? '';
-			if (
-				/(auto|scroll)/.test( overflowY ) &&
-				ancestor.scrollHeight > ancestor.clientHeight + 1
-			) {
-				return ancestor.scrollTop;
-			}
-			ancestor = ancestor.parentElement;
-		}
-
-		return element.ownerDocument.scrollingElement?.scrollTop ?? view?.scrollY ?? 0;
-	} );
 }
 
 async function scrollFromCellWithTouch( page: Page, source: Locator ): Promise< void > {
