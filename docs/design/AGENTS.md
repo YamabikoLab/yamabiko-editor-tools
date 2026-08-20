@@ -23,8 +23,8 @@ These instructions apply to design documents under `docs/design/`.
 
 Good:
 
-> During the first-time guidance, make the entry point to row reordering easy to identify.
+> When the first-time guidance appears, move focus to the row-reordering control so the user can immediately identify where to start. Display the guidance message near the control without covering it.
 
 Bad:
 
-> Focus the ToolbarButton when the first pointer event is handled.
+> During the first-time guidance, make the entry point to row reordering easy to identify.
