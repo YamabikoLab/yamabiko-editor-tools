@@ -17,11 +17,11 @@ const TOUCH_COACHMARK_DISMISSED_PREFERENCE = 'tableReorderTouchCoachmarkDismisse
 
 async function setTableReorderCoachmarkDismissal(
 	requestUtils: RequestUtils,
-	dismissed: boolean
+	{ keyboardDismissed, touchDismissed }: { keyboardDismissed: boolean; touchDismissed: boolean }
 ): Promise< void > {
 	await requestUtils.setPreferences( PREFERENCES_SCOPE, {
-		[ KEYBOARD_COACHMARK_DISMISSED_PREFERENCE ]: dismissed,
-		[ TOUCH_COACHMARK_DISMISSED_PREFERENCE ]: dismissed,
+		[ KEYBOARD_COACHMARK_DISMISSED_PREFERENCE ]: keyboardDismissed,
+		[ TOUCH_COACHMARK_DISMISSED_PREFERENCE ]: touchDismissed,
 	} );
 }
 
@@ -32,7 +32,10 @@ test.describe( 'Table Reorder UI', () => {
 	} );
 
 	test.beforeEach( async ( { admin, editor, requestUtils } ) => {
-		await setTableReorderCoachmarkDismissal( requestUtils, false );
+		await setTableReorderCoachmarkDismissal( requestUtils, {
+			keyboardDismissed: false,
+			touchDismissed: false,
+		} );
 		await admin.createNewPost();
 		await editor.setContent( BASIC_TABLE_CONTENT );
 	} );
@@ -59,6 +62,24 @@ test.describe( 'Table Reorder UI', () => {
 
 		await editor.selectBlocks( paragraphBlock );
 		await expect( reorderRowsButton ).toHaveCount( 0 );
+	} );
+
+	test( 'does not show the keyboard coachmark for normal pointer selection', async ( {
+		editor,
+		page,
+	} ) => {
+		const editorContext = await getEditorContext( page, editor.canvas );
+		const reorderRowsButton = page.getByRole( 'button', {
+			name: /^(Reorder rows|行を並べ替え)$/,
+		} );
+		const keyboardCoachmark = page.getByText(
+			/^(Reorder rows with the keyboard\. Select “Reorder rows” in the toolbar, then use Tab \/ Shift\+Tab to choose a row to reorder\.|キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab \/ Shift\+Tab で並べ替える行を選べます。)$/
+		);
+
+		await editorContext.getByText( 'Alpha', { exact: true } ).click();
+
+		await expect( reorderRowsButton ).toBeVisible();
+		await expect( keyboardCoachmark ).toHaveCount( 0 );
 	} );
 
 	test( 'shows a row control while its row is hovered on desktop', async ( { editor, page } ) => {
@@ -105,6 +126,7 @@ test.describe( 'Table Reorder UI', () => {
 		const firstRowControl = editorContext.getByRole( 'button', {
 			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
 		} );
+		const paragraphBlock = editorContext.locator( '[data-type="core/paragraph"][data-block]' );
 
 		await page.keyboard.press( 'Shift+Alt+KeyO' );
 		await tableListViewItem.focus();
@@ -116,6 +138,13 @@ test.describe( 'Table Reorder UI', () => {
 		await page.keyboard.press( 'Enter' );
 		await expect( keyboardCoachmark ).toHaveCount( 0 );
 		await expect( firstRowControl ).toBeFocused();
+
+		await editor.selectBlocks( paragraphBlock );
+		await expect( reorderRowsButton ).toHaveCount( 0 );
+		await tableListViewItem.focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( reorderRowsButton ).toBeVisible();
+		await expect( keyboardCoachmark ).toHaveCount( 0 );
 	} );
 } );
 
@@ -127,7 +156,10 @@ test.describe( 'Table Reorder touch UI', () => {
 	} );
 
 	test.beforeEach( async ( { admin, editor, requestUtils } ) => {
-		await setTableReorderCoachmarkDismissal( requestUtils, false );
+		await setTableReorderCoachmarkDismissal( requestUtils, {
+			keyboardDismissed: false,
+			touchDismissed: false,
+		} );
 		await admin.createNewPost();
 		await editor.setContent( BASIC_TABLE_CONTENT );
 	} );
@@ -146,15 +178,29 @@ test.describe( 'Table Reorder touch UI', () => {
 		const firstRowControl = editorContext.getByRole( 'button', {
 			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
 		} );
+		const alphaCell = editorContext.getByText( 'Alpha', { exact: true } );
+		const reorderRowsTooltip = page.getByRole( 'tooltip' ).filter( {
+			hasText: /^(Reorder rows|行を並べ替え)$/,
+		} );
 
-		await editorContext.getByText( 'Alpha', { exact: true } ).tap();
+		await alphaCell.tap();
+		await expect( reorderRowsButton ).toBeVisible();
 		await expect( touchCoachmark ).toBeVisible();
+		await expect( reorderRowsButton ).toBeFocused();
+		await expect( alphaCell ).not.toBeFocused();
 		await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'false' );
+		await expect( reorderRowsTooltip ).toHaveCount( 0 );
 
 		await reorderRowsButton.tap();
+		await expect( touchCoachmark ).toHaveCount( 0 );
 		await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'true' );
 		await expect( touchGuidance ).toBeVisible();
 		await expect( firstRowControl ).toBeVisible();
+
+		await alphaCell.tap();
+		await expect( alphaCell ).toHaveAttribute( 'contenteditable', 'true' );
+		await expect( alphaCell ).toBeFocused();
+		await expect( touchGuidance ).toBeVisible();
 
 		await reorderRowsButton.tap();
 		await expect( reorderRowsButton ).toHaveAttribute( 'aria-pressed', 'false' );
