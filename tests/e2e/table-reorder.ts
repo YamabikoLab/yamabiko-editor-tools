@@ -58,6 +58,27 @@ export async function getTableRowOrder( tableRows: Locator ): Promise< string[] 
 	);
 }
 
+export async function expectNotFullyCovered(
+	target: Locator,
+	overlay: Locator
+): Promise< void > {
+	const [ targetBox, overlayBox ] = await Promise.all( [
+		target.boundingBox(),
+		overlay.boundingBox(),
+	] );
+	if ( ! targetBox || ! overlayBox ) {
+		throw new Error( 'Expected visible geometry for the focused target and guidance.' );
+	}
+
+	const isFullyCovered =
+		overlayBox.x <= targetBox.x &&
+		overlayBox.y <= targetBox.y &&
+		overlayBox.x + overlayBox.width >= targetBox.x + targetBox.width &&
+		overlayBox.y + overlayBox.height >= targetBox.y + targetBox.height;
+
+	expect( isFullyCovered ).toBe( false );
+}
+
 export async function getRowHandle(
 	editorContext: EditorContext,
 	tableRows: Locator,
