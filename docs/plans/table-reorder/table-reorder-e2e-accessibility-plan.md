@@ -1,20 +1,20 @@
 # PLAN-261: Table Reorder E2E アクセシビリティ UI・フォーカス・通知
 
-## References
+## 参照
 
-- Parent issue: #252
-- Implementation issue: #261
-- Merged-cell constraints: #259
-- Data retention / Undo: #260
-- Touch first-run UI follow-up: #382
-- Test responsibility map: `docs/development/testing.md`
-- E2E implementation instructions: `tests/e2e/AGENTS.md`
-- Requirements: `docs/requirements/table-reorder/table-reorder-requirements.md`
-- Accessibility requirements: `docs/requirements/table-reorder/table-reorder-accessibility-requirements.md`
-- Design: `docs/design/table-reorder/table-reorder-design.md`
-- Accessibility design: `docs/design/table-reorder/table-reorder-accessibility-design.md`
+- 親 Issue: #252
+- 実装 Issue: #261
+- 結合セル制約: #259
+- データ保持 / Undo: #260
+- Touch 初回 UI フォローアップ: #382
+- テスト責務マップ: `docs/development/testing.md`
+- E2E 実装指示: `tests/e2e/AGENTS.md`
+- 要件定義書: `docs/requirements/table-reorder/table-reorder-requirements.md`
+- アクセシビリティ要件定義書: `docs/requirements/table-reorder/table-reorder-accessibility-requirements.md`
+- 基本設計書: `docs/design/table-reorder/table-reorder-design.md`
+- アクセシビリティ基本設計書: `docs/design/table-reorder/table-reorder-accessibility-design.md`
 
-## Goal
+## 目的
 
 Table Reorder が実 WordPress / Gutenberg / Chromium 環境でも、利用者が操作対象・操作状態・操作結果を見失わず、支援技術から必要な情報を確認できることを Playwright E2E で固定する。
 
@@ -32,11 +32,11 @@ Table Reorder が実 WordPress / Gutenberg / Chromium 環境でも、利用者�
 
 Touch の初回 Table 操作、Toolbar フォーカス、初回 coachmark、Tooltip 非重複は #382 の責務とし、本 Issue では再テストしない。
 
-## Scope
+## 対象範囲
 
-### Included
+### 含むもの
 
-- `core/table` の代表 fixture を使った accessibility UI / focus / notification の実ブラウザ確認
+- `core/table` の代表 fixture を使ったアクセシビリティ UI / フォーカス / 通知の実ブラウザ確認
 - Toolbar の「Reorder rows / 行を並べ替え」の accessible name / role
 - 移動可能な各 row control の button role と、現在位置・行内容を含む accessible name
 - キーボード待機中と並べ替え中の画面上の案内
@@ -52,7 +52,7 @@ Touch の初回 Table 操作、Toolbar フォーカス、初回 coachmark、Tool
 - 長い Table で、操作対象・移動先・案内のフォーカス文脈が表示追従後も失われないこと
 - iframe / non-iframe の代表ケース
 
-### Not included
+### 含まないもの
 
 - 各入力方式の基本的な行移動フローそのものの再テスト。#255、#256、#257、#258、#360 を正とする。
 - `rowspan` / `colspan` の移動可否や禁止 insertion index の網羅。#259 と Jest を正とする。
@@ -65,20 +65,20 @@ Touch の初回 Table 操作、Toolbar フォーカス、初回 coachmark、Tool
 - Flexible Table Block の E2E。Core Table の #261 が完了した後に別途扱う。
 - 製品コードの変更。
 
-## Source-of-truth mapping
+## 正本との対応
 
-| Source of truth | Required behavior | #261 E2E observation |
+| 正本 | 必要な振る舞い | #261 E2E での観測点 |
 | --- | --- | --- |
-| A11Y-FR-05 / A11Y design §5.4, §6 | 操作中・操作後に文脈を失わない | 開始中は対象 row control にフォーカスを維持し、確定後は移動後の同じ行、キャンセル後は開始行へフォーカスがある |
-| A11Y-FR-06 / §7.1 | フォーカスを視覚的に確認できる | focused row control が可視で、hover に依存せず存在する |
-| A11Y-FR-07 / §7.2 | Table Reorder 自身の UI がフォーカス対象を完全に隠さない | focused control と guidance の bounding box が全面的に重ならず、長い Table の追従後も対象を確認できる |
-| A11Y-FR-08 / §9 | 必要な操作案内を画面上で確認できる | 待機中、keyboard moving、PC destination selection の各状態で対応する guidance が表示・終了する |
-| A11Y-FR-09 / §12 | 状態・結果・移動不能理由を支援技術から確認できる | live region から開始、destination change、確定、キャンセル、境界、rowspan 理由を確認できる |
+| A11Y-FR-05 / A11Y 基本設計 §5.4, §6 | 操作中・操作後に文脈を失わない | 開始中は対象 row control にフォーカスを維持し、確定後は移動後の同じ行、キャンセル後は開始行へフォーカスがある |
+| A11Y-FR-06 / §7.1 | フォーカスを視覚的に確認できる | フォーカス中の row control が可視で、hover に依存せず存在する |
+| A11Y-FR-07 / §7.2 | Table Reorder 自身の UI がフォーカス対象を完全に隠さない | フォーカス対象と guidance の bounding box が全面的に重ならず、長い Table の追従後も対象を確認できる |
+| A11Y-FR-08 / §9 | 必要な操作案内を画面上で確認できる | 待機中、キーボード移動中、PC 移動先選択中の各状態で対応する案内が表示・終了する |
+| A11Y-FR-09 / §12 | 状態・結果・移動不能理由を支援技術から確認できる | live region から開始、移動先変更、確定、キャンセル、境界、`rowspan` 理由を確認できる |
 | A11Y-FR-10 / §4, §11 | name / role / state を判別できる | row control が button として取得でき、accessible name に行番号と代表情報が含まれる |
 | A11Y-FR-03 / §8 | ポインター UI に必要な操作領域がある | 代表 row control / destination target の bounding box が原則 24 × 24 CSS px 以上 |
-| A11Y-FR-12 / §14 | iframe / non-iframe で意味を共通化する | 同じ locator / helper と user-visible assertion で代表シナリオが成立する |
+| A11Y-FR-12 / §14 | iframe / non-iframe で意味を共通化する | 同じ locator / helper と利用者向け assertion で代表シナリオが成立する |
 
-## Approach
+## 方針
 
 ### 1. 専用 spec を追加し、既存操作 spec の責務を膨らませない
 
@@ -114,7 +114,7 @@ DOM の `aria-label` 属性値そのものを主要 assertion にしない。利
 
 PC 単一ポインター操作では、handle click で対象を選んだ時点で対象 row control がフォーカス対象になり、確定 / キャンセル後にも同じ行を追跡できることを代表確認する。
 
-### 4. live region はユーザー向け状態変化を順番に確認する
+### 4. live region は利用者向け状態変化を順番に確認する
 
 製品内部の notification 関数やイベント順序は assertion しない。
 
@@ -122,17 +122,17 @@ PC 単一ポインター操作では、handle click で対象を選んだ時点�
 
 代表シナリオは次とする。
 
-- keyboard start: 対象行、現在位置、総行数
-- keyboard destination change: 対象行、移動予定位置、総行数
-- confirm: 対象行、移動元、移動先
-- cancel: 対象行、維持された位置
-- boundary: それ以上移動できない方向
-- rowspan: 移動できない理由
-- no movable rows: 並べ替え可能行が存在しないこと
+- キーボード開始: 対象行、現在位置、総行数
+- キーボード移動先変更: 対象行、移動予定位置、総行数
+- 確定: 対象行、移動元、移動先
+- キャンセル: 対象行、維持された位置
+- 境界: それ以上移動できない方向
+- `rowspan`: 移動できない理由
+- 移動可能行なし: 並べ替え可能行が存在しないこと
 
 テストは英語 / 日本語の両方を個別に重複実行せず、既存 E2E と同様に現在 locale のどちらでも一致する正規表現を使用する。
 
-同一通知を連続して必要以上に繰り返さない仕様は、DOM 内部の更新回数ではなく、同じ境界キーを連打したときに利用者向け状態が不必要に増殖しないことを確認できる場合のみ E2E に含める。安定した user-visible assertion が作れない場合は Jest の責務に残す。
+同一通知を連続して必要以上に繰り返さない仕様は、DOM 内部の更新回数ではなく、同じ境界キーを連打したときに利用者向け状態が不必要に増殖しないことを確認できる場合のみ E2E に含める。安定した利用者向け assertion が作れない場合は Jest の責務に残す。
 
 ### 5. 操作案内は状態遷移で確認する
 
@@ -141,10 +141,10 @@ PC 単一ポインター操作では、handle click で対象を選んだ時点�
 代表フロー:
 
 - row control がキーボードフォーカスを受ける → `Enter / Space: start moving` が確認できる。
-- keyboard moving 開始 → 待機中 tooltip が終了し、keyboard moving guidance が表示される。
-- confirm / cancel → moving guidance が終了する。
-- PC handle click → destination-selection guidance が表示される。
-- destination selection 終了 → guidance が終了する。
+- キーボード移動開始 → 待機中 tooltip が終了し、キーボード移動中 guidance が表示される。
+- 確定 / キャンセル → 移動中 guidance が終了する。
+- PC handle click → 移動先選択中 guidance が表示される。
+- 移動先選択終了 → guidance が終了する。
 
 初回 coachmark との非重複は #382 に任せるため、本 spec では関連 preference を明示的に dismissed にして開始する。
 
@@ -174,140 +174,143 @@ Touch について同じ CSS contract を共有している場合は PC / Touch 
 
 ### 9. iframe / non-iframe は横断マトリクスとして扱う
 
-#252 の方針どおり、すべての accessibility ケースを両環境で複製しない。
+#252 の方針どおり、すべてのアクセシビリティケースを両環境で複製しない。
 
 `getEditorContext()` を使用し、少なくとも次の代表境界が iframe / non-iframe の双方で同じ意味になることを確認する。
 
 - row control の accessible name / role
 - Toolbar 入口から row control へのフォーカス
-- confirm / cancel 後のフォーカス
+- 確定 / キャンセル後のフォーカス
 - live region の開始または確定通知
 
 実装時の `wp-dev` 対応バージョンで両編集環境を実行できる場合に横断検証する。環境差の切り替えを test 内部の製品実装へ持ち込まない。
 
-## Expected test cases
+## 想定テストケース
 
-### A. Accessible identity
+### A. アクセシブルな識別情報
 
-1. Toolbar entry is exposed as a button named `Reorder rows / 行を並べ替え`.
-2. Movable row controls are exposed as buttons with row number and row summary in the accessible name.
-3. After a row move, the moved row control name reflects its new row number.
+1. Toolbar 入口が `Reorder rows / 行を並べ替え` という名前の button として取得できる。
+2. 移動可能な row control が button として取得でき、accessible name に行番号と行内容の代表情報が含まれる。
+3. 行移動後、移動した行の row control の accessible name が新しい行番号を反映する。
 
-### B. Keyboard focus and notifications
+### B. キーボード操作時のフォーカスと通知
 
-4. Starting keyboard reorder keeps focus on the source row control and announces the moving row / position.
-5. `ArrowDown` / `ArrowUp` changes the valid destination and announces the new target position without moving focus away from the source row control.
-6. Confirming a move announces the old / new position and keeps focus on the moved row control.
-7. Canceling announces cancellation and restores focus to the source row control without changing row order.
-8. Pressing beyond the first / last available destination announces that the row cannot move farther.
+4. キーボード並べ替え開始後も移動対象 row control にフォーカスを維持し、対象行と現在位置を通知する。
+5. `ArrowDown` / `ArrowUp` で有効な移動先を変更したとき、移動対象 row control からフォーカスを外さず、新しい移動予定位置を通知する。
+6. 移動を確定したとき、移動元と移動先を通知し、移動後の同じ行に対応する row control へフォーカスを維持する。
+7. キャンセルしたとき、キャンセルを通知し、行順を変更せず、操作開始行の row control へフォーカスを戻す。
+8. 先頭 / 末尾など、それ以上進めない移動先で操作したとき、これ以上移動できないことを通知する。
 
-### C. PC single-pointer focus and guidance
+### C. PC 単一ポインター操作時のフォーカスと案内
 
-9. Clicking a row handle to choose a destination focuses the selected row control, announces the selection, and shows destination-selection guidance.
-10. Confirm / cancel ends the destination-selection guidance and leaves focus on the same logical row.
+9. row handle をクリックして移動先選択へ入ったとき、選択した row control をフォーカス対象とし、選択状態を通知し、移動先選択中の案内を表示する。
+10. 確定 / キャンセルで移動先選択中の案内を終了し、同じ論理行のフォーカス文脈を維持する。
 
-### D. Unavailable operations
+### D. 利用できない操作
 
-11. Entering reorder from a `rowspan`-blocked row keeps the Toolbar context and announces the reason the row cannot move.
-12. Entering reorder for a Table with no movable body rows announces that no rows can be reordered.
+11. `rowspan` 制約で移動できない行から並べ替え入口を実行したとき、Toolbar の操作文脈を維持し、移動できない理由を通知する。
+12. 移動可能な本文行が存在しない Table で並べ替え入口を実行したとき、並べ替えできる行がないことを通知する。
 
-### E. Visual accessibility integration
+### E. 視覚的アクセシビリティの統合確認
 
-13. Keyboard idle guidance changes to moving guidance when reorder starts and disappears after confirm / cancel.
-14. Representative row control / destination target has an operation area of at least 24 × 24 CSS px, unless the implementation intentionally relies on the WCAG spacing exception and that exception is separately testable.
-15. In a long Table, keyboard movement keeps the current destination visible and Table Reorder guidance does not completely obscure the focused operation context.
+13. キーボード待機中の案内が、並べ替え開始後に移動中案内へ切り替わり、確定 / キャンセル後に終了する。
+14. 代表的な row control / destination target の操作領域が 24 × 24 CSS px 以上であることを確認する。ただし、実装が WCAG の spacing 例外を意図的に利用しており、その条件を別途確認できる場合を除く。
+15. 長い Table でキーボード移動したとき、現在の移動先を表示領域内で確認でき、Table Reorder の案内がフォーカスされた操作文脈を完全に覆わない。
 
-## Implementation phases
+## 実装フェーズ
 
-### Phase 1: Accessibility identity and shared helpers
+### Phase 1: アクセシビリティ識別情報と共通 helper
 
-- Outcome: accessibility-specific spec skeleton and stable user-level locators are available.
-- Tasks:
-  - Add `tests/e2e/table-reorder-accessibility.spec.ts`.
-  - Reuse `getEditorContext()`, `getRowControl()`, Table fixture helpers, and existing coachmark preference setup where applicable.
-  - Add only the smallest helper needed to read live region text or operation geometry if no existing helper represents that user-observable behavior.
-  - Add accessible identity cases.
-- Validation:
-  - Focused Playwright spec.
-  - Existing keyboard / PC single-pointer specs remain unchanged in responsibility.
+- 成果:
+  - アクセシビリティ専用 spec の骨格と、安定した利用者視点の locator が利用できる。
+- 作業:
+  - `tests/e2e/table-reorder-accessibility.spec.ts` を追加する。
+  - `getEditorContext()`、`getRowControl()`、Table fixture helper、既存 coachmark preference 設定を必要に応じて再利用する。
+  - live region の取得や操作領域 geometry の取得に既存 helper がない場合のみ、必要最小限の helper を追加する。
+  - アクセシブルな識別情報のケースを追加する。
+- 検証:
+  - #261 の focused Playwright spec を実行する。
+  - 既存 keyboard / PC single-pointer spec の責務を変更しないことを確認する。
 
-### Phase 2: Focus, guidance, and live-region integration
+### Phase 2: フォーカス・案内・live region の統合確認
 
-- Outcome: start / move / confirm / cancel flows verify focus and notification behavior end-to-end.
-- Tasks:
-  - Add keyboard focus + notification scenarios.
-  - Add PC single-pointer focus + guidance representative scenario.
-  - Assert operation guidance state transitions.
-- Validation:
-  - Focused accessibility spec.
-  - Existing input-specific specs for regression.
+- 成果:
+  - 開始 / 移動 / 確定 / キャンセルの一連のフローで、フォーカスと通知の振る舞いを E2E で確認できる。
+- 作業:
+  - キーボードのフォーカス + 通知シナリオを追加する。
+  - PC 単一ポインターのフォーカス + 案内の代表シナリオを追加する。
+  - 操作案内が状態に応じて切り替わることを assertion する。
+- 検証:
+  - #261 の focused accessibility spec を実行する。
+  - 既存の入力方式別 spec を回帰確認する。
 
-### Phase 3: Unavailable operations and visual boundaries
+### Phase 3: 利用不可操作と視覚境界
 
-- Outcome: failure reason, target size, and focus-obscuring boundaries are covered without duplicating movement logic.
-- Tasks:
-  - Reuse or add the smallest `rowspan` / no-movable-row fixture needed for notification cases.
-  - Add representative target-size assertion.
-  - Add long-table focus / guidance geometry assertion if not already sufficiently covered by the existing keyboard E2E.
-  - If the existing keyboard long-table case already proves the #261 requirement, reference it instead of duplicating it.
-- Validation:
-  - Focused accessibility spec.
-  - Full E2E suite in compatible `wp-dev` environment.
+- 成果:
+  - 移動不能理由、ターゲットサイズ、フォーカス遮蔽境界を、行移動ロジックと重複せず確認できる。
+- 作業:
+  - 通知ケースに必要な最小限の `rowspan` / 移動可能行なし fixture を再利用または追加する。
+  - 代表的なターゲットサイズ assertion を追加する。
+  - 既存 keyboard E2E で十分に保証できていない場合のみ、長い Table のフォーカス / guidance geometry assertion を追加する。
+  - 既存の長い Table の keyboard case が #261 要件を十分に保証している場合は、重複テストを追加せず参照する。
+- 検証:
+  - #261 の focused accessibility spec を実行する。
+  - 対応する `wp-dev` 環境で E2E 全体を実行する。
 
-## Decisions and validation questions
+## 判断事項と実装時の確認事項
 
-### Decide before implementation
+### 実装前に決めること
 
-- None. The requirements and accessibility design already define the expected user-facing behavior.
+- なし。要件定義書とアクセシビリティ基本設計書ですでに期待する利用者向け振る舞いが定義されている。
 
-### Validate during implementation
+### 実装中に確認すること
 
-- Which current DOM node provides the stable live-region semantics that Playwright can query without depending on implementation-only class names.
-- Whether row control / destination pointer hit areas are distinct from their visual icon elements and which node receives pointer input.
-- Whether the existing long-table keyboard test already satisfies the focus-obscuring / tracking requirement strongly enough to avoid a duplicate #261 case.
-- How the current `wp-dev` WordPress matrix exposes iframe / non-iframe environments for the representative cross-boundary checks.
+- Playwright から製品内部 class 名へ依存せず取得できる、安定した live region の semantics が現在どの DOM node にあるか。
+- row control / destination の pointer hit area が視覚アイコン要素とは別か、どの node が実際に pointer input を受けるか。
+- 既存の長い Table のキーボードテストが、#261 のフォーカス遮蔽 / 表示追従要件を十分に保証しており、重複ケースを避けられるか。
+- 現在の `wp-dev` WordPress マトリクスで、代表ケースの iframe / non-iframe 境界をどのように実行できるか。
 
-## Validation
+## 検証
 
-Implementation changes under `tests/e2e/` follow `docs/development/testing.md`.
+`tests/e2e/` 配下の実装変更は `docs/development/testing.md` に従う。
 
 - `npm test`
-  - Expected: format, lint, typecheck, and Jest coverage succeed.
+  - 期待結果: format、lint、typecheck、Jest coverage が成功する。
 - `npm run build`
-  - Expected: production build succeeds.
+  - 期待結果: production build が成功する。
 - `npm run test:e2e -- tests/e2e/table-reorder-accessibility.spec.ts`
-  - Expected: focused #261 scenarios succeed in the compatible `wp-dev` environment.
+  - 期待結果: 対応する `wp-dev` 環境で #261 の focused scenario が成功する。
 - `npm run test:e2e`
-  - Expected: existing E2E suites and #261 scenarios succeed together.
+  - 期待結果: 既存 E2E と #261 scenario がすべて成功する。
 - `git diff --check origin/main...HEAD`
-  - Expected: no whitespace errors.
+  - 期待結果: whitespace error がない。
 
-The user will perform the final environment verification. Do not report E2E as successful unless it was actually run in the compatible `wp-dev` environment.
+最終的な実環境検証はユーザーが実施する。対応する `wp-dev` 環境で実際に実行していない E2E を成功したとは報告しない。
 
-## Completion criteria
+## 完了条件
 
-- [ ] Accessibility-specific E2E cases are implemented without turning Playwright into a duplicate of Jest.
-- [ ] Row controls can be identified by user-facing role and accessible name, including row position and representative content.
-- [ ] A moved row updates its accessible identity to the new position.
-- [ ] Keyboard reorder keeps focus on the source row while active.
-- [ ] Keyboard confirm keeps focus on the moved logical row.
-- [ ] Keyboard cancel restores focus to the original logical row.
-- [ ] PC destination selection preserves the selected row's focus context through confirm / cancel.
-- [ ] Keyboard waiting / moving and PC destination-selection guidance are observable and switch with interaction state.
-- [ ] Start, destination change, confirm, cancel, boundary, `rowspan` reason, and no-movable-row information are available through the browser-visible accessibility notification path.
-- [ ] A representative pointer operation target satisfies the design target-size contract or the applicable spacing exception is explicitly justified.
-- [ ] Table Reorder guidance does not completely obscure the focused operation context in the representative long-table scenario.
-- [ ] Tests use user-observable UI / accessibility state rather than SortableJS internals or implementation event order.
-- [ ] Fixed `waitForTimeout()` synchronization is not introduced.
-- [ ] First-run Touch UI responsibilities remain in #382 and are not duplicated.
-- [ ] Merged-cell constraint calculations remain in #259 / Jest and are not duplicated.
-- [ ] Data retention / Undo remain in #260 and are not duplicated.
-- [ ] iframe / non-iframe are handled as a representative cross-cutting matrix rather than a Cartesian product.
-- [ ] Flexible Table Block E2E remains outside this Core Table implementation pass.
+- [ ] Playwright が Jest の重複テストにならない形で、アクセシビリティ専用 E2E が実装されている。
+- [ ] row control を利用者向け role と accessible name で識別でき、現在位置と代表情報を確認できる。
+- [ ] 移動した行の accessible identity が新しい位置へ更新される。
+- [ ] キーボード並べ替え中は対象 row control にフォーカスを維持する。
+- [ ] キーボード確定後は移動後の同じ論理行にフォーカスを維持する。
+- [ ] キーボードキャンセル後は元の論理行へフォーカスを戻す。
+- [ ] PC 移動先選択でも、確定 / キャンセル後まで選択した行のフォーカス文脈を維持する。
+- [ ] キーボード待機中 / 移動中、PC 移動先選択中の案内が観測でき、操作状態に応じて切り替わる。
+- [ ] 開始、移動先変更、確定、キャンセル、境界、`rowspan` 理由、移動可能行なしの情報を、ブラウザ上のアクセシビリティ通知経路から確認できる。
+- [ ] 代表的な pointer operation target が基本設計の target-size contract を満たすか、適用する spacing 例外が明示的に説明されている。
+- [ ] 長い Table の代表シナリオで、Table Reorder の案内がフォーカスされた操作文脈を完全に覆わない。
+- [ ] SortableJS 内部状態や内部イベント順序ではなく、利用者から観測できる UI / accessibility state を assertion している。
+- [ ] 固定時間の `waitForTimeout()` による同期を追加していない。
+- [ ] Touch 初回 UI の責務を #382 から重複して取り込んでいない。
+- [ ] 結合セル制約の計算を #259 / Jest から重複して取り込んでいない。
+- [ ] データ保持 / Undo を #260 から重複して取り込んでいない。
+- [ ] iframe / non-iframe を直積網羅ではなく、代表的な横断マトリクスとして扱っている。
+- [ ] Flexible Table Block E2E は今回の Core Table 実装範囲外のままである。
 
-## Notes
+## 補足
 
-- Prefer role / accessible name / visible guidance / focus / live-region text as final assertions.
-- Product class names may be used narrowly when no semantic locator exists, but should not become the primary contract of #261 tests.
-- Persistent keyboard / touch coachmark preferences must be set explicitly so first-run UI does not leak into unrelated #261 scenarios.
-- Do not add product hooks or test-only attributes solely to make Playwright easier to automate.
+- 最終 assertion は role / accessible name / visible guidance / focus / live-region text を優先する。
+- semantic locator が存在しない場合に限り製品 class 名を狭く利用できるが、#261 テストの主要 contract にはしない。
+- 初回 UI が #261 シナリオへ混入しないよう、keyboard / touch coachmark preference は明示的に設定する。
+- Playwright で自動化しやすくするためだけの product hook や test-only attribute は追加しない。
