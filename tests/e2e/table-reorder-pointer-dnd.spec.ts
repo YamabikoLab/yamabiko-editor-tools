@@ -9,9 +9,36 @@ import {
 	getTableRow,
 	getTableRowOrder,
 	getTableRows,
+	longRowLabels,
+	longTableContent,
 } from './table-reorder';
 
 type VerticalTarget = 'before' | 'center' | 'after';
+type BoundingBox = { height: number; width: number; x: number; y: number };
+type ViewportSize = { height: number; width: number };
+
+async function getRequiredBoundingBox(
+	locator: Locator,
+	errorMessage: string
+): Promise< BoundingBox > {
+	const box = await locator.boundingBox();
+
+	if ( ! box ) {
+		throw new Error( errorMessage );
+	}
+
+	return box;
+}
+
+function getRequiredViewportSize( page: Page, errorMessage: string ): ViewportSize {
+	const viewport = page.viewportSize();
+
+	if ( ! viewport ) {
+		throw new Error( errorMessage );
+	}
+
+	return viewport;
+}
 
 async function dragWithMouse(
 	page: Page,
@@ -45,6 +72,120 @@ async function dragWithMouse(
 		await page.mouse.move( sourceX, sourceY + 6, { steps: 2 } );
 		await page.mouse.move( targetX, targetY, { steps: 10 } );
 		await duringDrag?.();
+	} finally {
+		await page.mouse.up();
+	}
+}
+
+async function getVerticalScrollPosition( source: Locator ): Promise< number > {
+	return source.evaluate( ( element ) => {
+		const view = element.ownerDocument.defaultView;
+		let ancestor = element.parentElement;
+
+		while ( ancestor ) {
+			const overflowY = view?.getComputedStyle( ancestor ).overflowY ?? '';
+			if (
+				/(auto|scroll)/.test( overflowY ) &&
+				ancestor.scrollHeight > ancestor.clientHeight + 1
+			) {
+				return ancestor.scrollTop;
+			}
+			ancestor = ancestor.parentElement;
+		}
+
+		return element.ownerDocument.scrollingElement?.scrollTop ?? view?.scrollY ?? 0;
+	} );
+}
+
+async function waitForVerticalScrollToStop( source: Locator ): Promise< void > {
+	let previousPosition: number | undefined;
+	let stableSamples = 0;
+
+	await expect
+		.poll( async () => {
+			const position = await getVerticalScrollPosition( source );
+
+			stableSamples = position === previousPosition ? stableSamples + 1 : 0;
+			previousPosition = position;
+
+			return stableSamples;
+		} )
+		.toBeGreaterThanOrEqual( 2 );
+}
+
+async function alignMouseWithInsertionAfterTarget(
+	page: Page,
+	target: Locator,
+	insertionIndicator: Locator
+): Promise< void > {
+	await expect
+		.poll( async () => {
+			const targetBox = await target.boundingBox();
+			if ( ! targetBox ) {
+				return false;
+			}
+
+			await page.mouse.move(
+				targetBox.x + targetBox.width / 2,
+				targetBox.y + targetBox.height - 2
+			);
+
+			const updatedTargetBox = await target.boundingBox();
+			const indicatorBox = await insertionIndicator.boundingBox();
+
+			return Boolean(
+				updatedTargetBox &&
+					indicatorBox &&
+					Math.abs(
+						indicatorBox.y +
+							indicatorBox.height / 2 -
+							( updatedTargetBox.y + updatedTargetBox.height )
+					) < 12
+			);
+		} )
+		.toBe( true );
+}
+
+async function dragWithMouseAndAutoScroll(
+	page: Page,
+	source: Locator,
+	target: Locator,
+	scrollSource: Locator,
+	duringAutoScroll: () => Promise< void >,
+	duringDrop?: () => Promise< void >
+): Promise< void > {
+	await source.scrollIntoViewIfNeeded();
+
+	const sourceBox = await getRequiredBoundingBox(
+		source,
+		'Could not determine mouse auto-scroll coordinates.'
+	);
+	const viewport = getRequiredViewportSize(
+		page,
+		'Could not determine mouse auto-scroll coordinates.'
+	);
+
+	const sourceX = sourceBox.x + sourceBox.width / 2;
+	const sourceY = sourceBox.y + sourceBox.height / 2;
+
+	await page.mouse.move( sourceX, sourceY );
+	await page.mouse.down();
+	try {
+		await page.mouse.move( sourceX, sourceY + 6, { steps: 2 } );
+		await page.mouse.move( sourceX, viewport.height - 4, { steps: 10 } );
+		await duringAutoScroll();
+		await page.mouse.move( sourceX, viewport.height / 2 );
+		await waitForVerticalScrollToStop( scrollSource );
+
+		const targetBox = await target.boundingBox();
+		if ( ! targetBox ) {
+			throw new Error( 'Could not determine the target after mouse auto-scroll.' );
+		}
+
+		await page.mouse.move( targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height - 2, {
+			steps: 1,
+		} );
+		await duringDrop?.();
 	} finally {
 		await page.mouse.up();
 	}
@@ -114,5 +255,73 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 
 		expect( await getTableRowOrder( tableRows ) ).toEqual( basicRowLabels );
 		expect( await editor.getEditedPostContent() ).toBe( originalContent );
+	} );
+
+	test( 'auto-scrolls down while dragging to an initially offscreen destination', async ( {
+		editor,
+		page,
+	} ) => {
+		await editor.setContent( longTableContent );
+
+		const editorContext = await getEditorContext( page, editor.canvas );
+		const tableBlock = editorContext.locator( '[data-type="core/table"][data-block]' );
+		const tableRows = getTableRows( editorContext );
+		const sourceRow = getTableRow( tableRows, 'Row 02' );
+		const targetRow = getTableRow( tableRows, 'Row 20' );
+		const insertionIndicator = editorContext.locator( '.yamabiko-table-reorder-insertion-line' );
+		const viewport = getRequiredViewportSize(
+			page,
+			'Could not determine the viewport for mouse auto-scroll.'
+		);
+
+		await editor.selectBlocks( tableBlock );
+		await sourceRow.scrollIntoViewIfNeeded();
+		const sourceHandle = await getRowHandle( editorContext, tableRows, 2, 'Row 02' );
+		const targetBoxBeforeDrag = await getRequiredBoundingBox(
+			targetRow,
+			'Could not determine the target before mouse auto-scroll.'
+		);
+		expect( targetBoxBeforeDrag.y ).toBeGreaterThanOrEqual( viewport.height );
+
+		const initialScrollPosition = await getVerticalScrollPosition( tableBlock );
+
+		await dragWithMouseAndAutoScroll(
+			page,
+			sourceHandle,
+			targetRow,
+			tableBlock,
+			async () => {
+				await expect
+					.poll( () => getVerticalScrollPosition( tableBlock ) )
+					.toBeGreaterThan( initialScrollPosition );
+				await expect
+					.poll( async () => {
+						const targetBox = await targetRow.boundingBox();
+
+						return Boolean(
+							targetBox &&
+								targetBox.y >= 0 &&
+								targetBox.y + targetBox.height <= viewport.height - 64
+						);
+					} )
+					.toBe( true );
+			},
+			async () => {
+				await alignMouseWithInsertionAfterTarget( page, targetRow, insertionIndicator );
+			}
+		);
+
+		const expectedOrder = [
+			longRowLabels[ 0 ],
+			...longRowLabels.slice( 2, 20 ),
+			longRowLabels[ 1 ],
+			...longRowLabels.slice( 20 ),
+		];
+		const expectedTableBody = `<tbody>${ expectedOrder
+			.map( ( label ) => `<tr><td>${ label }</td></tr>` )
+			.join( '' ) }</tbody>`;
+
+		await expect.poll( () => editor.getEditedPostContent() ).toContain( expectedTableBody );
+		expect( await getTableRowOrder( tableRows, longRowLabels ) ).toEqual( expectedOrder );
 	} );
 } );

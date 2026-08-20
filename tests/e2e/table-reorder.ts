@@ -42,12 +42,15 @@ export function getRowControl(
 	} );
 }
 
-export async function getTableRowOrder( tableRows: Locator ): Promise< string[] > {
+export async function getTableRowOrder(
+	tableRows: Locator,
+	rowLabels: readonly string[] = basicRowLabels
+): Promise< string[] > {
 	const rows = await tableRows.all();
 
 	return Promise.all(
 		rows.map( async ( row ) => {
-			for ( const label of basicRowLabels ) {
+			for ( const label of rowLabels ) {
 				if ( ( await row.getByText( label, { exact: true } ).count() ) > 0 ) {
 					return label;
 				}
