@@ -45,7 +45,7 @@ jobs:
         run: npm ci
 
       - name: Audit npm dependencies
-        run: npm run audit
+        run: npm run audit:security
 
       - name: Run Node.js quality checks
         run: npm test
@@ -87,7 +87,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Audit Composer dependencies
-        run: composer audit --abandoned=ignore
+        run: composer run audit:security
 
       - name: Check PHP syntax
         run: php -l yamabiko-editor-tools.php
