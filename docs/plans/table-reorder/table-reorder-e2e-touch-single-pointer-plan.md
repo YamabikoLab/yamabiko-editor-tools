@@ -16,9 +16,9 @@
 
 Touch 環境で Table Reorder の並べ替えモードへ入り、行ハンドルをタップして移動対象を選択し、表示された有効な移動先をタップして行移動を確定できることを、実 WordPress / Gutenberg / Chromium 環境の Playwright E2E で固定する。
 
-あわせて、Touch 固有の単一ポインター操作として、明示的なキャンセルで行順を変更せず操作を終了できることと、移動先探索中の縦 scroll gesture が destination tap と誤認されず行移動を確定しないことを確認する。
+あわせて、Touch 固有の単一ポインター操作として、明示的なキャンセルで行順を変更せず操作を終了できること、移動先探索中の縦 scroll gesture が destination tap と誤認されず行移動を確定しないこと、上下 swipe の方向に合わせて Touch pointer guidance が viewport 上側 / 下側へ切り替わり、反対方向の swipe まで直前の位置を維持することを確認する。
 
-本プランは #252 の方針に従い、E2E を網羅テストにしない。Jest ですでに扱える移動先生成、tap / scroll 判定の細かな境界値、controller の内部状態は重複して検証せず、実ブラウザ上で Touch 入力、並べ替えモード、行ハンドル、移動先 UI、Gutenberg の Table データ更新が利用者操作として正しく接続される代表シナリオを対象とする。
+本プランは #252 の方針に従い、E2E を網羅テストにしない。Jest ですでに扱える移動先生成、tap / scroll 判定の細かな境界値、guidance の swipe 判定しきい値、controller の内部状態は重複して検証せず、実ブラウザ上で Touch 入力、並べ替えモード、行ハンドル、移動先 UI、操作案内、Gutenberg の Table データ更新が利用者操作として正しく接続される代表シナリオを対象とする。
 
 ## Scope
 
@@ -31,6 +31,7 @@ Touch 環境で Table Reorder の並べ替えモードへ入り、行ハンド�
 - 有効な別位置を tap して行移動を確定し、Table の行順が更新されること
 - Touch 用の明示的なキャンセル操作で行順を変更せず移動先選択を終了すること
 - 移動先探索中に destination 上から縦 scroll gesture を行っても、その gesture 自体では移動を確定しないこと
+- 移動先探索中の上方向 swipe で Touch pointer guidance が viewport 上側、下方向 swipe で viewport 下側へ切り替わり、反対方向の swipe まで直前の位置を維持することの代表確認
 - scroll gesture 後も移動先選択を継続でき、あらためて destination を tap すれば確定できることの代表確認
 - iframe / non-iframe の両方で代表的な Touch 単一ポインター操作が成立すること
 - `core/table` を基準にした代表シナリオ
@@ -46,9 +47,9 @@ Touch 環境で Table Reorder の並べ替えモードへ入り、行ハンド�
 - accessible name / role / state、live region、通知文言などアクセシビリティ情報提供の網羅（#261）
 - Touch 初回案内、最初の Table gesture の抑止、Toolbar の「行を並べ替え」への初回フォーカス移動の再テスト（#382）
 - 並べ替えモード ON/OFF 自体の再テスト（#253 で固定済み）
-- tap 判定しきい値 `5px` など実装定数の E2E 固定
+- tap 判定しきい値 `5px` や guidance の swipe 判定しきい値 `8px` など実装定数の E2E 固定
 - pointer event の内部順序や controller state の直接検証
-- CSS class、座標、opacity など移動先 UI の実装詳細
+- CSS class、厳密な座標、opacity など移動先 UI / guidance の実装詳細
 - Core Table / Flexible Table Block、iframe / non-iframe、通常幅 / 全幅、通常行 / 結合セルの全組み合わせ網羅
 - Flexible Table Block を E2E のためだけに新規導入・セットアップすること
 
@@ -114,14 +115,19 @@ scroll gesture のシナリオでは、縦に十分な長さの Table を使い�
 - gesture だけでは Table の行順が変わらない
 - gesture だけでは移動先選択が終了しない
 - destination UI が残り、あらためて明示的に tap すると行移動を確定できる
+- 上方向の swipe では Touch pointer guidance が viewport 上側へ移動する
+- 下方向の swipe では Touch pointer guidance が viewport 下側へ移動する
+- swipe 終了後も guidance は直前の表示側を維持し、反対方向の swipe で反対側へ切り替わる
 
-固定時間の `waitForTimeout()` は使わず、scroll position、destination の存在、Table 行順など観測可能な状態を待つ。
+Touch pointer guidance の確認は `top: 8px` や要素高から算出した pixel 値などを固定せず、viewport の上半分 / 下半分など利用者から見た表示側として判定する。微小な揺れを無視する `8px` の内部しきい値は Jest の責務とする。
+
+固定時間の `waitForTimeout()` は使わず、scroll position、destination の存在、guidance の表示側、Table 行順など観測可能な状態を待つ。
 
 Playwright の通常 API だけで destination 上からの連続 touch gesture を十分に表現できない場合は、Chromium CDP の `Input.dispatchTouchEvent` を使う最小 helper を E2E 側に限定して利用する。#258 の実装で同等 helper が追加済みなら再利用を優先し、同種の CDP helper を重複して増やさない。
 
 ### Jest と E2E の責務を重複させない
 
-Jest では `row-move-targets.test.ts` などで、Touch tap と pointer movement による確定抑止を細かく検証できる。
+Jest では `row-move-targets.test.ts` などで Touch tap と pointer movement による確定抑止を、`reorder-guidance.test.ts` で swipe 方向の判定、微小移動のしきい値、直前位置の保持を細かく検証できる。
 
 Playwright では次の実ブラウザ境界だけを確認する。
 
@@ -130,6 +136,7 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - destination tap が Gutenberg の Table データ更新へ接続されること
 - Touch Cancel button が未確定操作を破棄すること
 - destination 上の scroll gesture が誤って tap 確定にならないこと
+- 実 Touch swipe の方向に応じて Touch pointer guidance が viewport 上側 / 下側へ切り替わり、反対方向の swipe まで表示側を維持すること
 - iframe / non-iframe の editor canvas 差を越えて同じ意味の操作が成立すること
 
 ## Test structure
@@ -149,9 +156,10 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - hover を伴わず row control を semantic locator で取得する helper
 - destination を accessible name で取得する helper
 - destination 上から縦 touch scroll gesture を送る helper
+- guidance が viewport 上側 / 下側のどちらに表示されているかを判定する小さな helper
 - Table の現在行順を読み取る既存 helper の再利用
 
-#258 の実装で Touch gesture helper が共通化されている場合は、それを利用できる範囲だけ再利用する。#360 固有の destination tap / cancel / scroll assertion は本 spec 側に残す。
+#258 の実装で Touch gesture helper が共通化されている場合は、それを利用できる範囲だけ再利用する。#360 固有の destination tap / cancel / scroll / guidance position assertion は本 spec 側に残す。
 
 ## Test data
 
@@ -179,6 +187,7 @@ Playwright では次の実ブラウザ境界だけを確認する。
 
 - 移動先探索中に縦スクロール可能な距離を確保する
 - destination 上の scroll gesture が tap 確定にならないことを確認する
+- 上下 swipe に応じて Touch pointer guidance の表示側が切り替わることを確認する
 
 既存データで十分なスクロール距離を確保できない場合だけ、#360 に必要な最小 fixture を追加する。
 
@@ -220,18 +229,22 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - Validation:
   - Cancel tap で未確定操作だけが破棄される。
 
-### Phase 4: destination 上の scroll gesture 誤確定防止を追加する
+### Phase 4: destination 上の scroll gesture と guidance 追従を追加する
 
-- Outcome: 移動先探索中に縦 scroll gesture を行っても、その gesture が destination tap として確定されない。
+- Outcome: 移動先探索中に縦 scroll gesture を行っても、その gesture が destination tap として確定されず、Touch pointer guidance が swipe 方向に応じて viewport 上側 / 下側へ切り替わる。
 - Tasks:
   - `longTableContent` を使い、Touch reorder mode で row control を tap して destination を表示する。
-  - destination 上から縦方向の実 Touch gesture を送る。
-  - gesture 前後で scroll position が変わることを確認する。
+  - destination 上から上方向の実 Touch gesture を送り、scroll position が変わり、guidance が viewport 上側に表示されることを確認する。
   - 行順が変わらず、destination UI が残ることを確認する。
+  - swipe 終了後も guidance が上側を維持することを確認する。
+  - 続けて下方向の実 Touch gesture を送り、guidance が viewport 下側へ切り替わることを確認する。
+  - 行順が変わらず、移動先選択が継続していることを確認する。
   - scroll 後にあらためて destination を tap し、その時点では正常に行移動を確定できることを確認する。
+  - guidance の厳密な pixel 座標や `8px` の swipe 判定しきい値は assertion にしない。
   - 通常 Playwright API で連続 Touch gesture を表現できない場合だけ CDP helper を使う。
 - Validation:
   - scroll gesture と destination tap の意味が実 Chromium 上で分離される。
+  - 上方向 / 下方向の Touch swipe に追従して guidance の表示側が切り替わり、反対方向の swipe まで直前の位置が維持される。
 
 ### Phase 5: iframe / non-iframe の代表境界を固定する
 
@@ -239,7 +252,7 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - Tasks:
   - 現行テスト環境で iframe / non-iframe を再現する既存方法を利用する。
   - 両環境で少なくとも handle tap → destination tap → 行順更新の代表フローを確認する。
-  - cancel と scroll gesture の全ケースを両環境へ機械的に複製しない。
+  - cancel、scroll gesture、guidance position の全ケースを両環境へ機械的に複製しない。
 - Validation:
   - iframe / non-iframe それぞれで同じ利用者結果になる。
 
@@ -247,7 +260,7 @@ Playwright では次の実ブラウザ境界だけを確認する。
 
 ### Decide before implementation
 
-- None. Issue #360 と既存設計で、Touch reorder mode → handle tap → destination tap、明示的キャンセル、移動先探索中の scroll gesture 非確定まで対象が確定している。
+- None. Issue #360 と既存設計・実装で、Touch reorder mode → handle tap → destination tap、明示的キャンセル、移動先探索中の scroll gesture 非確定、Touch guidance の swipe 方向追従まで対象が確定している。
 
 ### Validate during implementation
 
@@ -255,6 +268,7 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - destination 上からの連続 Touch scroll gesture に通常 Playwright API が十分か、Chromium CDP helper が必要か。
 - #258 の実装が先行した場合、その Touch gesture helper を #360 でも小さく再利用できるか。
 - long Table の destination を使った scroll gesture が、固定時間待機なしで安定して scroll position の変化として観測できること。
+- Touch pointer guidance の表示側を、厳密な CSS 座標へ依存せず viewport 上側 / 下側として安定して判定できること。
 - iframe / non-iframe の代表ケースで semantic locator が同じ意味で利用できること。
 
 ## Issue breakdown
@@ -285,6 +299,8 @@ Playwright では次の実ブラウザ境界だけを確認する。
 - 有効な destination を tap すると、ドラッグなしで行順が更新される。
 - Touch の明示的 Cancel を tap すると、行順を変更せず移動先選択を終了できる。
 - destination 上の縦 scroll gesture だけでは行移動を確定しない。
+- 上方向の Touch swipe で Touch pointer guidance が viewport 上側へ、下方向の Touch swipe で viewport 下側へ切り替わる。
+- Touch pointer guidance は swipe 終了後も直前の表示側を維持し、反対方向の swipe で反対側へ切り替わる。
 - scroll gesture 後も移動先選択を継続でき、あらためて destination を tap すれば確定できる。
 - iframe / non-iframe の代表ケースで主要フローが成立する。
 - Jest で十分な内部ロジックや閾値を Playwright で重複して固定していない。
@@ -294,6 +310,6 @@ Playwright では次の実ブラウザ境界だけを確認する。
 ## Notes
 
 - #360 は WCAG 2.2 2.5.7 Dragging Movements に関係する Touch のドラッグ不要操作を、実ブラウザ上の利用者フローとして固定する E2E である。
-- `row-move-targets.ts` の pointer movement threshold は Jest 側で扱い、E2E では具体的な px 値ではなく「scroll gesture が tap 確定にならない」という結果を確認する。
+- `row-move-targets.ts` の pointer movement threshold と `reorder-guidance.ts` の swipe direction threshold は Jest 側で扱い、E2E では具体的な px 値ではなく「scroll gesture が tap 確定にならない」「swipe 方向に応じて guidance の表示側が切り替わる」という結果を確認する。
 - Touch 初回案内は #382、Touch DnD は #258 に分離し、本 spec の setup では初回案内を dismissed にして単一ポインター操作だけへ集中する。
 - 検証はユーザーが実施する。
