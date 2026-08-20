@@ -61,10 +61,41 @@ export async function getTableRowOrder(
 	);
 }
 
-export async function expectNotFullyCovered(
-	target: Locator,
-	overlay: Locator
-): Promise< void > {
+export async function getVerticalScrollState(
+	source: Locator
+): Promise< { bottom: number; position: number; top: number } > {
+	return source.evaluate( ( element ) => {
+		const view = element.ownerDocument.defaultView;
+		const { body, documentElement } = element.ownerDocument;
+		let ancestor = element.parentElement;
+
+		while ( ancestor ) {
+			if ( ancestor !== body && ancestor !== documentElement ) {
+				const overflowY = view?.getComputedStyle( ancestor ).overflowY ?? '';
+				if (
+					( overflowY === 'auto' || overflowY === 'scroll' ) &&
+					ancestor.scrollHeight > ancestor.clientHeight
+				) {
+					const rect = ancestor.getBoundingClientRect();
+					return { bottom: rect.bottom, position: ancestor.scrollTop, top: rect.top };
+				}
+			}
+			ancestor = ancestor.parentElement;
+		}
+
+		return {
+			bottom: view?.innerHeight ?? element.ownerDocument.documentElement.clientHeight,
+			position: element.ownerDocument.scrollingElement?.scrollTop ?? view?.scrollY ?? 0,
+			top: 0,
+		};
+	} );
+}
+
+export async function getVerticalScrollPosition( source: Locator ): Promise< number > {
+	return ( await getVerticalScrollState( source ) ).position;
+}
+
+export async function expectNotFullyCovered( target: Locator, overlay: Locator ): Promise< void > {
 	const [ targetBox, overlayBox ] = await Promise.all( [
 		target.boundingBox(),
 		overlay.boundingBox(),

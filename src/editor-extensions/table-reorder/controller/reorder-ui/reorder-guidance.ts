@@ -239,7 +239,33 @@ export const createReorderGuidance = (
 };
 
 /**
- * keyboard候補が実際にviewport外へ進んだとき、その候補を確認できる位置までowning windowを
+ * 対象要素に最も近い、実際に縦scroll可能な祖先を返す。
+ *
+ * @param view   computed styleを取得するowning window。
+ * @param target scrollable ancestorを探索する起点。
+ * @return 最も近い縦scroll可能な祖先。該当しない場合はnull。
+ */
+const getVerticalScrollContainer = ( view: Window, target: Element ): HTMLElement | null => {
+	const { body, documentElement } = target.ownerDocument;
+	let ancestor = target.parentElement;
+	while ( ancestor ) {
+		if ( ancestor !== body && ancestor !== documentElement ) {
+			const overflowY = view.getComputedStyle( ancestor ).overflowY;
+			if (
+				( overflowY === 'auto' || overflowY === 'scroll' ) &&
+				ancestor.scrollHeight > ancestor.clientHeight
+			) {
+				return ancestor;
+			}
+		}
+		ancestor = ancestor.parentElement;
+	}
+
+	return null;
+};
+
+/**
+ * keyboard候補が実際にscroll containerの表示領域外へ進んだとき、その候補を確認できる位置まで
  * 必要最小限だけ縦scrollする。
  *
  * 候補が変化しない境界操作からは呼び出さない。
@@ -262,13 +288,16 @@ export const scrollKeyboardDestinationIntoView = (
 		return;
 	}
 
-	const viewportHeight = view.innerHeight;
-	if ( viewportHeight <= KEYBOARD_SCROLL_MARGIN_PX * 2 ) {
+	const scrollContainer = getVerticalScrollContainer( view, tbody );
+	const containerRect = scrollContainer?.getBoundingClientRect();
+	const viewportTop = containerRect?.top ?? 0;
+	const viewportBottom = containerRect?.bottom ?? view.innerHeight;
+	if ( viewportBottom - viewportTop <= KEYBOARD_SCROLL_MARGIN_PX * 2 ) {
 		return;
 	}
 
-	const lowerBound = KEYBOARD_SCROLL_MARGIN_PX;
-	const upperBound = viewportHeight - KEYBOARD_SCROLL_MARGIN_PX;
+	const lowerBound = viewportTop + KEYBOARD_SCROLL_MARGIN_PX;
+	const upperBound = viewportBottom - KEYBOARD_SCROLL_MARGIN_PX;
 	let delta = 0;
 	if ( currentY < lowerBound ) {
 		delta = currentY - lowerBound;
@@ -277,6 +306,6 @@ export const scrollKeyboardDestinationIntoView = (
 	}
 
 	if ( Math.abs( delta ) >= 1 ) {
-		view.scrollBy( { behavior: 'auto', left: 0, top: delta } );
+		( scrollContainer ?? view ).scrollBy( { behavior: 'auto', left: 0, top: delta } );
 	}
 };
