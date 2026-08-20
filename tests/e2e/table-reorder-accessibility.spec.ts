@@ -6,6 +6,7 @@ import { getEditorContext, type EditorContext } from './editor-context';
 import {
 	basicRowLabels,
 	basicTableContent,
+	expectNotFullyCovered,
 	getRowControl,
 	getRowHandle,
 	getTableRow,
@@ -62,21 +63,6 @@ async function expectMinimumPointerTargetSize( locator: Locator ): Promise< void
 
 	expect( box.width ).toBeGreaterThanOrEqual( 24 );
 	expect( box.height ).toBeGreaterThanOrEqual( 24 );
-}
-
-async function expectNotFullyCovered( target: Locator, overlay: Locator ): Promise< void > {
-	const [ targetBox, overlayBox ] = await Promise.all( [ target.boundingBox(), overlay.boundingBox() ] );
-	if ( ! targetBox || ! overlayBox ) {
-		throw new Error( 'Expected visible geometry for the focused target and guidance.' );
-	}
-
-	const isFullyCovered =
-		overlayBox.x <= targetBox.x &&
-		overlayBox.y <= targetBox.y &&
-		overlayBox.x + overlayBox.width >= targetBox.x + targetBox.width &&
-		overlayBox.y + overlayBox.height >= targetBox.y + targetBox.height;
-
-	expect( isFullyCovered ).toBe( false );
 }
 
 test.describe( 'Table Reorder accessibility integration', () => {
@@ -255,14 +241,16 @@ test.describe( 'Table Reorder accessibility integration', () => {
 		await editor.selectBlocks( editorContext.locator( '[data-type="core/table"][data-block]' ) );
 		const tableRows = getTableRows( editorContext );
 		const liveStatus = editorContext.getByRole( 'status' );
+		const toolbarButton = page.getByRole( 'button', { name: reorderRowsButtonName } );
 
 		await getTableRow( tableRows, 'Alpha' ).getByText( 'Alpha', { exact: true } ).focus();
-		await page.getByRole( 'button', { name: reorderRowsButtonName } ).focus();
+		await toolbarButton.focus();
 		await page.keyboard.press( 'Enter' );
 
 		await expect( liveStatus ).toHaveText(
 			/^(Alpha cannot be moved because it is within a cell that spans multiple rows\.|Alphaは、複数行にまたがる結合セルの範囲内にあるため移動できません。)$/
 		);
+		await expect( toolbarButton ).toBeFocused();
 		await expect( getRowControl( editorContext, 3, 'Charlie' ) ).not.toBeFocused();
 	} );
 
@@ -272,14 +260,16 @@ test.describe( 'Table Reorder accessibility integration', () => {
 		await editor.selectBlocks( editorContext.locator( '[data-type="core/table"][data-block]' ) );
 		const tableRows = getTableRows( editorContext );
 		const liveStatus = editorContext.getByRole( 'status' );
+		const toolbarButton = page.getByRole( 'button', { name: reorderRowsButtonName } );
 
 		await getTableRow( tableRows, 'Alpha' ).getByText( 'Alpha', { exact: true } ).focus();
-		await page.getByRole( 'button', { name: reorderRowsButtonName } ).focus();
+		await toolbarButton.focus();
 		await page.keyboard.press( 'Enter' );
 
 		await expect( liveStatus ).toHaveText(
 			/^(There are no rows that can be reordered in this table\.|この表には並べ替えできる行がありません。)$/
 		);
+		await expect( toolbarButton ).toBeFocused();
 		await expect( editorContext.getByRole( 'button', { name: /^(Reorder row|\d+行目「)/ } ) ).toHaveCount( 0 );
 	} );
 } );
