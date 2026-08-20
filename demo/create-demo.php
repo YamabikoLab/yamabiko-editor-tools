@@ -1,7 +1,8 @@
 <?php
 require_once '/wordpress/wp-load.php';
 
-$page_id = 100;
+$page_id      = 100;
+$demo_version = '0.3.2';
 
 if ( get_post( $page_id ) ) {
 	wp_delete_post( $page_id, true );
@@ -40,38 +41,58 @@ $core_rows = [
 	[ 30, '鹿島槍ヶ岳', '2,889 m', '長野県・富山県' ],
 ];
 
-$core_table_rows = '';
+function yet_demo_build_core_table_rows( array $rows ) {
+	$table_rows = '';
 
-foreach ( $core_rows as $row ) {
-	[ $number, $mountain, $height, $location ] = $row;
+	foreach ( $rows as $row ) {
+		[ $number, $mountain, $height, $location ] = $row;
 
-	// 縦結合: 7〜8行目の所在地を2行結合。
-	if ( 7 === $number ) {
-		$core_table_rows .= '<tr><td>7</td><td>涸沢岳</td><td>3,110 m</td><td rowspan="2">長野県・岐阜県</td><td>縦結合（所在地）</td></tr>';
-		continue;
+		if ( 7 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><td>%d</td><td>%s</td><td>%s</td><td rowspan="2">%s</td><td>縦結合（所在地）</td></tr>',
+				$number,
+				esc_html( $mountain ),
+				esc_html( $height ),
+				esc_html( $location )
+			);
+			continue;
+		}
+
+		if ( 8 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><td>%d</td><td>%s</td><td>%s</td><td>縦結合（所在地）</td></tr>',
+				$number,
+				esc_html( $mountain ),
+				esc_html( $height )
+			);
+			continue;
+		}
+
+		if ( 14 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><td>%d</td><td colspan="2"><strong>%s</strong> / %s</td><td>%s</td><td>横結合（山名＋標高）</td></tr>',
+				$number,
+				esc_html( $mountain ),
+				esc_html( $height ),
+				esc_html( $location )
+			);
+			continue;
+		}
+
+		$table_rows .= sprintf(
+			'<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td></td></tr>',
+			$number,
+			esc_html( $mountain ),
+			esc_html( $height ),
+			esc_html( $location )
+		);
 	}
 
-	if ( 8 === $number ) {
-		$core_table_rows .= '<tr><td>8</td><td>北穂高岳</td><td>3,106 m</td><td>縦結合（所在地）</td></tr>';
-		continue;
-	}
-
-	// 横結合: 14行目の「山名」と「標高」を2列結合。
-	if ( 14 === $number ) {
-		$core_table_rows .= '<tr><td>14</td><td colspan="2"><strong>塩見岳</strong> / 3,052 m</td><td>長野県・静岡県</td><td>横結合（山名＋標高）</td></tr>';
-		continue;
-	}
-
-	$core_table_rows .= sprintf(
-		'<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td></td></tr>',
-		$number,
-		esc_html( $mountain ),
-		esc_html( $height ),
-		esc_html( $location )
-	);
+	return $table_rows;
 }
 
-$core_table =
+$core_table_rows = yet_demo_build_core_table_rows( $core_rows );
+$core_table      =
 	'<!-- wp:table {"align":"wide"} -->' .
 	'<figure class="wp-block-table alignwide"><table class="has-fixed-layout">' .
 	'<thead><tr><th scope="col">No.</th><th scope="col">山名</th><th scope="col">標高</th><th scope="col">主な所在地</th><th scope="col">備考</th></tr></thead>' .
@@ -112,50 +133,80 @@ $flexible_rows = [
 	[ 30, 'Kamet', '7,756 m', 'インド' ],
 ];
 
-$flexible_table_rows = '';
+function yet_demo_build_flexible_table_rows( array $rows ) {
+	$table_rows = '';
 
-foreach ( $flexible_rows as $row ) {
-	[ $number, $mountain, $height, $location ] = $row;
+	foreach ( $rows as $row ) {
+		[ $number, $mountain, $height, $location ] = $row;
 
-	// 縦結合: 7〜8行目の所在地を2行結合。
-	if ( 7 === $number ) {
-		$flexible_table_rows .= '<tr><th scope="row">7</th><td>Dhaulagiri I</td><td>8,167 m</td><td rowspan="2">ネパール</td><td>縦結合（所在地、7〜8行目）</td></tr>';
-		continue;
+		if ( 7 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><th scope="row">%d</th><td>%s</td><td>%s</td><td rowspan="2">%s</td><td>縦結合（所在地、7〜8行目）</td></tr>',
+				$number,
+				$mountain,
+				esc_html( $height ),
+				esc_html( $location )
+			);
+			continue;
+		}
+
+		if ( 8 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><th scope="row">%d</th><td>%s</td><td>%s</td><td>縦結合（所在地、7〜8行目）</td></tr>',
+				$number,
+				$mountain,
+				esc_html( $height )
+			);
+			continue;
+		}
+
+		if ( 9 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><th scope="row">%d</th><td class="demo-mountain-cell">%s</td><td>%s</td><td>%s</td><td></td></tr>',
+				$number,
+				$mountain,
+				esc_html( $height ),
+				esc_html( $location )
+			);
+			continue;
+		}
+
+		if ( 10 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><th scope="row">%d</th><td style="font-weight:600;background-color:#f0f6fc">%s</td><td>%s</td><td>%s</td><td></td></tr>',
+				$number,
+				$mountain,
+				esc_html( $height ),
+				esc_html( $location )
+			);
+			continue;
+		}
+
+		if ( 14 === $number ) {
+			$table_rows .= sprintf(
+				'<tr><th scope="row">%d</th><td colspan="2" class="demo-merged-cell"><strong>%s</strong> / %s</td><td>%s</td><td>横結合（山名＋標高）</td></tr>',
+				$number,
+				$mountain,
+				esc_html( $height ),
+				esc_html( $location )
+			);
+			continue;
+		}
+
+		$table_rows .= sprintf(
+			'<tr><th scope="row">%d</th><td>%s</td><td>%s</td><td>%s</td><td></td></tr>',
+			$number,
+			$mountain,
+			esc_html( $height ),
+			esc_html( $location )
+		);
 	}
 
-	if ( 8 === $number ) {
-		$flexible_table_rows .= '<tr><th scope="row">8</th><td>Manaslu</td><td>8,163 m</td><td>縦結合（所在地、7〜8行目）</td></tr>';
-		continue;
-	}
-
-	// class 属性を含むセルの確認用。
-	if ( 9 === $number ) {
-		$flexible_table_rows .= '<tr><th scope="row">9</th><td class="demo-mountain-cell">Nanga Parbat</td><td>8,126 m</td><td>パキスタン</td><td></td></tr>';
-		continue;
-	}
-
-	// style 属性を含むセルの確認用。
-	if ( 10 === $number ) {
-		$flexible_table_rows .= '<tr><th scope="row">10</th><td style="font-weight:600;background-color:#f0f6fc">Annapurna I</td><td>8,091 m</td><td>ネパール</td><td></td></tr>';
-		continue;
-	}
-
-	// 横結合: 14行目の「山名」と「標高」を2列結合。
-	if ( 14 === $number ) {
-		$flexible_table_rows .= '<tr><th scope="row">14</th><td colspan="2" class="demo-merged-cell"><strong>Shishapangma</strong> / 8,027 m</td><td>中国</td><td>横結合（山名＋標高）</td></tr>';
-		continue;
-	}
-
-	$flexible_table_rows .= sprintf(
-		'<tr><th scope="row">%d</th><td>%s</td><td>%s</td><td>%s</td><td></td></tr>',
-		$number,
-		$mountain,
-		esc_html( $height ),
-		esc_html( $location )
-	);
+	return $table_rows;
 }
 
-$flexible_table =
+$flexible_table_rows = yet_demo_build_flexible_table_rows( $flexible_rows );
+$flexible_table      =
 	'<!-- wp:flexible-table-block/table {"align":"wide"} -->' .
 	'<figure class="wp-block-flexible-table-block-table alignwide">' .
 	'<table class="has-fixed-layout">' .
@@ -165,39 +216,27 @@ $flexible_table =
 	'</figure>' .
 	'<!-- /wp:flexible-table-block/table -->';
 
-$content =
-	'<!-- wp:paragraph -->' .
-	'<p>マウス・タッチ・キーボードで、WordPress Core Table と Flexible Table Block の行を並べ替えられます。まずは下の30秒チャレンジを試してみてください。</p>' .
-	'<!-- /wp:paragraph -->' .
-	'<!-- wp:heading -->' .
-	'<h2 class="wp-block-heading">30秒チャレンジ</h2>' .
-	'<!-- /wp:heading -->' .
-	'<!-- wp:list {"ordered":true} -->' .
-	'<ol class="wp-block-list"><li>通常の行を1つ動かす</li><li>Undo で元に戻す</li><li>7〜8行目の縦結合行を動かそうとして、制限されることを確認する</li></ol>' .
-	'<!-- /wp:list -->' .
-	'<!-- wp:separator -->' .
-	'<hr class="wp-block-separator has-alpha-channel-opacity"/>' .
-	'<!-- /wp:separator -->' .
-	'<!-- wp:heading -->' .
-	'<h2 class="wp-block-heading">WordPress Core Table：日本の山30座</h2>' .
-	'<!-- /wp:heading -->' .
-	'<!-- wp:paragraph -->' .
-	'<p>基本の行並べ替えを試すエリアです。7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。</p>' .
-	'<!-- /wp:paragraph -->' .
-	$core_table .
-	'<!-- wp:separator -->' .
-	'<hr class="wp-block-separator has-alpha-channel-opacity"/>' .
-	'<!-- /wp:separator -->' .
-	'<!-- wp:heading -->' .
-	'<h2 class="wp-block-heading">Flexible Table Block：世界の山30座</h2>' .
-	'<!-- /wp:heading -->' .
-	'<!-- wp:paragraph -->' .
-	'<p>書式付きセルや結合セルなどを試せる実験的なエリアです。標高順の30座で、7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。RichText、リンク、インラインコード、改行、scope、class、セルスタイルも含めています。</p>' .
-	'<!-- /wp:paragraph -->' .
-	$flexible_table .
-	'<!-- wp:paragraph -->' .
-	'<p>不具合や気づいた点があれば、<a href="https://github.com/YamabikoLab/yamabiko-editor-tools/issues">GitHub Issues</a> からお知らせください。</p>' .
-	'<!-- /wp:paragraph -->';
+$content = implode(
+	'',
+	[
+		'<!-- wp:paragraph --><p>マウス・タッチ・キーボードで、WordPress Core Table と Flexible Table Block の行を並べ替えられます。まずは下の30秒チャレンジを試してみてください。</p><!-- /wp:paragraph -->',
+		'<!-- wp:heading --><h2 class="wp-block-heading">30秒チャレンジ</h2><!-- /wp:heading -->',
+		'<!-- wp:list {"ordered":true} --><ol class="wp-block-list"><li>通常の行を1つ動かす</li><li>Undo で元に戻す</li><li>7〜8行目の縦結合行を動かそうとして、制限されることを確認する</li></ol><!-- /wp:list -->',
+		'<!-- wp:separator --><hr class="wp-block-separator has-alpha-channel-opacity"/><!-- /wp:separator -->',
+		'<!-- wp:heading --><h2 class="wp-block-heading">WordPress Core Table：日本の山30座</h2><!-- /wp:heading -->',
+		'<!-- wp:paragraph --><p>基本の行並べ替えを試すエリアです。7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。</p><!-- /wp:paragraph -->',
+		$core_table,
+		'<!-- wp:separator --><hr class="wp-block-separator has-alpha-channel-opacity"/><!-- /wp:separator -->',
+		'<!-- wp:heading --><h2 class="wp-block-heading">Flexible Table Block：世界の山30座</h2><!-- /wp:heading -->',
+		'<!-- wp:paragraph --><p>書式付きセルや結合セルなどを試せる実験的なエリアです。標高順の30座で、7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。RichText、リンク、インラインコード、改行、scope、class、セルスタイルも含めています。</p><!-- /wp:paragraph -->',
+		$flexible_table,
+		'<!-- wp:paragraph --><p>不具合や気づいた点があれば、<a href="https://github.com/YamabikoLab/yamabiko-editor-tools/issues">GitHub Issues</a> からお知らせください。</p><!-- /wp:paragraph -->',
+		sprintf(
+			'<!-- wp:paragraph {"align":"right","fontSize":"small"} --><p class="has-text-align-right has-small-font-size">Yamabiko Editor Tools v%s</p><!-- /wp:paragraph -->',
+			esc_html( $demo_version )
+		),
+	]
+);
 
 $result = wp_insert_post(
 	[

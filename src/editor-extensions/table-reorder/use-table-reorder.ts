@@ -33,12 +33,14 @@ type UseTableReorderOptions = {
 /** HOCが描画とtoolbar操作に利用する最小state。 */
 type TableReorderHookResult = {
 	anchorRef: RefObject< HTMLSpanElement >;
+	consumeTouchToolbarFocusRequest: () => void;
 	dismissKeyboardCoachmark: () => void;
 	dismissTouchCoachmark: () => void;
 	isHoverCapable: boolean;
 	isKeyboardCoachmarkVisible: boolean;
 	isTouchCoachmarkVisible: boolean;
 	isTouchReorderMode: boolean;
+	isTouchToolbarFocusRequested: boolean;
 	requestRowControlFocus: () => void;
 	toggleTouchReorderMode: () => void;
 };
@@ -61,6 +63,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		};
 	}, [ body, rowspanProperty ] );
 	const {
+		consumeTouchToolbarFocusRequest,
 		dismissKeyboardCoachmark,
 		dismissTouchCoachmark,
 		interactionMode,
@@ -68,6 +71,7 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 		isKeyboardCoachmarkVisible,
 		isTouchCoachmarkVisible,
 		isTouchReorderMode,
+		isTouchToolbarFocusRequested,
 		toggleTouchReorderMode,
 	} = useTableReorderInteraction( {
 		anchorRef,
@@ -106,12 +110,14 @@ export const useTableReorder = ( options: UseTableReorderOptions ): TableReorder
 
 	return {
 		anchorRef,
+		consumeTouchToolbarFocusRequest,
 		dismissKeyboardCoachmark,
 		dismissTouchCoachmark,
 		isHoverCapable,
 		isKeyboardCoachmarkVisible,
 		isTouchCoachmarkVisible,
 		isTouchReorderMode,
+		isTouchToolbarFocusRequested,
 		requestRowControlFocus: () => {
 			dismissKeyboardCoachmark();
 			const result = focusRowControl();
