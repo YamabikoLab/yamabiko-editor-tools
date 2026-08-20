@@ -255,9 +255,6 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		const scrollDestination = editorContext.getByRole( 'button', {
 			name: /^(Move before row 10: Row 10|10行目「Row 10」の前へ移動)$/,
 		} );
-		const endDestination = editorContext.getByRole( 'button', {
-			name: /^(Move to the end of the table\.|表の末尾へ移動)$/,
-		} );
 
 		await editor.selectBlocks( editorContext.locator( '[data-type="core/table"][data-block]' ) );
 		await enterTouchReorderMode( page, editorContext, firstRowControl );
@@ -289,7 +286,8 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		await expect( pointerGuidance ).toBeVisible();
 		expect( await destinations.count() ).toBeGreaterThan( 0 );
 
-		await endDestination.tap();
+		await expect( scrollDestination ).toBeVisible();
+		await scrollDestination.tap();
 
 		await expect.poll( () => editor.getEditedPostContent() ).not.toBe( originalContent );
 		await expect( pointerGuidance ).toHaveCount( 0 );
