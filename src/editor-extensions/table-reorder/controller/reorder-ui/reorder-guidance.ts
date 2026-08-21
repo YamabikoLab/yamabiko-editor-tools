@@ -86,7 +86,7 @@ const isRightAlignedGuidance = ( message: string ) =>
  * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内では一定距離以上のswipeを
  * 検出したとき、上方向なら上側、下方向なら下側へ切り替え、反対方向を検出するまで維持する。
  * PC / keyboardの操作中案内はToolbar位置を計算せずviewport右側へ固定する。
- * 対象Tableがviewportから完全に外れた場合は案内を隠し、戻ると再表示する。
+ * 対象Tableがeditorの実表示領域から完全に外れた場合は案内を隠し、戻ると再表示する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -130,8 +130,12 @@ export const createReorderGuidance = (
 			view?.innerHeight ?? document.documentElement.clientHeight
 		);
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
+		const scrollContainer = view ? getVerticalScrollContainer( view, guidanceTarget ) : null;
+		const containerRect = scrollContainer?.getBoundingClientRect();
+		const viewportTop = containerRect?.top ?? 0;
+		const viewportBottom = containerRect?.bottom ?? viewportHeight;
 		const tableRect = guidanceTarget.getBoundingClientRect();
-		const isTableVisible = tableRect.bottom > 0 && tableRect.top < viewportHeight;
+		const isTableVisible = tableRect.bottom > viewportTop && tableRect.top < viewportBottom;
 		guidance.classList.toggle( GUIDANCE_HIDDEN_CLASS, explicitlyHidden || ! isTableVisible );
 
 		const availableViewportWidth = Math.max( 0, viewportWidth - GUIDANCE_VIEWPORT_OFFSET_PX * 2 );
@@ -153,11 +157,11 @@ export const createReorderGuidance = (
 		}
 
 		const guidanceHeight = guidance.getBoundingClientRect().height;
-		let top = alignRight ? RIGHT_GUIDANCE_TOP_PX : GUIDANCE_VIEWPORT_OFFSET_PX;
+		let top = alignRight ? RIGHT_GUIDANCE_TOP_PX : viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX;
 		if ( position === 'bottom' ) {
 			top = Math.max(
-				GUIDANCE_VIEWPORT_OFFSET_PX,
-				viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+				viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX,
+				viewportBottom - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
 			);
 		}
 		guidance.style.top = `${ top }px`;
