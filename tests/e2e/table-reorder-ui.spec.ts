@@ -85,12 +85,25 @@ function getBasicTableRowLabel( rowIndex: number ): string {
 async function focusWithArrowDown( page: Page, target: Locator ): Promise< void > {
 	for ( let attempt = 0; attempt < 10; attempt++ ) {
 		if ( await target.evaluate( ( element ) => element === element.ownerDocument.activeElement ) ) {
-			return;
+			break;
 		}
 
 		await page.keyboard.press( 'ArrowDown' );
 	}
 
+	await expect( target ).toBeFocused();
+	await target.evaluate(
+		( element ) =>
+			new Promise< void >( ( resolve ) => {
+				const view = element.ownerDocument.defaultView;
+				if ( ! view ) {
+					resolve();
+					return;
+				}
+
+				view.requestAnimationFrame( () => resolve() );
+			} )
+	);
 	await expect( target ).toBeFocused();
 }
 
