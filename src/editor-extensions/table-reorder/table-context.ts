@@ -17,7 +17,7 @@ export type TableContext = {
 	readonly document: Document;
 	readonly window: Window;
 	readonly tbody: HTMLTableSectionElement;
-	readonly isIframeEditor: () => boolean;
+	readonly isIframeEditor?: () => boolean;
 };
 
 /**
