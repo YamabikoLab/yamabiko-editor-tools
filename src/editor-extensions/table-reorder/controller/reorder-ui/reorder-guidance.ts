@@ -130,8 +130,8 @@ export const createReorderGuidance = (
 			view?.innerHeight ?? document.documentElement.clientHeight
 		);
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
-		const scrollContainer = view ? getVerticalScrollContainer( view, guidanceTarget ) : null;
-		const containerRect = scrollContainer?.getBoundingClientRect();
+		const viewportContainer = view ? getVerticalViewportContainer( view, guidanceTarget ) : null;
+		const containerRect = viewportContainer?.getBoundingClientRect();
 		const viewportTop = containerRect?.top ?? 0;
 		const viewportBottom = containerRect?.bottom ?? viewportHeight;
 		const tableRect = guidanceTarget.getBoundingClientRect();
@@ -243,6 +243,32 @@ export const createReorderGuidance = (
 };
 
 /**
+ * 対象要素に最も近い、縦方向の表示領域を持つ祖先を返す。
+ *
+ * guidanceの配置では、現在その祖先が実際にscroll可能かではなく、`overflow-y`で定義された
+ * editor viewport自体を表示領域として扱う。
+ *
+ * @param view   computed styleを取得するowning window。
+ * @param target viewport ancestorを探索する起点。
+ * @return 最も近い縦viewport ancestor。該当しない場合はnull。
+ */
+const getVerticalViewportContainer = ( view: Window, target: Element ): HTMLElement | null => {
+	const { body, documentElement } = target.ownerDocument;
+	let ancestor = target.parentElement;
+	while ( ancestor ) {
+		if ( ancestor !== body && ancestor !== documentElement ) {
+			const overflowY = view.getComputedStyle( ancestor ).overflowY;
+			if ( overflowY === 'auto' || overflowY === 'scroll' ) {
+				return ancestor;
+			}
+		}
+		ancestor = ancestor.parentElement;
+	}
+
+	return null;
+};
+
+/**
  * 対象要素に最も近い、実際に縦scroll可能な祖先を返す。
  *
  * @param view   computed styleを取得するowning window。
@@ -250,10 +276,14 @@ export const createReorderGuidance = (
  * @return 最も近い縦scroll可能な祖先。該当しない場合はnull。
  */
 const getVerticalScrollContainer = ( view: Window, target: Element ): HTMLElement | null => {
-	const { body, documentElement } = target.ownerDocument;
-	let ancestor = target.parentElement;
+	const viewportContainer = getVerticalViewportContainer( view, target );
+	if ( viewportContainer && viewportContainer.scrollHeight > viewportContainer.clientHeight ) {
+		return viewportContainer;
+	}
+
+	let ancestor = viewportContainer?.parentElement ?? target.parentElement;
 	while ( ancestor ) {
-		if ( ancestor !== body && ancestor !== documentElement ) {
+		if ( ancestor !== target.ownerDocument.body && ancestor !== target.ownerDocument.documentElement ) {
 			const overflowY = view.getComputedStyle( ancestor ).overflowY;
 			if (
 				( overflowY === 'auto' || overflowY === 'scroll' ) &&
