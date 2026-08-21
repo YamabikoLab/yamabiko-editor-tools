@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import type { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
@@ -80,6 +80,22 @@ function getBasicTableRowLabel( rowIndex: number ): string {
 	}
 
 	return rowLabel;
+}
+
+async function focusWithArrowDown( page: Page, target: Locator ): Promise< void > {
+	for ( let attempt = 0; attempt < 10; attempt++ ) {
+		if (
+			await target.evaluate(
+				( element ) => element === element.ownerDocument.activeElement
+			)
+		) {
+			return;
+		}
+
+		await page.keyboard.press( 'ArrowDown' );
+	}
+
+	await expect( target ).toBeFocused();
 }
 
 test.describe( 'Table Reorder UI', () => {
@@ -185,7 +201,8 @@ test.describe( 'Table Reorder UI', () => {
 
 		await startFocusedTableRowRecorder( tableBlock );
 		await page.keyboard.press( 'Shift+Alt+KeyO' );
-		await tableListViewItem.focus();
+		await expect( tableListViewItem ).toBeVisible();
+		await focusWithArrowDown( page, tableListViewItem );
 		await page.keyboard.press( 'Enter' );
 
 		const focusedRowIndex = await getRecordedFocusedTableRowIndex( tableBlock );
