@@ -97,3 +97,112 @@ jobs:
 
       - name: Run PHPStan
         run: composer analyse:php
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_COMPOSE_FILE: tests/e2e/compose.ci.yaml
+      WP_BASE_URL: http://127.0.0.1:8080
+      WP_USERNAME: admin
+      WP_PASSWORD: admin
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a PR branch
+        if: github.ref_name == github.event.repository.default_branch
+        run: |
+          echo "::error::Select the PR branch when running this workflow."
+          exit 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.5.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Verify npm version
+        run: |
+          expected_npm_version="11.5.1"
+          actual_npm_version="$(npm --version)"
+
+          if [ "${actual_npm_version}" != "${expected_npm_version}" ]; then
+            echo "::error::Expected npm ${expected_npm_version}, but found ${actual_npm_version}."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Start WordPress
+        run: docker compose -f "${E2E_COMPOSE_FILE}" up -d db wordpress
+
+      - name: Wait for WordPress
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 30 \
+            --retry-delay 2 \
+            --retry-all-errors \
+            --output /dev/null \
+            "${WP_BASE_URL}/wp-admin/install.php"
+
+      - name: Install WordPress and activate plugin
+        run: |
+          docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
+            core install \
+            --url="${WP_BASE_URL}" \
+            --title="Yamabiko Editor Tools E2E" \
+            --admin_user="${WP_USERNAME}" \
+            --admin_password="${WP_PASSWORD}" \
+            --admin_email="admin@example.test" \
+            --skip-email
+
+          docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
+            plugin activate yamabiko-editor-tools
+
+      - name: Run Playwright E2E
+        run: |
+          docker run --rm \
+            --network host \
+            --ipc=host \
+            --volume "${GITHUB_WORKSPACE}:/workspaces/yet" \
+            --workdir /workspaces/yet \
+            --env WP_BASE_URL \
+            --env WP_USERNAME \
+            --env WP_PASSWORD \
+            mcr.microsoft.com/playwright:v1.62.1-noble \
+            npx playwright test
+
+      - name: Capture Docker logs
+        if: failure()
+        run: |
+          mkdir -p test-results
+          docker compose -f "${E2E_COMPOSE_FILE}" logs --no-color \
+            > test-results/docker-compose.log 2>&1 || true
+
+      - name: Upload E2E failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-failure
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop WordPress
+        if: always()
+        run: docker compose -f "${E2E_COMPOSE_FILE}" down --volumes --remove-orphans
