@@ -208,6 +208,19 @@ composer analyse:php
 
 Use `composer format:php` only when intentionally applying automatic fixes.
 
+## Dependency security audits
+
+Run the focused dependency vulnerability checks from the repository root:
+
+```bash
+npm run audit:security
+composer run audit:security
+```
+
+Both commands fail for high or critical advisories. The Composer command ignores abandoned-package notices because abandonment is a maintenance concern rather than a vulnerability by itself.
+
+The manually triggered PR Validation workflow runs `npm run audit:security` after `npm ci` and `composer run audit:security` after `composer install`. Run the relevant audit locally when dependency manifests or lock files change, or when investigating a dependency advisory.
+
 ## Repository checks
 
 Run these commands from the repository root.
@@ -218,7 +231,7 @@ Check changed lines for whitespace errors:
 git diff --check origin/main...HEAD
 ```
 
-The manually triggered `.github/workflows/pr-validation.yml` workflow runs `npm test`, the production build, and the PHP checks on GitHub Actions. Run the repository check above separately before handoff.
+The manually triggered `.github/workflows/pr-validation.yml` workflow runs the dependency security audits, `npm test`, the production build, and the PHP checks on GitHub Actions. Run the repository check above separately before handoff.
 
 ## Which checks to run
 
@@ -226,6 +239,7 @@ The manually triggered `.github/workflows/pr-validation.yml` workflow runs `npm 
 - JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes: `npm test`, `npm run build`, and the repository check.
 - Playwright configuration or E2E test changes: run the Node.js checks above and `npm run test:e2e` when a compatible `wp-dev` WordPress environment is available.
 - PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
+- npm or Composer dependency manifest / lock-file changes: run the relevant dependency security audit in addition to the applicable checks above.
 - Mixed changes: combine the applicable groups.
 
 For checks that require a local WordPress environment, follow the commands documented in the separate `YamabikoLab/wp-dev` repository.
