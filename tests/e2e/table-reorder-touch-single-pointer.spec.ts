@@ -165,20 +165,13 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		await expect( pointerGuidance ).toHaveCount( 0 );
 		await expect( destinations ).toHaveCount( 0 );
 		await expect( modeGuidance ).toBeVisible();
-		await expect
-			.poll( () => getTableRowOrder( tableRows ) )
-			.toEqual( [ 'Alpha', 'Charlie', 'Delta', 'Bravo' ] );
+		await expect.poll( () => getTableRowOrder( tableRows ) ).toEqual( [ 'Alpha', 'Charlie', 'Delta', 'Bravo' ] );
 		await expect
 			.poll( () => editor.getEditedPostContent() )
-			.toContain(
-				'<tbody><tr><td>Alpha</td></tr><tr><td>Charlie</td></tr><tr><td>Delta</td></tr><tr><td>Bravo</td></tr></tbody>'
-			);
+			.toContain( '<tbody><tr><td>Alpha</td></tr><tr><td>Charlie</td></tr><tr><td>Delta</td></tr><tr><td>Bravo</td></tr></tbody>' );
 	} );
 
-	test( 'cancels destination selection with the touch Cancel button', async ( {
-		editor,
-		page,
-	} ) => {
+	test( 'cancels destination selection with the touch Cancel button', async ( { editor, page } ) => {
 		await editor.setContent( basicTableContent );
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
@@ -187,9 +180,7 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		const pointerGuidance = editorContext.getByText( touchPointerGuidance );
 		const firstRowControl = getRowControl( editorContext, 1, 'Alpha' );
 		const bravoControl = getRowControl( editorContext, 2, 'Bravo' );
-		const cancelButton = editorContext.getByRole( 'button', {
-			name: /^(Cancel|キャンセル)$/,
-		} );
+		const cancelButton = editorContext.getByRole( 'button', { name: /^(Cancel|キャンセル)$/ } );
 		const originalContent = await editor.getEditedPostContent();
 
 		await editor.selectBlocks( editorContext.locator( '[data-type="core/table"][data-block]' ) );
@@ -211,10 +202,7 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		expect( await editor.getEditedPostContent() ).toBe( originalContent );
 	} );
 
-	test( 'discards destination selection when reorder mode is turned off', async ( {
-		editor,
-		page,
-	} ) => {
+	test( 'discards destination selection when reorder mode is turned off', async ( { editor, page } ) => {
 		await editor.setContent( basicTableContent );
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
@@ -222,9 +210,7 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		const pointerGuidance = editorContext.getByText( touchPointerGuidance );
 		const firstRowControl = getRowControl( editorContext, 1, 'Alpha' );
 		const bravoControl = getRowControl( editorContext, 2, 'Bravo' );
-		const reorderRowsButton = page.getByRole( 'button', {
-			name: reorderRowsButtonName,
-		} );
+		const reorderRowsButton = page.getByRole( 'button', { name: reorderRowsButtonName } );
 		const originalContent = await editor.getEditedPostContent();
 
 		await editor.selectBlocks( editorContext.locator( '[data-type="core/table"][data-block]' ) );
@@ -242,12 +228,10 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		expect( await editor.getEditedPostContent() ).toBe( originalContent );
 	} );
 
-	test( 'keeps destination selection while touch swipes scroll and move guidance', async ( {
-		editor,
-		page,
-	} ) => {
+	test( 'keeps destination selection while touch swipes scroll and move guidance', async ( { editor, page } ) => {
 		await editor.setContent( longTableContent );
 		const editorContext = await getEditorContext( page, editor.canvas );
+		const table = editorContext.getByRole( 'table' );
 		const destinations = getDestinations( editorContext );
 		const pointerGuidance = editorContext.getByText( touchPointerGuidance );
 		const firstRowControl = getRowControl( editorContext, 1, longRowLabels[ 0 ] );
@@ -262,25 +246,21 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		await expect( pointerGuidance ).toBeVisible();
 		await expect( scrollDestination ).toBeVisible();
 		const originalContent = await editor.getEditedPostContent();
-		const initialScrollPosition = await getVerticalScrollPosition( scrollDestination );
+		const initialScrollPosition = await getVerticalScrollPosition( table );
 
 		await swipeVerticallyFromDestination( page, scrollDestination, 'up' );
 
-		await expect
-			.poll( () => getVerticalScrollPosition( scrollDestination ) )
-			.toBeGreaterThan( initialScrollPosition );
+		await expect.poll( () => getVerticalScrollPosition( table ) ).toBeGreaterThan( initialScrollPosition );
 		await expect.poll( () => getGuidanceViewportSide( page, pointerGuidance ) ).toBe( 'top' );
 		await expect.poll( () => editor.getEditedPostContent() ).toBe( originalContent );
 		await expect( pointerGuidance ).toBeVisible();
 		expect( await destinations.count() ).toBeGreaterThan( 0 );
 		expect( await getGuidanceViewportSide( page, pointerGuidance ) ).toBe( 'top' );
-		const scrollPositionAfterUpSwipe = await getVerticalScrollPosition( scrollDestination );
+		const scrollPositionAfterUpSwipe = await getVerticalScrollPosition( table );
 
 		await swipeVerticallyFromDestination( page, scrollDestination, 'down' );
 
-		await expect
-			.poll( () => getVerticalScrollPosition( scrollDestination ) )
-			.toBeLessThan( scrollPositionAfterUpSwipe );
+		await expect.poll( () => getVerticalScrollPosition( table ) ).toBeLessThan( scrollPositionAfterUpSwipe );
 		await expect.poll( () => getGuidanceViewportSide( page, pointerGuidance ) ).toBe( 'bottom' );
 		await expect.poll( () => editor.getEditedPostContent() ).toBe( originalContent );
 		await expect( pointerGuidance ).toBeVisible();
