@@ -118,11 +118,11 @@ export const createReorderGuidance = (
 	text.textContent = message;
 	guidance.append( text );
 	document.body.append( guidance );
-	let position: ReorderGuidancePosition = 'top';
 	let touchPointer: { pointerId: number; y: number } | null = null;
 	let explicitlyHidden = false;
 	const trackTouchSwipe = isTouchSwipeGuidance( message );
 	const alignRight = isRightAlignedGuidance( message );
+	let position: ReorderGuidancePosition = trackTouchSwipe ? 'bottom' : 'top';
 
 	const updatePosition = () => {
 		const viewportHeight = Math.max(
