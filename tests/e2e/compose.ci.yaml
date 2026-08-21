@@ -55,8 +55,6 @@ services:
         condition: service_healthy
       wordpress:
         condition: service_started
-    profiles:
-      - cli
 
 volumes:
   wordpress_data:
