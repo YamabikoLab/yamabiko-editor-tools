@@ -1,7 +1,7 @@
 import type { TableContext } from '../table-context';
 import { resolveAutoScrollTarget } from './scroll-target';
 
-const createContext = ( isIframeEditor: boolean ) => {
+const createContext = () => {
 	const scrollableOuter = document.createElement( 'div' );
 	const scrollableInner = document.createElement( 'div' );
 	const table = document.createElement( 'table' );
@@ -16,7 +16,6 @@ const createContext = ( isIframeEditor: boolean ) => {
 		document,
 		window,
 		tbody,
-		isIframeEditor: () => isIframeEditor,
 	};
 
 	return { context, scrollableInner, scrollableOuter };
@@ -39,15 +38,8 @@ describe( 'resolveAutoScrollTarget', () => {
 		document.body.replaceChildren();
 	} );
 
-	it( 'keeps SortableJS automatic target detection for iframe editors', () => {
-		const { context, scrollableInner } = createContext( true );
-		makeScrollable( scrollableInner );
-
-		expect( resolveAutoScrollTarget( context ) ).toBe( true );
-	} );
-
-	it( 'returns the nearest vertically scrollable ancestor for non-iframe editors', () => {
-		const { context, scrollableInner, scrollableOuter } = createContext( false );
+	it( 'returns the nearest vertically scrollable ancestor', () => {
+		const { context, scrollableInner, scrollableOuter } = createContext();
 		makeScrollable( scrollableInner );
 		makeScrollable( scrollableOuter );
 
@@ -55,7 +47,7 @@ describe( 'resolveAutoScrollTarget', () => {
 	} );
 
 	it( 'ignores hidden and non-scrollable ancestors', () => {
-		const { context, scrollableInner, scrollableOuter } = createContext( false );
+		const { context, scrollableInner, scrollableOuter } = createContext();
 		makeScrollable( scrollableInner, 'hidden' );
 		scrollableOuter.style.overflowY = 'auto';
 		Object.defineProperty( scrollableOuter, 'clientHeight', {
@@ -71,7 +63,7 @@ describe( 'resolveAutoScrollTarget', () => {
 	} );
 
 	it( 'falls back to SortableJS automatic target detection when no ancestor matches', () => {
-		const { context } = createContext( false );
+		const { context } = createContext();
 
 		expect( resolveAutoScrollTarget( context ) ).toBe( true );
 	} );
