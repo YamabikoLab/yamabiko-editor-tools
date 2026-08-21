@@ -108,7 +108,7 @@ type SortableOptions = {
 	onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
 	onStart: () => void;
 	onUnchoose: () => void;
-	scroll: boolean;
+	scroll: boolean | HTMLElement;
 	scrollSensitivity: number;
 	scrollSpeed: number;
 };
@@ -673,6 +673,11 @@ export const createSortableController = (
 			return;
 		}
 
+		// PoC: non-iframe editor の既知の scroll container を固定し、
+		// pointer が viewport 外へ出ても SortableJS が scroll target を失わないか確認する。
+		const nonIframeScrollContainer = tbody.closest< HTMLElement >(
+			'.interface-navigable-region.interface-interface-skeleton__content'
+		);
 		const sortableOptions: SortableOptions = {
 			animation: 150,
 			bubbleScroll: true,
@@ -794,7 +799,7 @@ export const createSortableController = (
 				}
 				restoreFallbackWidths();
 			},
-			scroll: true,
+			scroll: nonIframeScrollContainer ?? true,
 			scrollSensitivity: AUTO_SCROLL_SENSITIVITY_PX,
 			scrollSpeed: AUTO_SCROLL_SPEED_PX,
 		};
