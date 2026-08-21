@@ -10,6 +10,8 @@ import {
 	getTableRow,
 	getTableRowOrder,
 	getTableRows,
+	getVerticalScrollPosition,
+	getVerticalScrollState,
 	longRowLabels,
 	longTableContent,
 } from './table-reorder';
@@ -22,7 +24,8 @@ type ViewportGeometry = {
 	bottom: number;
 	centerY: number;
 	top: number;
-	viewportHeight: number;
+	viewportBottom: number;
+	viewportTop: number;
 };
 
 async function focusRowControlFromToolbar(
@@ -42,12 +45,6 @@ async function focusRowControlFromToolbar(
 	return rowControl;
 }
 
-async function getEditorScrollY( editorContext: EditorContext ): Promise< number > {
-	return editorContext.locator( 'body' ).evaluate( ( body ) => {
-		return body.ownerDocument.defaultView?.scrollY ?? 0;
-	} );
-}
-
 async function getViewportGeometry( locator: Locator ): Promise< ViewportGeometry > {
 	return locator.evaluate( ( element ) => {
 		const rect = element.getBoundingClientRect();
@@ -59,23 +56,40 @@ async function getViewportGeometry( locator: Locator ): Promise< ViewportGeometr
 			bottom: rect.bottom,
 			centerY: rect.top + rect.height / 2,
 			top: rect.top,
-			viewportHeight,
+			viewportBottom: viewportHeight,
+			viewportTop: 0,
 		};
 	} );
 }
 
+async function getScrollableViewportGeometry(
+	locator: Locator,
+	scrollSource: Locator
+): Promise< ViewportGeometry > {
+	const [ geometry, scrollState ] = await Promise.all( [
+		getViewportGeometry( locator ),
+		getVerticalScrollState( scrollSource ),
+	] );
+
+	return {
+		...geometry,
+		viewportBottom: scrollState.bottom,
+		viewportTop: scrollState.top,
+	};
+}
+
 async function pressUntilEditorScrolls(
 	page: Page,
-	editorContext: EditorContext,
+	scrollSource: Locator,
 	key: 'ArrowDown' | 'ArrowUp',
 	maximumMoves: number,
 	didScroll: ( currentScrollY: number, initialScrollY: number ) => boolean
 ): Promise< { moves: number; scrollY: number } > {
-	const initialScrollY = await getEditorScrollY( editorContext );
+	const initialScrollY = await getVerticalScrollPosition( scrollSource );
 
 	for ( let moves = 1; moves <= maximumMoves; moves += 1 ) {
 		await page.keyboard.press( key );
-		const scrollY = await getEditorScrollY( editorContext );
+		const scrollY = await getVerticalScrollPosition( scrollSource );
 		if ( didScroll( scrollY, initialScrollY ) ) {
 			return { moves, scrollY };
 		}
@@ -87,11 +101,13 @@ async function pressUntilEditorScrolls(
 async function pressDownUntilRowLeavesViewport(
 	page: Page,
 	row: Locator,
+	scrollSource: Locator,
 	maximumMoves: number
 ): Promise< number > {
 	for ( let moves = 1; moves <= maximumMoves; moves += 1 ) {
 		await page.keyboard.press( 'ArrowDown' );
-		if ( ( await getViewportGeometry( row ) ).bottom < 0 ) {
+		const geometry = await getScrollableViewportGeometry( row, scrollSource );
+		if ( geometry.bottom < geometry.viewportTop - ( geometry.bottom - geometry.top ) ) {
 			return moves;
 		}
 	}
@@ -99,9 +115,19 @@ async function pressDownUntilRowLeavesViewport(
 	throw new Error( 'The starting row remained visible during downward keyboard movement.' );
 }
 
-function expectToBeInsideViewport( geometry: ViewportGeometry ): void {
-	expect( geometry.top ).toBeGreaterThanOrEqual( 0 );
-	expect( geometry.bottom ).toBeLessThanOrEqual( geometry.viewportHeight );
+async function expectToBeInsideScrollableViewport(
+	locator: Locator,
+	scrollSource: Locator
+): Promise< void > {
+	await expect
+		.poll( async () => {
+			const geometry = await getScrollableViewportGeometry( locator, scrollSource );
+			return Math.min(
+				geometry.top - geometry.viewportTop,
+				geometry.viewportBottom - geometry.bottom
+			);
+		} )
+		.toBeGreaterThanOrEqual( 0 );
 }
 
 test.describe( 'Table Reorder keyboard operation', () => {
@@ -243,6 +269,7 @@ test.describe( 'Table Reorder keyboard operation in a long table', () => {
 	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
+		const tableBody = editorContext.getByRole( 'table' ).locator( 'tbody' );
 		const originalContent = await editor.getEditedPostContent();
 		const startingRow = getTableRow( tableRows, longRowLabels[ 1 ] );
 		const rowControl = await focusRowControlFromToolbar(
@@ -258,38 +285,43 @@ test.describe( 'Table Reorder keyboard operation in a long table', () => {
 		await page.keyboard.press( 'Enter' );
 		const downMovement = await pressUntilEditorScrolls(
 			page,
-			editorContext,
+			tableBody,
 			'ArrowDown',
 			longRowLabels.length - 2,
 			( current, initial ) => current > initial + 1
 		);
 
 		await expect( insertionLine ).toBeVisible();
-		expectToBeInsideViewport( await getViewportGeometry( insertionLine ) );
+		await expectToBeInsideScrollableViewport( insertionLine, tableBody );
 		await expect( guidance ).toBeVisible();
 		await expectNotFullyCovered( insertionLine, guidance );
 		const downGuidanceGeometry = await getViewportGeometry( guidance );
-		expect( downGuidanceGeometry.centerY ).toBeLessThan( downGuidanceGeometry.viewportHeight / 2 );
+		expect( downGuidanceGeometry.centerY ).toBeLessThan(
+			( downGuidanceGeometry.viewportTop + downGuidanceGeometry.viewportBottom ) / 2
+		);
 
 		const additionalDownMoves = await pressDownUntilRowLeavesViewport(
 			page,
 			startingRow,
+			tableBody,
 			longRowLabels.length - downMovement.moves - 2
 		);
-		expectToBeInsideViewport( await getViewportGeometry( insertionLine ) );
-		const scrollBeforeMovingUp = await getEditorScrollY( editorContext );
+		await expectToBeInsideScrollableViewport( insertionLine, tableBody );
+		const scrollBeforeMovingUp = await getVerticalScrollPosition( tableBody );
 		const upMovement = await pressUntilEditorScrolls(
 			page,
-			editorContext,
+			tableBody,
 			'ArrowUp',
 			downMovement.moves + additionalDownMoves + 1,
 			( current, initial ) => current < initial - 1
 		);
 
 		expect( upMovement.scrollY ).toBeLessThan( scrollBeforeMovingUp );
-		expectToBeInsideViewport( await getViewportGeometry( insertionLine ) );
+		await expectToBeInsideScrollableViewport( insertionLine, tableBody );
 		const upGuidanceGeometry = await getViewportGeometry( guidance );
-		expect( upGuidanceGeometry.centerY ).toBeGreaterThan( upGuidanceGeometry.viewportHeight / 2 );
+		expect( upGuidanceGeometry.centerY ).toBeGreaterThan(
+			( upGuidanceGeometry.viewportTop + upGuidanceGeometry.viewportBottom ) / 2
+		);
 
 		await page.keyboard.press( 'Escape' );
 

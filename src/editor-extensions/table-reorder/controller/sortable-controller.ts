@@ -44,6 +44,7 @@ import {
 	restoreOriginalRowOrder,
 	type RowMoveDirection,
 } from './row-order';
+import { resolveAutoScrollTarget } from './scroll-target';
 import { ensureSortableRuntime, type SortableInstance } from './sortable-runtime-loader';
 
 /** SortableJSのauto-scrollを開始する端からの距離。 */
@@ -108,7 +109,7 @@ type SortableOptions = {
 	onMove: ( event: SortableMoveEventLike, originalEvent: Event ) => boolean | void;
 	onStart: () => void;
 	onUnchoose: () => void;
-	scroll: boolean;
+	scroll: boolean | HTMLElement;
 	scrollSensitivity: number;
 	scrollSpeed: number;
 };
@@ -794,7 +795,7 @@ export const createSortableController = (
 				}
 				restoreFallbackWidths();
 			},
-			scroll: true,
+			scroll: resolveAutoScrollTarget( options.context ),
 			scrollSensitivity: AUTO_SCROLL_SENSITIVITY_PX,
 			scrollSpeed: AUTO_SCROLL_SPEED_PX,
 		};

@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect } from '@wordpress/e2e-test-utils-playwright';
 
 import type { EditorContext } from './editor-context';
@@ -8,6 +8,21 @@ export const basicTableContent = `<!-- wp:table -->
 <!-- /wp:table -->`;
 
 export const basicRowLabels = [ 'Alpha', 'Bravo', 'Charlie', 'Delta' ] as const;
+
+export const mergedCellsRowLabels = [
+	'Alpha',
+	'Bravo',
+	'Colspan',
+	'Charlie',
+	'Rowspan start',
+	'Rowspan covered',
+	'Delta',
+	'Echo',
+] as const;
+
+export const mergedCellsTableContent = `<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td>Alpha</td><td>A</td></tr><tr><td>Bravo</td><td>B</td></tr><tr><td colspan="2">Colspan</td></tr><tr><td>Charlie</td><td>C</td></tr><tr><td rowspan="2">Rowspan start</td><td>D</td></tr><tr><td>Rowspan covered</td></tr><tr><td>Delta</td><td>E</td></tr><tr><td>Echo</td><td>F</td></tr></tbody></table></figure>
+<!-- /wp:table -->`;
 
 export const longRowLabels = Array.from(
 	{ length: 24 },
@@ -19,6 +34,45 @@ export const longTableContent = `<!-- wp:table -->
 	.map( ( label ) => `<tr><td>${ label }</td></tr>` )
 	.join( '' ) }</tbody></table></figure>
 <!-- /wp:table -->`;
+
+type VerticalTarget = 'before' | 'center' | 'after';
+
+export async function dragWithMouse(
+	page: Page,
+	source: Locator,
+	target: Locator,
+	verticalTarget: VerticalTarget,
+	duringDrag?: () => Promise< void >
+): Promise< void > {
+	await source.scrollIntoViewIfNeeded();
+	await target.scrollIntoViewIfNeeded();
+
+	const sourceBox = await source.boundingBox();
+	const targetBox = await target.boundingBox();
+	if ( ! sourceBox || ! targetBox ) {
+		throw new Error( 'Could not determine mouse drag coordinates.' );
+	}
+
+	const sourceX = sourceBox.x + sourceBox.width / 2;
+	const sourceY = sourceBox.y + sourceBox.height / 2;
+	const targetX = targetBox.x + targetBox.width / 2;
+	let targetY = targetBox.y + targetBox.height / 2;
+	if ( verticalTarget === 'before' ) {
+		targetY = targetBox.y + 2;
+	} else if ( verticalTarget === 'after' ) {
+		targetY = targetBox.y + targetBox.height - 2;
+	}
+
+	await page.mouse.move( sourceX, sourceY );
+	await page.mouse.down();
+	try {
+		await page.mouse.move( sourceX, sourceY + 6, { steps: 2 } );
+		await page.mouse.move( targetX, targetY, { steps: 10 } );
+		await duringDrag?.();
+	} finally {
+		await page.mouse.up();
+	}
+}
 
 export function getTableRows( editorContext: EditorContext ): Locator {
 	return editorContext.getByRole( 'table' ).getByRole( 'row' );
@@ -42,12 +96,15 @@ export function getRowControl(
 	} );
 }
 
-export async function getTableRowOrder( tableRows: Locator ): Promise< string[] > {
+export async function getTableRowOrder(
+	tableRows: Locator,
+	rowLabels: readonly string[] = basicRowLabels
+): Promise< string[] > {
 	const rows = await tableRows.all();
 
 	return Promise.all(
 		rows.map( async ( row ) => {
-			for ( const label of basicRowLabels ) {
+			for ( const label of rowLabels ) {
 				if ( ( await row.getByText( label, { exact: true } ).count() ) > 0 ) {
 					return label;
 				}
@@ -58,10 +115,41 @@ export async function getTableRowOrder( tableRows: Locator ): Promise< string[] 
 	);
 }
 
-export async function expectNotFullyCovered(
-	target: Locator,
-	overlay: Locator
-): Promise< void > {
+export async function getVerticalScrollState(
+	source: Locator
+): Promise< { bottom: number; position: number; top: number } > {
+	return source.evaluate( ( element ) => {
+		const view = element.ownerDocument.defaultView;
+		const { body, documentElement } = element.ownerDocument;
+		let ancestor = element.parentElement;
+
+		while ( ancestor ) {
+			if ( ancestor !== body && ancestor !== documentElement ) {
+				const overflowY = view?.getComputedStyle( ancestor ).overflowY ?? '';
+				if (
+					( overflowY === 'auto' || overflowY === 'scroll' ) &&
+					ancestor.scrollHeight > ancestor.clientHeight
+				) {
+					const rect = ancestor.getBoundingClientRect();
+					return { bottom: rect.bottom, position: ancestor.scrollTop, top: rect.top };
+				}
+			}
+			ancestor = ancestor.parentElement;
+		}
+
+		return {
+			bottom: view?.innerHeight ?? element.ownerDocument.documentElement.clientHeight,
+			position: element.ownerDocument.scrollingElement?.scrollTop ?? view?.scrollY ?? 0,
+			top: 0,
+		};
+	} );
+}
+
+export async function getVerticalScrollPosition( source: Locator ): Promise< number > {
+	return ( await getVerticalScrollState( source ) ).position;
+}
+
+export async function expectNotFullyCovered( target: Locator, overlay: Locator ): Promise< void > {
 	const [ targetBox, overlayBox ] = await Promise.all( [
 		target.boundingBox(),
 		overlay.boundingBox(),

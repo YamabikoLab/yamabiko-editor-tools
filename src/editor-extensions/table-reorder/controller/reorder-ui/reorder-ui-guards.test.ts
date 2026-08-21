@@ -40,7 +40,33 @@ const createTable = ( labels: string[] ) => {
 		tbody.append( row );
 	}
 
-	return { table, tbody };
+	return { table, tbody, wrapper };
+};
+
+const makeVerticallyScrollable = (
+	element: HTMLElement,
+	{
+		bottom,
+		clientHeight,
+		scrollHeight,
+		top,
+	}: {
+		bottom: number;
+		clientHeight: number;
+		scrollHeight: number;
+		top: number;
+	}
+) => {
+	element.style.overflowY = 'auto';
+	Object.defineProperties( element, {
+		clientHeight: { configurable: true, value: clientHeight },
+		scrollHeight: { configurable: true, value: scrollHeight },
+	} );
+	jest.spyOn( element, 'getBoundingClientRect' ).mockReturnValue( createRect( top, bottom ) );
+	const scrollBy = jest.fn();
+	Object.defineProperty( element, 'scrollBy', { configurable: true, value: scrollBy } );
+
+	return scrollBy;
 };
 
 const getDestination = () => {
@@ -219,7 +245,7 @@ describe( 'reorder-ui guard branches', () => {
 		dispatchPointer( document, 'pointerdown', { x: 0, y: 100 } );
 		dispatchPointer( document, 'pointermove', { pointerId: 2, x: 0, y: 120 } );
 
-		expect( guidance.element.style.top ).toBe( '8px' );
+		expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
 		guidance.cleanup();
 	} );
 
@@ -249,9 +275,61 @@ describe( 'reorder-ui guard branches', () => {
 		}
 	} );
 
-	it( 'scrolls down when the end destination is below the keyboard viewport margin', () => {
+	it( 'uses the nearest scrollable ancestor and its viewport bounds', () => {
+		const { tbody, wrapper } = createTable( [ 'Alpha' ] );
+		const outer = document.createElement( 'div' );
+		document.body.append( outer );
+		outer.append( wrapper );
+		const outerScrollBy = makeVerticallyScrollable( outer, {
+			bottom: 400,
+			clientHeight: 300,
+			scrollHeight: 600,
+			top: 100,
+		} );
+		const wrapperScrollBy = makeVerticallyScrollable( wrapper, {
+			bottom: 300,
+			clientHeight: 200,
+			scrollHeight: 400,
+			top: 100,
+		} );
+		const row = tbody.rows.item( 0 );
+		if ( ! row ) {
+			throw new Error( 'Expected table row' );
+		}
+		const rowRect = jest
+			.spyOn( row, 'getBoundingClientRect' )
+			.mockReturnValue( createRect( 290, 310 ) );
+		const windowScrollBy = jest.spyOn( window, 'scrollBy' ).mockImplementation( () => undefined );
+
+		scrollKeyboardDestinationIntoView( window, tbody, 0 );
+
+		expect( wrapperScrollBy ).toHaveBeenCalledWith( {
+			behavior: 'auto',
+			left: 0,
+			top: 14,
+		} );
+		expect( outerScrollBy ).not.toHaveBeenCalled();
+		expect( windowScrollBy ).not.toHaveBeenCalled();
+
+		wrapperScrollBy.mockClear();
+		wrapper.style.overflowY = 'scroll';
+		rowRect.mockReturnValue( createRect( 110, 130 ) );
+		scrollKeyboardDestinationIntoView( window, tbody, 0 );
+		expect( wrapperScrollBy ).toHaveBeenCalledWith( {
+			behavior: 'auto',
+			left: 0,
+			top: -14,
+		} );
+	} );
+
+	it( 'falls back to the owning window when no scrollable ancestor exists', () => {
 		const scrollBy = jest.spyOn( window, 'scrollBy' ).mockImplementation( () => undefined );
-		const { tbody } = createTable( [ 'Alpha' ] );
+		const { tbody, wrapper } = createTable( [ 'Alpha' ] );
+		wrapper.style.overflowY = 'auto';
+		Object.defineProperties( wrapper, {
+			clientHeight: { configurable: true, value: 100 },
+			scrollHeight: { configurable: true, value: 100 },
+		} );
 		const row = tbody.rows.item( 0 );
 		if ( ! row ) {
 			throw new Error( 'Expected table row' );

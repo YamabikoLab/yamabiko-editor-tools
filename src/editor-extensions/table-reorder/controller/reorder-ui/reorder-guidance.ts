@@ -86,7 +86,7 @@ const isRightAlignedGuidance = ( message: string ) =>
  * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内では一定距離以上のswipeを
  * 検出したとき、上方向なら上側、下方向なら下側へ切り替え、反対方向を検出するまで維持する。
  * PC / keyboardの操作中案内はToolbar位置を計算せずviewport右側へ固定する。
- * 対象Tableがviewportから完全に外れた場合は案内を隠し、戻ると再表示する。
+ * 対象Tableがeditorの実表示領域から完全に外れた場合は案内を隠し、戻ると再表示する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -118,11 +118,11 @@ export const createReorderGuidance = (
 	text.textContent = message;
 	guidance.append( text );
 	document.body.append( guidance );
-	let position: ReorderGuidancePosition = 'top';
 	let touchPointer: { pointerId: number; y: number } | null = null;
 	let explicitlyHidden = false;
 	const trackTouchSwipe = isTouchSwipeGuidance( message );
 	const alignRight = isRightAlignedGuidance( message );
+	let position: ReorderGuidancePosition = trackTouchSwipe ? 'bottom' : 'top';
 
 	const updatePosition = () => {
 		const viewportHeight = Math.max(
@@ -130,8 +130,12 @@ export const createReorderGuidance = (
 			view?.innerHeight ?? document.documentElement.clientHeight
 		);
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
+		const scrollContainer = view ? getVerticalScrollContainer( view, guidanceTarget ) : null;
+		const containerRect = scrollContainer?.getBoundingClientRect();
+		const viewportTop = containerRect?.top ?? 0;
+		const viewportBottom = containerRect?.bottom ?? viewportHeight;
 		const tableRect = guidanceTarget.getBoundingClientRect();
-		const isTableVisible = tableRect.bottom > 0 && tableRect.top < viewportHeight;
+		const isTableVisible = tableRect.bottom > viewportTop && tableRect.top < viewportBottom;
 		guidance.classList.toggle( GUIDANCE_HIDDEN_CLASS, explicitlyHidden || ! isTableVisible );
 
 		const availableViewportWidth = Math.max( 0, viewportWidth - GUIDANCE_VIEWPORT_OFFSET_PX * 2 );
@@ -153,11 +157,11 @@ export const createReorderGuidance = (
 		}
 
 		const guidanceHeight = guidance.getBoundingClientRect().height;
-		let top = alignRight ? RIGHT_GUIDANCE_TOP_PX : GUIDANCE_VIEWPORT_OFFSET_PX;
+		let top = alignRight ? RIGHT_GUIDANCE_TOP_PX : viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX;
 		if ( position === 'bottom' ) {
 			top = Math.max(
-				GUIDANCE_VIEWPORT_OFFSET_PX,
-				viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+				viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX,
+				viewportBottom - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
 			);
 		}
 		guidance.style.top = `${ top }px`;
@@ -239,7 +243,33 @@ export const createReorderGuidance = (
 };
 
 /**
- * keyboard候補が実際にviewport外へ進んだとき、その候補を確認できる位置までowning windowを
+ * 対象要素に最も近い、実際に縦scroll可能な祖先を返す。
+ *
+ * @param view   computed styleを取得するowning window。
+ * @param target scrollable ancestorを探索する起点。
+ * @return 最も近い縦scroll可能な祖先。該当しない場合はnull。
+ */
+const getVerticalScrollContainer = ( view: Window, target: Element ): HTMLElement | null => {
+	const { body, documentElement } = target.ownerDocument;
+	let ancestor = target.parentElement;
+	while ( ancestor ) {
+		if ( ancestor !== body && ancestor !== documentElement ) {
+			const overflowY = view.getComputedStyle( ancestor ).overflowY;
+			if (
+				( overflowY === 'auto' || overflowY === 'scroll' ) &&
+				ancestor.scrollHeight > ancestor.clientHeight
+			) {
+				return ancestor;
+			}
+		}
+		ancestor = ancestor.parentElement;
+	}
+
+	return null;
+};
+
+/**
+ * keyboard候補が実際にscroll containerの表示領域外へ進んだとき、その候補を確認できる位置まで
  * 必要最小限だけ縦scrollする。
  *
  * 候補が変化しない境界操作からは呼び出さない。
@@ -262,13 +292,16 @@ export const scrollKeyboardDestinationIntoView = (
 		return;
 	}
 
-	const viewportHeight = view.innerHeight;
-	if ( viewportHeight <= KEYBOARD_SCROLL_MARGIN_PX * 2 ) {
+	const scrollContainer = getVerticalScrollContainer( view, tbody );
+	const containerRect = scrollContainer?.getBoundingClientRect();
+	const viewportTop = containerRect?.top ?? 0;
+	const viewportBottom = containerRect?.bottom ?? view.innerHeight;
+	if ( viewportBottom - viewportTop <= KEYBOARD_SCROLL_MARGIN_PX * 2 ) {
 		return;
 	}
 
-	const lowerBound = KEYBOARD_SCROLL_MARGIN_PX;
-	const upperBound = viewportHeight - KEYBOARD_SCROLL_MARGIN_PX;
+	const lowerBound = viewportTop + KEYBOARD_SCROLL_MARGIN_PX;
+	const upperBound = viewportBottom - KEYBOARD_SCROLL_MARGIN_PX;
 	let delta = 0;
 	if ( currentY < lowerBound ) {
 		delta = currentY - lowerBound;
@@ -277,6 +310,6 @@ export const scrollKeyboardDestinationIntoView = (
 	}
 
 	if ( Math.abs( delta ) >= 1 ) {
-		view.scrollBy( { behavior: 'auto', left: 0, top: delta } );
+		( scrollContainer ?? view ).scrollBy( { behavior: 'auto', left: 0, top: delta } );
 	}
 };
