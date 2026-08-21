@@ -248,6 +248,13 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 	} ) => {
 		await editor.setContent( longTableContent );
 		const editorContext = await getEditorContext( page, editor.canvas );
+
+		// eslint-disable-next-line playwright/no-skipped-test
+		test.skip(
+			editorContext === page,
+			'Native touch scrolling from destination cannot be reproduced in the desktop Chromium non-iframe editor.'
+		);
+
 		const table = editorContext.getByRole( 'table' );
 		const destinations = getDestinations( editorContext );
 		const pointerGuidance = editorContext.getByText( touchPointerGuidance );
