@@ -9,6 +9,21 @@ export const basicTableContent = `<!-- wp:table -->
 
 export const basicRowLabels = [ 'Alpha', 'Bravo', 'Charlie', 'Delta' ] as const;
 
+export const mergedCellsRowLabels = [
+	'Alpha',
+	'Bravo',
+	'Colspan',
+	'Charlie',
+	'Rowspan start',
+	'Rowspan covered',
+	'Delta',
+	'Echo',
+] as const;
+
+export const mergedCellsTableContent = `<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td>Alpha</td><td>A</td></tr><tr><td>Bravo</td><td>B</td></tr><tr><td colspan="2">Colspan</td></tr><tr><td>Charlie</td><td>C</td></tr><tr><td rowspan="2">Rowspan start</td><td>D</td></tr><tr><td>Rowspan covered</td></tr><tr><td>Delta</td><td>E</td></tr><tr><td>Echo</td><td>F</td></tr></tbody></table></figure>
+<!-- /wp:table -->`;
+
 export const longRowLabels = Array.from(
 	{ length: 24 },
 	( _, index ) => `Row ${ String( index + 1 ).padStart( 2, '0' ) }`
