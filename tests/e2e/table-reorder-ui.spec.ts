@@ -73,6 +73,15 @@ async function getRecordedFocusedTableRowIndex( tableBlock: Locator ): Promise< 
 	return recordedRowIndex;
 }
 
+function getBasicTableRowLabel( rowIndex: number ): string {
+	const rowLabel = BASIC_TABLE_ROW_LABELS[ rowIndex ];
+	if ( ! rowLabel ) {
+		throw new Error( 'Gutenberg focused a row outside the test Table.' );
+	}
+
+	return rowLabel;
+}
+
 test.describe( 'Table Reorder UI', () => {
 	test.use( {
 		hasTouch: false,
@@ -180,10 +189,7 @@ test.describe( 'Table Reorder UI', () => {
 		await page.keyboard.press( 'Enter' );
 
 		const focusedRowIndex = await getRecordedFocusedTableRowIndex( tableBlock );
-		const focusedRowLabel = BASIC_TABLE_ROW_LABELS[ focusedRowIndex ];
-		if ( ! focusedRowLabel ) {
-			throw new Error( 'Gutenberg focused a row outside the test Table.' );
-		}
+		const focusedRowLabel = getBasicTableRowLabel( focusedRowIndex );
 		const focusedRowControl = getRowControl( editorContext, focusedRowIndex + 1, focusedRowLabel );
 
 		await expect( keyboardCoachmark ).toBeVisible();
