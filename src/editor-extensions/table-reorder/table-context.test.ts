@@ -29,12 +29,14 @@ describe( 'resolveTableContext', () => {
 		}
 		appendTableBlock( iframe.contentDocument, 'shared-block' );
 
-		expect( resolveTableContext( anchor, 'shared-block' ) ).toEqual( {
+		const context = resolveTableContext( anchor, 'shared-block' );
+		expect( context ).toMatchObject( {
 			blockElement: root.block,
 			document,
 			window,
 			tbody: root.tbody,
 		} );
+		expect( context?.isIframeEditor?.() ).toBe( false );
 	} );
 
 	it( 'resolves a direct document Table context', () => {
@@ -42,12 +44,14 @@ describe( 'resolveTableContext', () => {
 		document.body.append( anchor );
 		const { block, tbody } = appendTableBlock( document, 'root-block' );
 
-		expect( resolveTableContext( anchor, 'root-block' ) ).toEqual( {
+		const context = resolveTableContext( anchor, 'root-block' );
+		expect( context ).toMatchObject( {
 			blockElement: block,
 			document,
 			window,
 			tbody,
 		} );
+		expect( context?.isIframeEditor?.() ).toBe( false );
 	} );
 
 	it( 'falls back to the editor canvas iframe when the root has no block', () => {
@@ -61,12 +65,30 @@ describe( 'resolveTableContext', () => {
 		}
 		const { block, tbody } = appendTableBlock( iframe.contentDocument, 'iframe-block' );
 
-		expect( resolveTableContext( anchor, 'iframe-block' ) ).toEqual( {
+		const context = resolveTableContext( anchor, 'iframe-block' );
+		expect( context ).toMatchObject( {
 			blockElement: block,
 			document: iframe.contentDocument,
 			window: iframe.contentWindow,
 			tbody,
 		} );
+		expect( context?.isIframeEditor?.() ).toBe( true );
+	} );
+
+	it( 'derives iframe state from the current context window', () => {
+		const anchor = document.createElement( 'span' );
+		document.body.append( anchor );
+		appendTableBlock( document, 'root-block' );
+		const context = resolveTableContext( anchor, 'root-block' );
+		if ( ! context?.isIframeEditor ) {
+			throw new Error( 'Expected isIframeEditor resolver' );
+		}
+
+		Object.defineProperty( context.window, 'frameElement', {
+			configurable: true,
+			value: document.createElement( 'iframe' ),
+		} );
+		expect( context.isIframeEditor() ).toBe( true );
 	} );
 
 	it( 'returns null when a complete Table context cannot be resolved', () => {
