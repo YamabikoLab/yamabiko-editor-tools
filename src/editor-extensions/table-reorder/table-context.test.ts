@@ -34,7 +34,7 @@ describe( 'resolveTableContext', () => {
 		expect( context?.document ).toBe( document );
 		expect( context?.window ).toBe( window );
 		expect( context?.tbody ).toBe( root.tbody );
-		expect( context?.isIframeEditor() ).toBe( false );
+		expect( context?.isIframeEditor?.() ).toBe( false );
 	} );
 
 	it( 'resolves a direct document Table context', () => {
@@ -47,7 +47,7 @@ describe( 'resolveTableContext', () => {
 		expect( context?.document ).toBe( document );
 		expect( context?.window ).toBe( window );
 		expect( context?.tbody ).toBe( tbody );
-		expect( context?.isIframeEditor() ).toBe( false );
+		expect( context?.isIframeEditor?.() ).toBe( false );
 	} );
 
 	it( 'falls back to the editor canvas iframe when the root has no block', () => {
@@ -66,7 +66,7 @@ describe( 'resolveTableContext', () => {
 		expect( context?.document ).toBe( iframe.contentDocument );
 		expect( context?.window ).toBe( iframe.contentWindow );
 		expect( context?.tbody ).toBe( tbody );
-		expect( context?.isIframeEditor() ).toBe( true );
+		expect( context?.isIframeEditor?.() ).toBe( true );
 	} );
 
 	it( 'derives iframe state from the current context window', () => {
@@ -82,7 +82,7 @@ describe( 'resolveTableContext', () => {
 			configurable: true,
 			value: document.createElement( 'iframe' ),
 		} );
-		expect( context.isIframeEditor() ).toBe( true );
+		expect( context.isIframeEditor?.() ).toBe( true );
 	} );
 
 	it( 'returns null when a complete Table context cannot be resolved', () => {
