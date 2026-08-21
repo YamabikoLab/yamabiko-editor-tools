@@ -138,7 +138,7 @@ Use `npm start` for the watch-based local development build. It is long-running 
 
 ## Playwright E2E
 
-Playwright E2E tests run against the WordPress environment provided by the separate `YamabikoLab/wp-dev` repository. The initial browser target is Chromium only, and tests use one worker because they share the same WordPress environment.
+For local development, Playwright E2E tests run against the WordPress environment provided by the separate `YamabikoLab/wp-dev` repository. The initial browser target is Chromium only, and tests use one worker because they share the same WordPress environment.
 
 `wp-dev` provides the canonical WordPress URL and administrator credentials to the Dev Container as these environment variables:
 
@@ -146,9 +146,9 @@ Playwright E2E tests run against the WordPress environment provided by the separ
 - `WP_USERNAME`
 - `WP_PASSWORD`
 
-Do not add credentials to this repository. The authentication setup stores the signed-in browser state under `.playwright/.auth/`, which is excluded from Git.
+Do not add real credentials to this repository. The authentication setup stores the signed-in browser state under `.playwright/.auth/`, which is excluded from Git.
 
-`wp-dev` also installs the Playwright-managed Chromium browser and Linux dependencies into the Dev Container. Keep the `@playwright/test` version in this repository aligned with `PLAYWRIGHT_VERSION` in `wp-dev`; do not run a separate browser installation during normal setup.
+`wp-dev` also installs the Playwright-managed Chromium browser and Linux dependencies into the Dev Container. Keep the `@playwright/test` version in this repository aligned with `PLAYWRIGHT_VERSION` in `wp-dev`; do not run a separate browser installation during normal local setup.
 
 With the `wp-dev` Dev Container open and Yamabiko Editor Tools active in WordPress, run the E2E suite from the repository root:
 
@@ -169,6 +169,10 @@ npm run test:e2e:ui
 ```
 
 UI Mode listens on `0.0.0.0:9323` inside the Dev Container so VS Code can forward the port to the host browser.
+
+PR Validation uses a separate, CI-only environment defined in `tests/e2e/compose.ci.yaml`. It starts the pinned WordPress, MariaDB, and WP-CLI images needed by the E2E job, activates the checked-out plugin, and runs the existing suite with the official Playwright Docker image whose version matches `@playwright/test`. This CI Compose file does not replace `wp-dev` as the local development environment.
+
+The CI E2E job does not run `playwright install --with-deps chromium`. Chromium and its Linux dependencies come from the pinned Playwright image. Failed runs upload `playwright-report/` and `test-results/`; the latter also includes Docker Compose logs captured by the workflow when available.
 
 Playwright writes authentication state to `.playwright/`, HTML reports to `playwright-report/`, and test artifacts to `test-results/`. Failed tests retain trace, screenshot, and video artifacts for investigation. All of these paths are excluded from Git.
 
@@ -231,13 +235,14 @@ Check changed lines for whitespace errors:
 git diff --check origin/main...HEAD
 ```
 
-The manually triggered `.github/workflows/pr-validation.yml` workflow runs the dependency security audits, `npm test`, the production build, and the PHP checks on GitHub Actions. Run the repository check above separately before handoff.
+The manually triggered `.github/workflows/pr-validation.yml` workflow runs the dependency security audits, `npm test`, the production build, PHP checks, and the Playwright E2E suite on GitHub Actions. Run the repository check above separately before handoff.
 
 ## Which checks to run
 
 - Documentation-only changes: `git diff --check origin/main...HEAD`.
 - JavaScript, TypeScript, JSON, block metadata, CSS, or SCSS changes: `npm test`, `npm run build`, and the repository check.
 - Playwright configuration or E2E test changes: run the Node.js checks above and `npm run test:e2e` when a compatible `wp-dev` WordPress environment is available.
+- GitHub Actions or CI E2E environment changes: run the repository check and validate through the GitHub-hosted PR Validation workflow.
 - PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
 - npm or Composer dependency manifest / lock-file changes: run the relevant dependency security audit in addition to the applicable checks above.
 - Mixed changes: combine the applicable groups.
