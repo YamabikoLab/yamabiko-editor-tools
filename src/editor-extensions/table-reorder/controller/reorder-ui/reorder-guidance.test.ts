@@ -32,7 +32,20 @@ const createTable = () => {
 	const tableRect = jest
 		.spyOn( table, 'getBoundingClientRect' )
 		.mockReturnValue( createRect( 100, 300 ) );
-	return { tableRect, tbody };
+	return { table, tableRect, tbody };
+};
+
+const makeScrollable = ( element: HTMLElement, top = 100, bottom = 500 ) => {
+	element.style.overflowY = 'auto';
+	Object.defineProperty( element, 'clientHeight', {
+		configurable: true,
+		value: bottom - top,
+	} );
+	Object.defineProperty( element, 'scrollHeight', {
+		configurable: true,
+		value: bottom - top + 500,
+	} );
+	jest.spyOn( element, 'getBoundingClientRect' ).mockReturnValue( createRect( top, bottom ) );
 };
 
 const dispatchTouchPointer = ( type: string, pointerId: number, clientY: number ) => {
@@ -108,6 +121,30 @@ describe( 'reorder-guidance', () => {
 		tableRect.mockReturnValue( createRect( 120, 320 ) );
 		window.dispatchEvent( new Event( 'scroll' ) );
 		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( false );
+
+		guidance.cleanup();
+	} );
+
+	it( 'uses the scroll container bounds for touch guidance position and table visibility', () => {
+		const container = document.createElement( 'div' );
+		document.body.append( container );
+		makeScrollable( container, 100, 500 );
+		const { table, tableRect, tbody } = createTable();
+		container.append( table );
+		tableRect.mockReturnValue( createRect( 150, 350 ) );
+		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
+
+		expect( guidance.element.style.top ).toBe( '108px' );
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( false );
+
+		tableRect.mockReturnValue( createRect( 20, 80 ) );
+		window.dispatchEvent( new Event( 'scroll' ) );
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
+
+		tableRect.mockReturnValue( createRect( 150, 350 ) );
+		dispatchTouchPointer( 'pointerdown', 1, 100 );
+		dispatchTouchPointer( 'pointermove', 1, 108 );
+		expect( guidance.element.style.top ).toBe( '492px' );
 
 		guidance.cleanup();
 	} );
