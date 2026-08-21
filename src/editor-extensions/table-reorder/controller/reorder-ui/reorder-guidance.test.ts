@@ -134,7 +134,7 @@ describe( 'reorder-guidance', () => {
 		tableRect.mockReturnValue( createRect( 150, 350 ) );
 		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
 
-		expect( guidance.element.style.top ).toBe( '108px' );
+		expect( guidance.element.style.top ).toBe( '492px' );
 		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( false );
 
 		tableRect.mockReturnValue( createRect( 20, 80 ) );
@@ -142,9 +142,9 @@ describe( 'reorder-guidance', () => {
 		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
 
 		tableRect.mockReturnValue( createRect( 150, 350 ) );
-		dispatchTouchPointer( 'pointerdown', 1, 100 );
-		dispatchTouchPointer( 'pointermove', 1, 108 );
-		expect( guidance.element.style.top ).toBe( '492px' );
+		dispatchTouchPointer( 'pointerdown', 1, 108 );
+		dispatchTouchPointer( 'pointermove', 1, 100 );
+		expect( guidance.element.style.top ).toBe( '108px' );
 
 		guidance.cleanup();
 	} );
@@ -168,25 +168,26 @@ describe( 'reorder-guidance', () => {
 		( message ) => {
 			const { tbody } = createTable();
 			const guidance = createReorderGuidance( document, tbody, message );
+			const bottomPosition = `${ window.innerHeight - 8 }px`;
 
+			expect( guidance.element.style.top ).toBe( bottomPosition );
+
+			dispatchTouchPointer( 'pointerdown', 1, 108 );
+			dispatchTouchPointer( 'pointermove', 1, 102 );
+			expect( guidance.element.style.top ).toBe( bottomPosition );
+
+			dispatchTouchPointer( 'pointermove', 1, 100 );
 			expect( guidance.element.style.top ).toBe( '8px' );
 
-			dispatchTouchPointer( 'pointerdown', 1, 100 );
-			dispatchTouchPointer( 'pointermove', 1, 106 );
+			dispatchTouchPointer( 'pointerup', 1, 100 );
 			expect( guidance.element.style.top ).toBe( '8px' );
 
-			dispatchTouchPointer( 'pointermove', 1, 108 );
-			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
-
-			dispatchTouchPointer( 'pointerup', 1, 108 );
-			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
-
-			dispatchTouchPointer( 'pointerdown', 2, 108 );
-			dispatchTouchPointer( 'pointermove', 2, 102 );
-			expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
-
-			dispatchTouchPointer( 'pointermove', 2, 100 );
+			dispatchTouchPointer( 'pointerdown', 2, 100 );
+			dispatchTouchPointer( 'pointermove', 2, 106 );
 			expect( guidance.element.style.top ).toBe( '8px' );
+
+			dispatchTouchPointer( 'pointermove', 2, 108 );
+			expect( guidance.element.style.top ).toBe( bottomPosition );
 
 			guidance.cleanup();
 		}
