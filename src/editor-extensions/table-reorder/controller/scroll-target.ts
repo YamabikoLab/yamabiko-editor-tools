@@ -13,8 +13,7 @@ export type AutoScrollTarget = boolean | HTMLElement;
  * @return 明示的なscroll container。見つからない場合またはiframe editorでは`true`。
  */
 export const resolveAutoScrollTarget = ( context: TableContext ): AutoScrollTarget => {
-	const isIframeEditor = context.isIframeEditor?.() ?? context.window.frameElement !== null;
-	if ( isIframeEditor ) {
+	if ( context.isIframeEditor() ) {
 		return true;
 	}
 
