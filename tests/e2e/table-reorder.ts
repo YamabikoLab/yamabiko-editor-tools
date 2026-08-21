@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect } from '@wordpress/e2e-test-utils-playwright';
 
 import type { EditorContext } from './editor-context';
@@ -34,6 +34,45 @@ export const longTableContent = `<!-- wp:table -->
 	.map( ( label ) => `<tr><td>${ label }</td></tr>` )
 	.join( '' ) }</tbody></table></figure>
 <!-- /wp:table -->`;
+
+type VerticalTarget = 'before' | 'center' | 'after';
+
+export async function dragWithMouse(
+	page: Page,
+	source: Locator,
+	target: Locator,
+	verticalTarget: VerticalTarget,
+	duringDrag?: () => Promise< void >
+): Promise< void > {
+	await source.scrollIntoViewIfNeeded();
+	await target.scrollIntoViewIfNeeded();
+
+	const sourceBox = await source.boundingBox();
+	const targetBox = await target.boundingBox();
+	if ( ! sourceBox || ! targetBox ) {
+		throw new Error( 'Could not determine mouse drag coordinates.' );
+	}
+
+	const sourceX = sourceBox.x + sourceBox.width / 2;
+	const sourceY = sourceBox.y + sourceBox.height / 2;
+	const targetX = targetBox.x + targetBox.width / 2;
+	let targetY = targetBox.y + targetBox.height / 2;
+	if ( verticalTarget === 'before' ) {
+		targetY = targetBox.y + 2;
+	} else if ( verticalTarget === 'after' ) {
+		targetY = targetBox.y + targetBox.height - 2;
+	}
+
+	await page.mouse.move( sourceX, sourceY );
+	await page.mouse.down();
+	try {
+		await page.mouse.move( sourceX, sourceY + 6, { steps: 2 } );
+		await page.mouse.move( targetX, targetY, { steps: 10 } );
+		await duringDrag?.();
+	} finally {
+		await page.mouse.up();
+	}
+}
 
 export function getTableRows( editorContext: EditorContext ): Locator {
 	return editorContext.getByRole( 'table' ).getByRole( 'row' );
