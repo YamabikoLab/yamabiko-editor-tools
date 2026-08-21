@@ -5,7 +5,7 @@
 	"license": "GPL-2.0-or-later",
 	"require-dev": {
 		"phpstan/phpstan": "^2.2",
-		"squizlabs/php_codesniffer": "^3.13.5",
+		"squizlabs/php_codesniffer": "^3.13.6",
 		"szepeviktor/phpstan-wordpress": "^2.0",
 		"wp-coding-standards/wpcs": "^3.4"
 	},
