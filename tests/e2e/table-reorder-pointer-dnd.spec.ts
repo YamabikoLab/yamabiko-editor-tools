@@ -97,20 +97,61 @@ async function getVerticalScrollPosition( source: Locator ): Promise< number > {
 	} );
 }
 
-async function waitForVerticalScrollToStop( source: Locator ): Promise< void > {
+async function waitForVerticalScrollToStop(
+	page: Page,
+	source: Locator,
+	pointerX: number,
+	pointerY: number
+): Promise< void > {
 	let previousPosition: number | undefined;
+	let sampleIndex = 0;
 	let stableSamples = 0;
 
 	await expect
-		.poll( async () => {
-			const position = await getVerticalScrollPosition( source );
+		.poll(
+			async () => {
+				// Keep sending the user's away-from-edge pointer position while
+				// SortableJS transitions out of auto-scroll.
+				await page.mouse.move( pointerX + ( sampleIndex++ % 2 ), pointerY );
+				const position = await getVerticalScrollPosition( source );
 
-			stableSamples = position === previousPosition ? stableSamples + 1 : 0;
-			previousPosition = position;
+				stableSamples = position === previousPosition ? stableSamples + 1 : 0;
+				previousPosition = position;
 
-			return stableSamples;
-		} )
+				return stableSamples;
+			},
+			{ intervals: [ 50 ] }
+		)
 		.toBeGreaterThanOrEqual( 2 );
+}
+
+async function moveMouseBeforeTarget(
+	page: Page,
+	target: Locator,
+	insertionIndicator: Locator
+): Promise< void > {
+	await expect
+		.poll(
+			async () => {
+				const targetBox = await target.boundingBox();
+				if ( ! targetBox ) {
+					return false;
+				}
+
+				await page.mouse.move( targetBox.x + targetBox.width / 2, targetBox.y + 2, { steps: 2 } );
+
+				const [ currentTargetBox, indicatorBox ] = await Promise.all( [
+					target.boundingBox(),
+					insertionIndicator.boundingBox(),
+				] );
+
+				return Boolean(
+					currentTargetBox && indicatorBox && Math.abs( indicatorBox.y - currentTargetBox.y ) <= 2
+				);
+			},
+			{ intervals: [ 50 ] }
+		)
+		.toBe( true );
 }
 
 async function dragWithMouseAndAutoScroll(
@@ -118,6 +159,7 @@ async function dragWithMouseAndAutoScroll(
 	source: Locator,
 	target: Locator,
 	scrollSource: Locator,
+	insertionIndicator: Locator,
 	duringAutoScroll: () => Promise< void >,
 	duringDrop?: () => Promise< void >
 ): Promise< void > {
@@ -142,18 +184,18 @@ async function dragWithMouseAndAutoScroll(
 		await page.mouse.move( sourceX, viewport.height - 4, { steps: 10 } );
 		await duringAutoScroll();
 		await page.mouse.move( sourceX, viewport.height / 2 );
-		await waitForVerticalScrollToStop( scrollSource );
+		await waitForVerticalScrollToStop( page, scrollSource, sourceX, viewport.height / 2 );
 
 		const targetBox = await target.boundingBox();
 		if ( ! targetBox ) {
 			throw new Error( 'Could not determine the target after mouse auto-scroll.' );
 		}
-
 		await page.mouse.move(
 			targetBox.x + targetBox.width / 2,
 			targetBox.y + targetBox.height * 0.25,
 			{ steps: 10 }
 		);
+		await moveMouseBeforeTarget( page, target, insertionIndicator );
 		await duringDrop?.();
 	} finally {
 		await page.mouse.up();
@@ -260,20 +302,24 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 			sourceHandle,
 			rowAfterTarget,
 			tableBlock,
+			insertionIndicator,
 			async () => {
 				await expect
 					.poll( () => getVerticalScrollPosition( tableBlock ) )
 					.toBeGreaterThan( initialScrollPosition );
 				await expect
-					.poll( async () => {
-						const targetBox = await targetRow.boundingBox();
+					.poll(
+						async () => {
+							const targetBox = await targetRow.boundingBox();
 
-						return Boolean(
-							targetBox &&
-								targetBox.y >= 0 &&
-								targetBox.y + targetBox.height <= viewport.height - 64
-						);
-					} )
+							return Boolean(
+								targetBox &&
+									targetBox.y >= 0 &&
+									targetBox.y + targetBox.height <= viewport.height - 64
+							);
+						},
+						{ intervals: [ 50 ] }
+					)
 					.toBe( true );
 			},
 			async () => {
