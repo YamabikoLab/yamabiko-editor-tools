@@ -245,7 +245,7 @@ describe( 'reorder-ui guard branches', () => {
 		dispatchPointer( document, 'pointerdown', { x: 0, y: 100 } );
 		dispatchPointer( document, 'pointermove', { pointerId: 2, x: 0, y: 120 } );
 
-		expect( guidance.element.style.top ).toBe( '8px' );
+		expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
 		guidance.cleanup();
 	} );
 
