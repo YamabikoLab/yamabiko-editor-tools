@@ -1,7 +1,9 @@
+import type { Locator, Page } from '@playwright/test';
 import type { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 import { getEditorContext } from './editor-context';
+import { getRowControl } from './table-reorder';
 
 const BASIC_TABLE_CONTENT = `<!-- wp:table -->
 <figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td>Alpha</td></tr><tr><td>Bravo</td></tr><tr><td>Charlie</td></tr></tbody></table></figure>
@@ -11,6 +13,8 @@ const BASIC_TABLE_CONTENT = `<!-- wp:table -->
 <p>Outside table</p>
 <!-- /wp:paragraph -->`;
 
+const BASIC_TABLE_ROW_LABELS = [ 'Alpha', 'Bravo', 'Charlie' ] as const;
+const FOCUSED_TABLE_ROW_INDEX_ATTRIBUTE = 'data-yamabiko-e2e-focused-table-row-index';
 const PREFERENCES_SCOPE = 'yamabiko-editor-tools';
 const KEYBOARD_COACHMARK_DISMISSED_PREFERENCE = 'tableReorderKeyboardCoachmarkDismissed';
 const TOUCH_COACHMARK_DISMISSED_PREFERENCE = 'tableReorderTouchCoachmarkDismissed';
@@ -23,6 +27,84 @@ async function setTableReorderCoachmarkDismissal(
 		[ KEYBOARD_COACHMARK_DISMISSED_PREFERENCE ]: keyboardDismissed,
 		[ TOUCH_COACHMARK_DISMISSED_PREFERENCE ]: touchDismissed,
 	} );
+}
+
+async function startFocusedTableRowRecorder( tableBlock: Locator ): Promise< void > {
+	await tableBlock.evaluate( ( block, attributeName ) => {
+		const documentElement = block.ownerDocument.documentElement;
+		documentElement.removeAttribute( attributeName );
+
+		block.ownerDocument.addEventListener( 'focusin', ( event ) => {
+			const target = event.target;
+			if ( ! ( target instanceof Element ) ) {
+				return;
+			}
+
+			const row = target.closest( 'tbody tr' );
+			if ( ! row || ! block.contains( row ) || ! row.parentElement ) {
+				return;
+			}
+
+			const rowIndex = Array.from( row.parentElement.children ).indexOf( row );
+			if ( rowIndex >= 0 ) {
+				documentElement.setAttribute( attributeName, String( rowIndex ) );
+			}
+		} );
+	}, FOCUSED_TABLE_ROW_INDEX_ATTRIBUTE );
+}
+
+async function getRecordedFocusedTableRowIndex( tableBlock: Locator ): Promise< number > {
+	const readRecordedRowIndex = () =>
+		tableBlock.evaluate( ( block, attributeName ) => {
+			return block.ownerDocument.documentElement.getAttribute( attributeName );
+		}, FOCUSED_TABLE_ROW_INDEX_ATTRIBUTE );
+
+	await expect
+		.poll( readRecordedRowIndex, {
+			message: 'Expected List View activation to focus a Table row.',
+		} )
+		.not.toBeNull();
+
+	const recordedRowIndex = Number( await readRecordedRowIndex() );
+	if ( ! Number.isInteger( recordedRowIndex ) || recordedRowIndex < 0 ) {
+		throw new Error( 'Could not determine the Table row focused by Gutenberg.' );
+	}
+
+	return recordedRowIndex;
+}
+
+function getBasicTableRowLabel( rowIndex: number ): string {
+	const rowLabel = BASIC_TABLE_ROW_LABELS[ rowIndex ];
+	if ( ! rowLabel ) {
+		throw new Error( 'Gutenberg focused a row outside the test Table.' );
+	}
+
+	return rowLabel;
+}
+
+async function focusWithArrowDown( page: Page, target: Locator ): Promise< void > {
+	for ( let attempt = 0; attempt < 10; attempt++ ) {
+		if ( await target.evaluate( ( element ) => element === element.ownerDocument.activeElement ) ) {
+			break;
+		}
+
+		await page.keyboard.press( 'ArrowDown' );
+	}
+
+	await expect( target ).toBeFocused();
+	await target.evaluate(
+		( element ) =>
+			new Promise< void >( ( resolve ) => {
+				const view = element.ownerDocument.defaultView;
+				if ( ! view ) {
+					resolve();
+					return;
+				}
+
+				view.requestAnimationFrame( () => resolve() );
+			} )
+	);
+	await expect( target ).toBeFocused();
 }
 
 test.describe( 'Table Reorder UI', () => {
@@ -114,6 +196,7 @@ test.describe( 'Table Reorder UI', () => {
 		page,
 	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
+		const tableBlock = editorContext.locator( '[data-type="core/table"][data-block]' );
 		const tableListViewItem = page.getByRole( 'link', {
 			name: /^(Table|テーブル)$/,
 		} );
@@ -123,21 +206,25 @@ test.describe( 'Table Reorder UI', () => {
 		const keyboardCoachmark = page.getByText(
 			/^(Reorder rows with the keyboard\. Select “Reorder rows” in the toolbar, then use Tab \/ Shift\+Tab to choose a row to reorder\.|キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab \/ Shift\+Tab で並べ替える行を選べます。)$/
 		);
-		const firstRowControl = editorContext.getByRole( 'button', {
-			name: /^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/,
-		} );
 		const paragraphBlock = editorContext.locator( '[data-type="core/paragraph"][data-block]' );
 
+		await startFocusedTableRowRecorder( tableBlock );
 		await page.keyboard.press( 'Shift+Alt+KeyO' );
-		await tableListViewItem.focus();
+		await expect( tableListViewItem ).toBeVisible();
+		await focusWithArrowDown( page, tableListViewItem );
 		await page.keyboard.press( 'Enter' );
+
+		const focusedRowIndex = await getRecordedFocusedTableRowIndex( tableBlock );
+		const focusedRowLabel = getBasicTableRowLabel( focusedRowIndex );
+		const focusedRowControl = getRowControl( editorContext, focusedRowIndex + 1, focusedRowLabel );
+
 		await expect( keyboardCoachmark ).toBeVisible();
 		await expect( reorderRowsButton ).toBeFocused();
 		await expect( reorderRowsButton ).not.toHaveClass( /yamabiko-table-reorder-coachmark-target/ );
 
 		await page.keyboard.press( 'Enter' );
 		await expect( keyboardCoachmark ).toHaveCount( 0 );
-		await expect( firstRowControl ).toBeFocused();
+		await expect( focusedRowControl ).toBeFocused();
 
 		await editor.selectBlocks( paragraphBlock );
 		await expect( reorderRowsButton ).toHaveCount( 0 );
