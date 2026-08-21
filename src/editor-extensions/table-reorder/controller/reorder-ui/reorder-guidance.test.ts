@@ -35,12 +35,7 @@ const createTable = () => {
 	return { table, tableRect, tbody };
 };
 
-const makeViewportContainer = (
-	element: HTMLElement,
-	top = 100,
-	bottom = 500,
-	scrollHeight = bottom - top + 500
-) => {
+const makeScrollable = ( element: HTMLElement, top = 100, bottom = 500 ) => {
 	element.style.overflowY = 'auto';
 	Object.defineProperty( element, 'clientHeight', {
 		configurable: true,
@@ -48,7 +43,7 @@ const makeViewportContainer = (
 	} );
 	Object.defineProperty( element, 'scrollHeight', {
 		configurable: true,
-		value: scrollHeight,
+		value: bottom - top + 500,
 	} );
 	jest.spyOn( element, 'getBoundingClientRect' ).mockReturnValue( createRect( top, bottom ) );
 };
@@ -130,10 +125,10 @@ describe( 'reorder-guidance', () => {
 		guidance.cleanup();
 	} );
 
-	it( 'uses the editor viewport bounds even when short content is not currently scrollable', () => {
+	it( 'uses the scroll container bounds for touch guidance position and table visibility', () => {
 		const container = document.createElement( 'div' );
 		document.body.append( container );
-		makeViewportContainer( container, 100, 500, 400 );
+		makeScrollable( container, 100, 500 );
 		const { table, tableRect, tbody } = createTable();
 		container.append( table );
 		tableRect.mockReturnValue( createRect( 150, 350 ) );
@@ -146,18 +141,7 @@ describe( 'reorder-guidance', () => {
 		window.dispatchEvent( new Event( 'scroll' ) );
 		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
 
-		guidance.cleanup();
-	} );
-
-	it( 'uses the editor viewport bounds for touch guidance swipe positioning', () => {
-		const container = document.createElement( 'div' );
-		document.body.append( container );
-		makeViewportContainer( container, 100, 500 );
-		const { table, tableRect, tbody } = createTable();
-		container.append( table );
 		tableRect.mockReturnValue( createRect( 150, 350 ) );
-		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
-
 		dispatchTouchPointer( 'pointerdown', 1, 100 );
 		dispatchTouchPointer( 'pointermove', 1, 108 );
 		expect( guidance.element.style.top ).toBe( '492px' );
