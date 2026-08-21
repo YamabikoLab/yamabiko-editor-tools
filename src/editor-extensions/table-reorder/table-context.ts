@@ -13,11 +13,10 @@
  * `document.defaultView`であることを保証する。
  */
 export type TableContext = {
-	readonly blockElement: HTMLElement;
-	readonly document: Document;
-	readonly window: Window;
-	readonly tbody: HTMLTableSectionElement;
-	readonly isIframeEditor?: () => boolean;
+	blockElement: HTMLElement;
+	document: Document;
+	window: Window;
+	tbody: HTMLTableSectionElement;
 };
 
 /**
@@ -67,6 +66,5 @@ export const resolveTableContext = ( anchor: Element, clientId: string ): TableC
 		document,
 		window: view,
 		tbody,
-		isIframeEditor: () => view.frameElement !== null,
 	};
 };
