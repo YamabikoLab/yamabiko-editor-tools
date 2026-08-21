@@ -248,6 +248,14 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 	} ) => {
 		await editor.setContent( longTableContent );
 		const editorContext = await getEditorContext( page, editor.canvas );
+
+		// eslint-disable-next-line playwright/no-skipped-test
+		test.skip(
+			editorContext === page,
+			'Native touch scrolling from destination cannot be reproduced in the desktop Chromium non-iframe editor.'
+		);
+
+		const table = editorContext.getByRole( 'table' );
 		const destinations = getDestinations( editorContext );
 		const pointerGuidance = editorContext.getByText( touchPointerGuidance );
 		const firstRowControl = getRowControl( editorContext, 1, longRowLabels[ 0 ] );
@@ -262,24 +270,24 @@ test.describe( 'Table Reorder touch single-pointer operation', () => {
 		await expect( pointerGuidance ).toBeVisible();
 		await expect( scrollDestination ).toBeVisible();
 		const originalContent = await editor.getEditedPostContent();
-		const initialScrollPosition = await getVerticalScrollPosition( scrollDestination );
+		const initialScrollPosition = await getVerticalScrollPosition( table );
 
 		await swipeVerticallyFromDestination( page, scrollDestination, 'up' );
 
 		await expect
-			.poll( () => getVerticalScrollPosition( scrollDestination ) )
+			.poll( () => getVerticalScrollPosition( table ) )
 			.toBeGreaterThan( initialScrollPosition );
 		await expect.poll( () => getGuidanceViewportSide( page, pointerGuidance ) ).toBe( 'top' );
 		await expect.poll( () => editor.getEditedPostContent() ).toBe( originalContent );
 		await expect( pointerGuidance ).toBeVisible();
 		expect( await destinations.count() ).toBeGreaterThan( 0 );
 		expect( await getGuidanceViewportSide( page, pointerGuidance ) ).toBe( 'top' );
-		const scrollPositionAfterUpSwipe = await getVerticalScrollPosition( scrollDestination );
+		const scrollPositionAfterUpSwipe = await getVerticalScrollPosition( table );
 
 		await swipeVerticallyFromDestination( page, scrollDestination, 'down' );
 
 		await expect
-			.poll( () => getVerticalScrollPosition( scrollDestination ) )
+			.poll( () => getVerticalScrollPosition( table ) )
 			.toBeLessThan( scrollPositionAfterUpSwipe );
 		await expect.poll( () => getGuidanceViewportSide( page, pointerGuidance ) ).toBe( 'bottom' );
 		await expect.poll( () => editor.getEditedPostContent() ).toBe( originalContent );
