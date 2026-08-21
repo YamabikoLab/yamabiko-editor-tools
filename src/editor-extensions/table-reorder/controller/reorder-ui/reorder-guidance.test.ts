@@ -35,7 +35,7 @@ const createTable = () => {
 	return { table, tableRect, tbody };
 };
 
-const makeScrollable = ( element: HTMLElement, top = 100, bottom = 500 ) => {
+const makeScrollable = ( element: HTMLElement, top = 100, bottom = 500, overflow = 500 ) => {
 	element.style.overflowY = 'auto';
 	Object.defineProperty( element, 'clientHeight', {
 		configurable: true,
@@ -43,7 +43,7 @@ const makeScrollable = ( element: HTMLElement, top = 100, bottom = 500 ) => {
 	} );
 	Object.defineProperty( element, 'scrollHeight', {
 		configurable: true,
-		value: bottom - top + 500,
+		value: bottom - top + overflow,
 	} );
 	jest.spyOn( element, 'getBoundingClientRect' ).mockReturnValue( createRect( top, bottom ) );
 };
@@ -142,6 +142,24 @@ describe( 'reorder-guidance', () => {
 		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
 
 		tableRect.mockReturnValue( createRect( 150, 350 ) );
+		dispatchTouchPointer( 'pointerdown', 1, 108 );
+		dispatchTouchPointer( 'pointermove', 1, 100 );
+		expect( guidance.element.style.top ).toBe( '108px' );
+
+		guidance.cleanup();
+	} );
+
+	it( 'uses editor viewport bounds for touch guidance even when the container is not scrollable', () => {
+		const container = document.createElement( 'div' );
+		document.body.append( container );
+		makeScrollable( container, 100, 500, 0 );
+		const { table, tableRect, tbody } = createTable();
+		container.append( table );
+		tableRect.mockReturnValue( createRect( 150, 350 ) );
+		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
+
+		expect( guidance.element.style.top ).toBe( '492px' );
+
 		dispatchTouchPointer( 'pointerdown', 1, 108 );
 		dispatchTouchPointer( 'pointermove', 1, 100 );
 		expect( guidance.element.style.top ).toBe( '108px' );
