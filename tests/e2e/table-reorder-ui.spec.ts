@@ -184,11 +184,7 @@ test.describe( 'Table Reorder UI', () => {
 		if ( ! focusedRowLabel ) {
 			throw new Error( 'Gutenberg focused a row outside the test Table.' );
 		}
-		const focusedRowControl = getRowControl(
-			editorContext,
-			focusedRowIndex + 1,
-			focusedRowLabel
-		);
+		const focusedRowControl = getRowControl( editorContext, focusedRowIndex + 1, focusedRowLabel );
 
 		await expect( keyboardCoachmark ).toBeVisible();
 		await expect( reorderRowsButton ).toBeFocused();
