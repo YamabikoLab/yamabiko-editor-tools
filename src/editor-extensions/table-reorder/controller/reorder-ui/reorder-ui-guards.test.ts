@@ -230,6 +230,7 @@ describe( 'reorder-ui guard branches', () => {
 		const { table, tbody } = createTable( [ 'Alpha' ] );
 		jest.spyOn( table, 'getBoundingClientRect' ).mockReturnValue( createRect( 100, 300 ) );
 		const guidance = createReorderGuidance( document, tbody, getTouchModeMessage() );
+		const initialTop = `${ window.innerHeight - 8 }px`;
 
 		dispatchPointer( document, 'pointerdown', {
 			pointerType: 'mouse',
@@ -242,10 +243,13 @@ describe( 'reorder-ui guard branches', () => {
 			x: 0,
 			y: 120,
 		} );
-		dispatchPointer( document, 'pointerdown', { x: 0, y: 100 } );
-		dispatchPointer( document, 'pointermove', { pointerId: 2, x: 0, y: 120 } );
+		expect( guidance.element.style.top ).toBe( initialTop );
 
-		expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
+		dispatchPointer( document, 'pointerdown', { x: 0, y: 100 } );
+		expect( guidance.element.style.top ).toBe( '116px' );
+
+		dispatchPointer( document, 'pointermove', { pointerId: 2, x: 0, y: 120 } );
+		expect( guidance.element.style.top ).toBe( '116px' );
 		guidance.cleanup();
 	} );
 
