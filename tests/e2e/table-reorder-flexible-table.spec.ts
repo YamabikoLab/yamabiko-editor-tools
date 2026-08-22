@@ -174,8 +174,12 @@ test.describe( 'Table Reorder Flexible Table Block representative touch operatio
 	test( 'moves a row with touch drag and drop', async ( { editor, page } ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
-		const firstRowControl = getRowControl( editorContext, 1, 'Alpha' );
-		const bravoControl = getRowControl( editorContext, 2, 'Bravo' );
+		const firstRowControl = editorContext.locator(
+			'.yamabiko-table-reorder-handle-zone[aria-label*="Alpha"]'
+		);
+		const bravoControl = editorContext.locator(
+			'.yamabiko-table-reorder-handle-zone[aria-label*="Bravo"]'
+		);
 		const deltaRow = getTableRow( tableRows, 'Delta' );
 
 		await enterTouchReorderMode( page, editorContext, firstRowControl );
@@ -188,8 +192,12 @@ test.describe( 'Table Reorder Flexible Table Block representative touch operatio
 	test( 'moves a row with the touch destination flow', async ( { editor, page } ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
-		const firstRowControl = getRowControl( editorContext, 1, 'Alpha' );
-		const bravoControl = getRowControl( editorContext, 2, 'Bravo' );
+		const firstRowControl = editorContext.locator(
+			'.yamabiko-table-reorder-handle-zone[aria-label*="Alpha"]'
+		);
+		const bravoControl = editorContext.locator(
+			'.yamabiko-table-reorder-handle-zone[aria-label*="Bravo"]'
+		);
 		const endDestination = editorContext.getByRole( 'button', {
 			name: /^(Move to the end of the table\.|表の末尾へ移動)$/,
 		} );
