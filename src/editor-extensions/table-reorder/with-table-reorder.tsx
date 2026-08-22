@@ -7,7 +7,7 @@
 import { BlockControls } from '@wordpress/block-editor';
 import type { BlockEditProps } from '@wordpress/blocks';
 import { Button, Popover, ToolbarButton } from '@wordpress/components';
-import { useEffect, useState, type ComponentType } from '@wordpress/element';
+import { useEffect, useLayoutEffect, useState, type ComponentType } from '@wordpress/element';
 import { dragHandle, Icon, keyboard } from '@wordpress/icons';
 
 import {
@@ -100,7 +100,7 @@ const TableReorderEdit = ( componentProps: TableReorderEditProps ) => {
 		setAttributes,
 	} );
 
-	useEffect( () => {
+	useLayoutEffect( () => {
 		if ( isKeyboardCoachmarkVisible && toolbarButton ) {
 			toolbarButton.focus( { preventScroll: true } );
 		}
