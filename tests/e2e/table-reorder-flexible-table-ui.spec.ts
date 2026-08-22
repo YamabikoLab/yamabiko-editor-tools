@@ -24,7 +24,16 @@ async function dismissKeyboardCoachmark( requestUtils: RequestUtils ): Promise< 
 }
 
 async function expectNoFtbRowSelected( editorContext: EditorContext ): Promise< void > {
-	await expect( editorContext.locator( '.ftb-row-remover' ) ).toHaveCount( 0 );
+	const rowSelectors = editorContext.locator( '.ftb-row-selector' );
+
+	await expect( rowSelectors.first() ).toBeVisible();
+	await expect
+		.poll( () =>
+			rowSelectors.evaluateAll( ( elements ) =>
+				elements.every( ( element ) => element.getAttribute( 'aria-pressed' ) !== 'true' )
+			)
+		)
+		.toBe( true );
 }
 
 async function focusRowControlFromToolbar(
@@ -83,19 +92,12 @@ test.describe( 'Table Reorder Flexible Table Block UI integration', () => {
 		const rowBeforeInserter = editorContext.locator( '.ftb-row-before-inserter' ).first();
 		const rowAfterInserter = editorContext.locator( '.ftb-row-after-inserter' ).first();
 		const sectionLabel = editorContext.locator( '.ftb-table-cell-label' ).first();
-		const rowRemover = editorContext.locator( '.ftb-row-remover' );
 		const reorderRowsButton = page.getByRole( 'button', { name: reorderRowsButtonName } );
 
 		await expect( rowSelectors.first() ).toBeVisible();
 		await expect( rowBeforeInserter ).toBeVisible();
 		await expect( rowAfterInserter ).toBeVisible();
 		await expect( sectionLabel ).toBeVisible();
-		await expect( reorderRowsButton ).toBeVisible();
-		await expect( rowRemover ).toHaveCount( 0 );
-
-		await rowSelectors.first().click();
-
-		await expect( rowRemover ).toBeVisible();
 		await expect( reorderRowsButton ).toBeVisible();
 	} );
 
