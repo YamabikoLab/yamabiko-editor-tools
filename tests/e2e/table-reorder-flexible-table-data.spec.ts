@@ -108,14 +108,7 @@ test.describe( 'Table Reorder Flexible Table Block merged cells and persistence'
 
 		await expect
 			.poll( () => getTableRowOrder( tableRows, richRowLabels ) )
-			.toEqual( [
-				'Alpha',
-				'Rich Bravo',
-				'Rowspan start',
-				'Rowspan covered',
-				'Charlie',
-				'Delta',
-			] );
+			.toEqual( [ 'Alpha', 'Rich Bravo', 'Rowspan start', 'Rowspan covered', 'Charlie', 'Delta' ] );
 	} );
 
 	test( 'moves a colspan-only rich row without losing Flexible Table cell data', async ( {
@@ -135,14 +128,7 @@ test.describe( 'Table Reorder Flexible Table Block merged cells and persistence'
 
 		await expect
 			.poll( () => getTableRowOrder( tableRows, richRowLabels ) )
-			.toEqual( [
-				'Alpha',
-				'Charlie',
-				'Rowspan start',
-				'Rowspan covered',
-				'Delta',
-				'Rich Bravo',
-			] );
+			.toEqual( [ 'Alpha', 'Charlie', 'Rowspan start', 'Rowspan covered', 'Delta', 'Rich Bravo' ] );
 		await expectRichBravoData( tableRows );
 		await expectRowspanData( tableRows );
 	} );
@@ -163,14 +149,7 @@ test.describe( 'Table Reorder Flexible Table Block merged cells and persistence'
 		await endDestination.click();
 		await expect
 			.poll( () => getTableRowOrder( tableRows, richRowLabels ) )
-			.toEqual( [
-				'Alpha',
-				'Charlie',
-				'Rowspan start',
-				'Rowspan covered',
-				'Delta',
-				'Rich Bravo',
-			] );
+			.toEqual( [ 'Alpha', 'Charlie', 'Rowspan start', 'Rowspan covered', 'Delta', 'Rich Bravo' ] );
 
 		await editor.saveDraft();
 		await page.reload();
@@ -181,14 +160,7 @@ test.describe( 'Table Reorder Flexible Table Block merged cells and persistence'
 
 		await expect
 			.poll( () => getTableRowOrder( tableRows, richRowLabels ) )
-			.toEqual( [
-				'Alpha',
-				'Charlie',
-				'Rowspan start',
-				'Rowspan covered',
-				'Delta',
-				'Rich Bravo',
-			] );
+			.toEqual( [ 'Alpha', 'Charlie', 'Rowspan start', 'Rowspan covered', 'Delta', 'Rich Bravo' ] );
 		await expectRichBravoData( tableRows );
 		await expectRowspanData( tableRows );
 	} );
