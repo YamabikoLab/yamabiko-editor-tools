@@ -150,7 +150,7 @@ Do not add real credentials to this repository. The authentication setup stores 
 
 `wp-dev` also installs the Playwright-managed Chromium browser and Linux dependencies into the Dev Container. Keep the `@playwright/test` version in this repository aligned with `PLAYWRIGHT_VERSION` in `wp-dev`; do not run a separate browser installation during normal local setup.
 
-With the `wp-dev` Dev Container open and Yamabiko Editor Tools active in WordPress, run the E2E suite from the repository root:
+With the `wp-dev` Dev Container open and Yamabiko Table Reorder active in WordPress, run the E2E suite from the repository root:
 
 ```bash
 npm run test:e2e
@@ -195,7 +195,7 @@ composer validate --strict
 Check the main plugin file for syntax errors:
 
 ```bash
-php -l yamabiko-editor-tools.php
+php -l yamabiko-table-reorder.php
 ```
 
 Check WordPress coding standards:
