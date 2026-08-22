@@ -132,8 +132,8 @@ export const createReorderGuidance = (
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
 		const scrollContainer = view ? getVerticalScrollContainer( view, guidanceTarget ) : null;
 		const containerRect = scrollContainer?.getBoundingClientRect();
-		const viewportTop = containerRect?.top ?? 0;
-		const viewportBottom = containerRect?.bottom ?? viewportHeight;
+		const viewportTop = Math.max( containerRect?.top ?? 0, 0 );
+		const viewportBottom = Math.min( containerRect?.bottom ?? viewportHeight, viewportHeight );
 		const tableRect = guidanceTarget.getBoundingClientRect();
 		const isTableVisible = tableRect.bottom > viewportTop && tableRect.top < viewportBottom;
 		guidance.classList.toggle( GUIDANCE_HIDDEN_CLASS, explicitlyHidden || ! isTableVisible );
