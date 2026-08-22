@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-import { expect, test as setup } from '@playwright/test';
+import { expect, test as setup, type Page } from '@playwright/test';
 
 const authFile = '.playwright/.auth/admin.json';
 
@@ -15,7 +15,7 @@ function requiredEnvironment( name: string ): string {
 	return value;
 }
 
-async function verifyEditorMode( page: Parameters< Parameters< typeof setup >[ 1 ] >[ 0 ][ 'page' ] ): Promise< void > {
+async function verifyEditorMode( page: Page ): Promise< void > {
 	const expectedMode = process.env.E2E_EDITOR_MODE;
 
 	if ( expectedMode === undefined || expectedMode === '' ) {
