@@ -63,13 +63,23 @@ const getGuidanceIcon = ( message: string ) => {
 };
 
 /**
- * Touch swipe方向へ追従する案内文かを返す。
+ * Touch操作用の案内文かを返す。
  *
  * @param message 表示する案内文。
- * @return Touch swipe方向へ追従する場合はtrue。
+ * @return Touch操作用の場合はtrue。
  */
-const isTouchSwipeGuidance = ( message: string ) =>
+const isTouchGuidance = ( message: string ) =>
 	message === getTouchModeMessage() || message === getTouchPointerActiveMessage();
+
+/**
+ * Touch pointerへ追従する案内文かを返す。
+ *
+ * 移動先選択中はcancel buttonを含むため追従させず、通常Touch modeの案内だけを追従させる。
+ *
+ * @param message 表示する案内文。
+ * @return Touch pointerへ追従する場合はtrue。
+ */
+const followsTouchPointer = ( message: string ) => message === getTouchModeMessage();
 
 /**
  * viewport右側へ固定する案内文かを返す。
@@ -83,36 +93,14 @@ const isRightAlignedGuidance = ( message: string ) =>
 	message === getKeyboardActiveMessage() || message === getPcPointerActiveMessage();
 
 /**
- * Touch案内生成時にfocusされている操作要素の中央Y座標を返す。
- *
- * row control tap直後などpointer eventが終了してから案内を生成する場合の初期位置に利用する。
- *
- * @param target 案内対象Table要素。
- * @return focus要素の中央Y座標。利用できない場合はnull。
- */
-const getFocusedTouchAnchorY = ( target: Element ): number | null => {
-	const { activeElement, body } = target.ownerDocument;
-	if ( ! activeElement || activeElement === body ) {
-		return null;
-	}
-
-	const rect = activeElement.getBoundingClientRect();
-	if ( rect.height <= 0 ) {
-		return null;
-	}
-
-	return rect.top + rect.height / 2;
-};
-
-/**
  * Tableに関連付く操作中案内をowning documentへ追加する。
  *
  * fixed配置でスクロール中も確認できる状態を保つ。既定はviewport上側で、keyboard入力時は
- * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内ではpointer位置付近へ表示し、
- * 一定距離以上のswipeを検出したとき、上方向ならpointerの上側、下方向なら下側へ切り替え、
- * 反対方向を検出するまで維持する。PC / keyboardの操作中案内はToolbar位置を計算せず
- * viewport右側へ固定する。対象Tableがeditorの実表示領域から完全に外れた場合は案内を隠し、
- * 戻ると再表示する。
+ * ArrowUpなら下側、ArrowDownなら上側へ切り替える。通常Touch modeの案内はpointer位置付近へ
+ * 表示し、一定距離以上のswipeを検出したとき、上方向ならpointerの上側、下方向なら下側へ
+ * 切り替える。移動先選択中のTouch案内はcancel buttonを操作できるようbrowser viewport端へ
+ * 固定する。PC / keyboardの操作中案内はToolbar位置を計算せずviewport右側へ固定する。
+ * 対象Tableがeditorの実表示領域から完全に外れた場合は案内を隠し、戻ると再表示する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -146,10 +134,11 @@ export const createReorderGuidance = (
 	document.body.append( guidance );
 	let touchPointer: { pointerId: number; directionY: number } | null = null;
 	let explicitlyHidden = false;
-	const trackTouchSwipe = isTouchSwipeGuidance( message );
+	const touchGuidance = isTouchGuidance( message );
+	const followTouchPointer = followsTouchPointer( message );
 	const alignRight = isRightAlignedGuidance( message );
-	let touchAnchorY = trackTouchSwipe ? getFocusedTouchAnchorY( guidanceTarget ) : null;
-	let position: ReorderGuidancePosition = trackTouchSwipe ? 'bottom' : 'top';
+	let touchAnchorY: number | null = null;
+	let position: ReorderGuidancePosition = touchGuidance ? 'bottom' : 'top';
 
 	const updatePosition = () => {
 		const viewportHeight = Math.max(
@@ -190,7 +179,7 @@ export const createReorderGuidance = (
 			viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
 		);
 		let top = alignRight ? RIGHT_GUIDANCE_TOP_PX : viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX;
-		if ( trackTouchSwipe ) {
+		if ( followTouchPointer ) {
 			if ( touchAnchorY === null ) {
 				top = position === 'bottom' ? browserViewportMaxTop : browserViewportMinTop;
 			} else {
@@ -200,6 +189,8 @@ export const createReorderGuidance = (
 						: touchAnchorY - guidanceHeight - TOUCH_GUIDANCE_POINTER_OFFSET_PX;
 				top = Math.min( Math.max( pointerTop, browserViewportMinTop ), browserViewportMaxTop );
 			}
+		} else if ( touchGuidance ) {
+			top = position === 'bottom' ? browserViewportMaxTop : browserViewportMinTop;
 		} else if ( position === 'bottom' ) {
 			top = Math.max(
 				viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX,
@@ -257,7 +248,7 @@ export const createReorderGuidance = (
 	view?.addEventListener( 'resize', updatePosition );
 	view?.addEventListener( 'scroll', updatePosition, true );
 	document.addEventListener( 'keydown', onKeyDown, true );
-	if ( trackTouchSwipe ) {
+	if ( followTouchPointer ) {
 		document.addEventListener( 'pointerdown', onPointerDown, true );
 		document.addEventListener( 'pointermove', onPointerMove, true );
 		document.addEventListener( 'pointercancel', onPointerEnd, true );
@@ -274,7 +265,7 @@ export const createReorderGuidance = (
 			view?.removeEventListener( 'resize', updatePosition );
 			view?.removeEventListener( 'scroll', updatePosition, true );
 			document.removeEventListener( 'keydown', onKeyDown, true );
-			if ( trackTouchSwipe ) {
+			if ( followTouchPointer ) {
 				document.removeEventListener( 'pointerdown', onPointerDown, true );
 				document.removeEventListener( 'pointermove', onPointerMove, true );
 				document.removeEventListener( 'pointercancel', onPointerEnd, true );
