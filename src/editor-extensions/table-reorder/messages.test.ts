@@ -93,7 +93,7 @@ describe( 'messages', () => {
 
 		expect( translateMock ).toHaveBeenCalled();
 		for ( const call of translateMock.mock.calls ) {
-			expect( call[ 1 ] ).toBe( 'yamabiko-editor-tools' );
+			expect( call[ 1 ] ).toBe( 'yamabiko-table-reorder' );
 		}
 	} );
 } );
