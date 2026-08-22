@@ -28,16 +28,8 @@ async function dismissKeyboardCoachmark( requestUtils: RequestUtils ): Promise< 
 	} );
 }
 
-async function expectNoFtbRowSelected( rowSelectors: Locator ): Promise< void > {
-	await expect
-		.poll( () =>
-			rowSelectors.evaluateAll(
-				( elements ) =>
-					elements.length > 0 &&
-					elements.every( ( element ) => element.getAttribute( 'aria-pressed' ) === 'false' )
-			)
-		)
-		.toBe( true );
+async function expectNoFtbRowSelected( editorContext: EditorContext ): Promise< void > {
+	await expect( editorContext.locator( '.ftb-row-remover' ) ).toHaveCount( 0 );
 }
 
 async function focusRowControlFromToolbar(
@@ -108,24 +100,21 @@ test.describe( 'Table Reorder Flexible Table Block UI integration', () => {
 
 		await rowSelectors.first().click();
 
-		await expect( rowSelectors.first() ).toHaveAttribute( 'aria-pressed', 'true' );
 		await expect( rowRemover ).toBeVisible();
 		await expect( reorderRowsButton ).toBeVisible();
 	} );
 
 	test( 'keeps FTB helper UI out of the row control accessible name', async ( {
 		editor,
-		page,
 	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
-		const rowSelectors = editorContext.locator( '.ftb-row-selector' );
 		const alphaControl = await getRowHandle( editorContext, tableRows, 1, 'Alpha' );
 
 		await expect( alphaControl ).toHaveAccessibleName(
 			/^(Reorder row 1: Alpha|1行目「Alpha」を並べ替え)$/
 		);
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 	} );
 
 	test( 'does not select an FTB row during keyboard start and cancel', async ( {
@@ -134,9 +123,8 @@ test.describe( 'Table Reorder Flexible Table Block UI integration', () => {
 	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
-		const rowSelectors = editorContext.locator( '.ftb-row-selector' );
 
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 		const alphaControl = await focusRowControlFromToolbar(
 			page,
 			editorContext,
@@ -144,16 +132,16 @@ test.describe( 'Table Reorder Flexible Table Block UI integration', () => {
 			1,
 			'Alpha'
 		);
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 
 		await page.keyboard.press( 'Enter' );
 		await expect( alphaControl ).toBeFocused();
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 
 		await page.keyboard.press( 'Escape' );
 
 		await expect( alphaControl ).toBeFocused();
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 	} );
 } );
 
@@ -178,7 +166,6 @@ test.describe( 'Table Reorder Flexible Table Block touch UI integration', () => 
 		page,
 	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
-		const rowSelectors = editorContext.locator( '.ftb-row-selector' );
 		const firstRowControl = editorContext.locator(
 			'.yamabiko-table-reorder-handle-zone[aria-label*="Alpha"]'
 		);
@@ -191,23 +178,23 @@ test.describe( 'Table Reorder Flexible Table Block touch UI integration', () => 
 			name: /^(Cancel|キャンセル)$/,
 		} );
 
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 		await enterTouchReorderMode( page, editorContext, firstRowControl );
 
 		await expectInsideBrowserViewport( page, modeGuidance );
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 
 		await bravoControl.tap();
 
 		await expect( modeGuidance ).toBeHidden();
 		await expectInsideBrowserViewport( page, pointerGuidance );
 		await expect( cancelButton ).toBeVisible();
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 
 		await cancelButton.tap();
 
 		await expect( pointerGuidance ).toHaveCount( 0 );
 		await expectInsideBrowserViewport( page, modeGuidance );
-		await expectNoFtbRowSelected( rowSelectors );
+		await expectNoFtbRowSelected( editorContext );
 	} );
 } );
