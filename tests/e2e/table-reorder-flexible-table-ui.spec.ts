@@ -106,6 +106,7 @@ test.describe( 'Table Reorder Flexible Table Block UI integration', () => {
 
 	test( 'keeps FTB helper UI out of the row control accessible name', async ( {
 		editor,
+		page,
 	} ) => {
 		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
