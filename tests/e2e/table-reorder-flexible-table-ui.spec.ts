@@ -113,8 +113,11 @@ test.describe( 'Table Reorder Flexible Table Block UI integration', () => {
 		await expect( reorderRowsButton ).toBeVisible();
 	} );
 
-	test( 'keeps FTB helper UI out of the row control accessible name', async ( { editor } ) => {
-		const editorContext = await getEditorContext( editor.page, editor.canvas );
+	test( 'keeps FTB helper UI out of the row control accessible name', async ( {
+		editor,
+		page,
+	} ) => {
+		const editorContext = await getEditorContext( page, editor.canvas );
 		const tableRows = getTableRows( editorContext );
 		const rowSelectors = editorContext.locator( '.ftb-row-selector' );
 		const alphaControl = await getRowHandle( editorContext, tableRows, 1, 'Alpha' );
