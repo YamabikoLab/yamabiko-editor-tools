@@ -9,7 +9,7 @@
 
 ## Goal
 
-Migrate the repository from the former `Yamabiko Table Reorder` / `yamabiko-editor-tools` identity to the standalone `Yamabiko Table Reorder` / `yamabiko-table-reorder` identity defined in `docs/development/foundation.md`, while preserving Table Reorder behavior and avoiding unrelated product changes.
+Migrate the repository from the former `Yamabiko Editor Tools` / `yamabiko-editor-tools` identity to the standalone `Yamabiko Table Reorder` / `yamabiko-table-reorder` identity defined in `docs/development/foundation.md`, while preserving Table Reorder behavior and avoiding unrelated product changes.
 
 ## Scope
 
@@ -21,7 +21,7 @@ Migrate the repository from the former `Yamabiko Table Reorder` / `yamabiko-edit
 - Align npm and Composer package metadata and any related tooling configuration.
 - Regenerate and rename translation artifacts for the new text domain.
 - Update repository documentation, demo, E2E/CI configuration, release configuration, and package contents that still depend on the old identity.
-- Search the repository for remaining `Yamabiko Table Reorder`, `yamabiko-editor-tools`, and corresponding code-form identifiers, then classify intentional historical references separately from active identity references.
+- Search the repository for remaining `Yamabiko Editor Tools`, `yamabiko-editor-tools`, and corresponding code-form identifiers, then classify intentional historical references separately from active identity references.
 - Verify the generated plugin ZIP and the installed plugin use the new identity consistently.
 
 ### Not included
@@ -72,7 +72,7 @@ Do not mechanically replace every old string. Historical plans, archived documen
 
 - Outcome: Every active old-identity reference is classified before edits begin.
 - Tasks:
-  - Search for `yamabiko-editor-tools`, `Yamabiko Table Reorder`, `yamabikoEditorTools`, `EditorTools`, and old PHP package/namespace forms.
+  - Search for `yamabiko-editor-tools`, `Yamabiko Editor Tools`, `yamabikoEditorTools`, `EditorTools`, and old PHP package/namespace forms.
   - Group matches into runtime/PHP, JavaScript, package/tooling, i18n, CI/E2E/demo, current documentation, and historical documentation.
   - Identify any released/public identifiers whose rename could require a compatibility decision under `foundation.md`.
   - Record which old references are intentionally retained as historical context.
