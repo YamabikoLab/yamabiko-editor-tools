@@ -2,6 +2,8 @@
 /**
  * Plugin Name: Yamabiko Editor Tools E2E Non-Iframe Fixture
  * Description: Registers an API v2 block only for the WordPress 6.8.3 CI E2E environment.
+ *
+ * @package YamabikoEditorTools
  */
 
 add_action(
