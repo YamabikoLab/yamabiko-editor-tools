@@ -23,6 +23,9 @@ const KEYBOARD_SCROLL_MARGIN_PX = 24;
 /** 操作案内をviewport端から離す余白。 */
 const GUIDANCE_VIEWPORT_OFFSET_PX = 8;
 
+/** Touch操作中案内をpointer位置から離す距離。 */
+const TOUCH_GUIDANCE_POINTER_OFFSET_PX = 16;
+
 /** PC / keyboardの上側案内をGutenberg headerから離す距離。 */
 const RIGHT_GUIDANCE_TOP_PX = 64;
 
@@ -80,13 +83,36 @@ const isRightAlignedGuidance = ( message: string ) =>
 	message === getKeyboardActiveMessage() || message === getPcPointerActiveMessage();
 
 /**
+ * Touch案内生成時にfocusされている操作要素の中央Y座標を返す。
+ *
+ * row control tap直後などpointer eventが終了してから案内を生成する場合の初期位置に利用する。
+ *
+ * @param document 案内を生成するeditor document。
+ * @return focus要素の中央Y座標。利用できない場合はnull。
+ */
+const getFocusedTouchAnchorY = ( document: Document ): number | null => {
+	const activeElement = document.activeElement;
+	if ( ! activeElement || activeElement === document.body ) {
+		return null;
+	}
+
+	const rect = activeElement.getBoundingClientRect();
+	if ( rect.height <= 0 ) {
+		return null;
+	}
+
+	return rect.top + rect.height / 2;
+};
+
+/**
  * Tableに関連付く操作中案内をowning documentへ追加する。
  *
  * fixed配置でスクロール中も確認できる状態を保つ。既定はviewport上側で、keyboard入力時は
- * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内では一定距離以上のswipeを
- * 検出したとき、上方向なら上側、下方向なら下側へ切り替え、反対方向を検出するまで維持する。
- * PC / keyboardの操作中案内はToolbar位置を計算せずviewport右側へ固定する。
- * 対象Tableがeditorの実表示領域から完全に外れた場合は案内を隠し、戻ると再表示する。
+ * ArrowUpなら下側、ArrowDownなら上側へ切り替える。Touch案内ではpointer位置付近へ表示し、
+ * 一定距離以上のswipeを検出したとき、上方向ならpointerの上側、下方向なら下側へ切り替え、
+ * 反対方向を検出するまで維持する。PC / keyboardの操作中案内はToolbar位置を計算せず
+ * viewport右側へ固定する。対象Tableがeditorの実表示領域から完全に外れた場合は案内を隠し、
+ * 戻ると再表示する。
  *
  * @param document 案内を生成するeditor document。
  * @param tbody    対象Table body。
@@ -118,10 +144,11 @@ export const createReorderGuidance = (
 	text.textContent = message;
 	guidance.append( text );
 	document.body.append( guidance );
-	let touchPointer: { pointerId: number; y: number } | null = null;
+	let touchPointer: { pointerId: number; directionY: number } | null = null;
 	let explicitlyHidden = false;
 	const trackTouchSwipe = isTouchSwipeGuidance( message );
 	const alignRight = isRightAlignedGuidance( message );
+	let touchAnchorY = trackTouchSwipe ? getFocusedTouchAnchorY( document ) : null;
 	let position: ReorderGuidancePosition = trackTouchSwipe ? 'bottom' : 'top';
 
 	const updatePosition = () => {
@@ -132,8 +159,8 @@ export const createReorderGuidance = (
 		const viewportWidth = Math.max( 0, view?.innerWidth ?? document.documentElement.clientWidth );
 		const scrollContainer = view ? getVerticalScrollContainer( view, guidanceTarget ) : null;
 		const containerRect = scrollContainer?.getBoundingClientRect();
-		const viewportTop = containerRect?.top ?? 0;
-		const viewportBottom = containerRect?.bottom ?? viewportHeight;
+		const viewportTop = Math.max( containerRect?.top ?? 0, 0 );
+		const viewportBottom = Math.min( containerRect?.bottom ?? viewportHeight, viewportHeight );
 		const tableRect = guidanceTarget.getBoundingClientRect();
 		const isTableVisible = tableRect.bottom > viewportTop && tableRect.top < viewportBottom;
 		guidance.classList.toggle( GUIDANCE_HIDDEN_CLASS, explicitlyHidden || ! isTableVisible );
@@ -157,8 +184,23 @@ export const createReorderGuidance = (
 		}
 
 		const guidanceHeight = guidance.getBoundingClientRect().height;
+		const browserViewportMinTop = GUIDANCE_VIEWPORT_OFFSET_PX;
+		const browserViewportMaxTop = Math.max(
+			browserViewportMinTop,
+			viewportHeight - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
+		);
 		let top = alignRight ? RIGHT_GUIDANCE_TOP_PX : viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX;
-		if ( position === 'bottom' ) {
+		if ( trackTouchSwipe ) {
+			if ( touchAnchorY === null ) {
+				top = position === 'bottom' ? browserViewportMaxTop : browserViewportMinTop;
+			} else {
+				const pointerTop =
+					position === 'bottom'
+						? touchAnchorY + TOUCH_GUIDANCE_POINTER_OFFSET_PX
+						: touchAnchorY - guidanceHeight - TOUCH_GUIDANCE_POINTER_OFFSET_PX;
+				top = Math.min( Math.max( pointerTop, browserViewportMinTop ), browserViewportMaxTop );
+			}
+		} else if ( position === 'bottom' ) {
 			top = Math.max(
 				viewportTop + GUIDANCE_VIEWPORT_OFFSET_PX,
 				viewportBottom - guidanceHeight - GUIDANCE_VIEWPORT_OFFSET_PX
@@ -184,7 +226,9 @@ export const createReorderGuidance = (
 		if ( event.pointerType !== 'touch' ) {
 			return;
 		}
-		touchPointer = { pointerId: event.pointerId, y: event.clientY };
+		touchPointer = { pointerId: event.pointerId, directionY: event.clientY };
+		touchAnchorY = event.clientY;
+		updatePosition();
 	};
 	const onPointerMove = ( event: PointerEvent ) => {
 		if (
@@ -195,13 +239,13 @@ export const createReorderGuidance = (
 			return;
 		}
 
-		const deltaY = event.clientY - touchPointer.y;
-		if ( Math.abs( deltaY ) < TOUCH_SWIPE_DIRECTION_THRESHOLD_PX ) {
-			return;
+		const deltaY = event.clientY - touchPointer.directionY;
+		touchAnchorY = event.clientY;
+		if ( Math.abs( deltaY ) >= TOUCH_SWIPE_DIRECTION_THRESHOLD_PX ) {
+			touchPointer.directionY = event.clientY;
+			position = deltaY > 0 ? 'bottom' : 'top';
 		}
-
-		touchPointer.y = event.clientY;
-		setPosition( deltaY > 0 ? 'bottom' : 'top' );
+		updatePosition();
 	};
 	const onPointerEnd = ( event: PointerEvent ) => {
 		if ( touchPointer?.pointerId === event.pointerId ) {
