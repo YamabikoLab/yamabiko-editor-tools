@@ -28,14 +28,19 @@ async function verifyEditorMode( page: Page ): Promise< void > {
 
 	await page.goto( '/wp-admin/post-new.php' );
 
-	const editorCanvas = page.locator( 'iframe[name="editor-canvas"]' );
+	await expect
+		.poll( async () => {
+			if ( ( await page.locator( 'iframe[name="editor-canvas"]' ).count() ) > 0 ) {
+				return 'iframe';
+			}
 
-	if ( expectedMode === 'iframe' ) {
-		await expect( editorCanvas ).toHaveCount( 1 );
-		return;
-	}
+			if ( ( await page.locator( '.is-root-container' ).count() ) > 0 ) {
+				return 'non-iframe';
+			}
 
-	await expect( editorCanvas ).toHaveCount( 0 );
+			return 'loading';
+		} )
+		.toBe( expectedMode );
 }
 
 setup( 'authenticate as the WordPress administrator', async ( { page } ) => {
