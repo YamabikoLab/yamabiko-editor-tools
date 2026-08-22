@@ -250,7 +250,3 @@ The manually triggered `.github/workflows/pr-validation.yml` workflow runs the d
 For checks that require a local WordPress environment, follow the commands documented in the separate `YamabikoLab/wp-dev` repository.
 
 Do not claim checks were run when they were skipped or unavailable. Record the reason when an applicable check cannot be executed.
-
-For checks that require a local WordPress environment, follow the commands documented in the separate `YamabikoLab/wp-dev` repository.
-
-Do not claim checks were run when they were skipped or unavailable. Record the reason when an applicable check cannot be executed.
