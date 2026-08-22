@@ -109,9 +109,11 @@ jobs:
           - wordpress_version: '7.1.0'
             editor_mode: iframe
             wordpress_image: 'wordpress:7.1.0-php8.3-apache'
+            flexible_table_block_version: '3.9.0'
           - wordpress_version: '6.8.3'
             editor_mode: non-iframe
             wordpress_image: 'wordpress:6.8.3-php8.3-apache'
+            flexible_table_block_version: '3.5.0'
     env:
       E2E_COMPOSE_FILE: tests/e2e/compose.ci.yaml
       E2E_EDITOR_MODE: ${{ matrix.editor_mode }}
@@ -170,7 +172,7 @@ jobs:
             --output /dev/null \
             "${WP_BASE_URL}/wp-admin/install.php"
 
-      - name: Install WordPress and activate plugin
+      - name: Install WordPress and activate plugins
         run: |
           docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
             wp core install \
@@ -180,6 +182,11 @@ jobs:
             --admin_password="${WP_PASSWORD}" \
             --admin_email="admin@example.test" \
             --skip-email
+
+          docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
+            wp plugin install flexible-table-block \
+            --version="${{ matrix.flexible_table_block_version }}" \
+            --activate
 
           docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
             wp plugin activate yamabiko-editor-tools
