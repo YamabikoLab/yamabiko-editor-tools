@@ -149,6 +149,24 @@ describe( 'reorder-guidance', () => {
 		guidance.cleanup();
 	} );
 
+	it( 'clamps oversized scroll container bounds to the browser viewport', () => {
+		const container = document.createElement( 'div' );
+		document.body.append( container );
+		makeScrollable( container, 100, window.innerHeight + 7000 );
+		const { table, tbody } = createTable();
+		container.append( table );
+		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
+		const bottomPosition = `${ window.innerHeight - 8 }px`;
+
+		expect( guidance.element.style.top ).toBe( bottomPosition );
+
+		dispatchTouchPointer( 'pointerdown', 1, 108 );
+		dispatchTouchPointer( 'pointermove', 1, 100 );
+		expect( guidance.element.style.top ).toBe( '108px' );
+
+		guidance.cleanup();
+	} );
+
 	it( 'keeps explicitly hidden guidance hidden after the table returns to the viewport', () => {
 		const { tableRect, tbody } = createTable();
 		const guidance = createReorderGuidance( document, tbody, getTouchModeMessage() );
