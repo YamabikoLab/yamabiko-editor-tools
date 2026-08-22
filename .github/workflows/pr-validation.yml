@@ -211,9 +211,8 @@ jobs:
       - name: Capture Docker logs
         if: failure()
         run: |
-          mkdir -p test-results
           docker compose -f "${E2E_COMPOSE_FILE}" logs --no-color \
-            > test-results/docker-compose.log 2>&1 || true
+            > docker-compose.log 2>&1 || true
 
       - name: Upload E2E failure artifacts
         if: failure()
@@ -223,6 +222,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            docker-compose.log
           if-no-files-found: ignore
           retention-days: 1
 
