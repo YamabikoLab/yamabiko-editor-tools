@@ -1,6 +1,6 @@
 # Third-party notices
 
-Yamabiko Editor Tools includes third-party software whose license terms are reproduced below.
+Yamabiko Table Reorder includes third-party software whose license terms are reproduced below.
 
 ## SortableJS
 
