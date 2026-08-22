@@ -48,7 +48,7 @@ async function savePostThroughEditorStore( page: Page ): Promise< void > {
 					};
 				};
 			}
-		).wp.data;
+		 ).wp.data;
 
 		await data.dispatch( 'core/editor' ).savePost();
 	} );
