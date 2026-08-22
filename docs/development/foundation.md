@@ -1,16 +1,16 @@
 # Development foundation
 
-This document defines the cross-cutting rules for Yamabiko Editor Tools. Working instructions live in `AGENTS.md` files; validation commands live in `testing.md`; source placement lives in `source-organization.md`.
+This document defines the cross-cutting rules for Yamabiko Table Reorder. Working instructions live in `AGENTS.md` files; validation commands live in `testing.md`; source placement lives in `source-organization.md`.
 
 ## Product boundary
 
-Yamabiko Editor Tools is a WordPress plugin for site creators. It complements Gutenberg with blocks and editor extensions that improve content creation. The first product area is document structure and outline improvement.
+Yamabiko Table Reorder is a WordPress plugin for site creators. It adds accessible table reordering to supported table blocks in the WordPress block editor, with pointer, touch, and keyboard operation.
 
-The repository root is the WordPress plugin root. Published minimum versions must stay aligned with the metadata in `yamabiko-editor-tools.php`.
+The repository root is the WordPress plugin root. Published minimum versions must stay aligned with the metadata in `yamabiko-table-reorder.php`.
 
 Local WordPress, PHP, Docker, and Dev Container configuration is maintained in the separate `YamabikoLab/wp-dev` repository. This repository maintains the plugin itself and its product documentation, tests, and release automation.
 
-Do not document or implement future systems such as drag-and-drop, REST endpoints, custom HMR, persistence, telemetry, or distribution flows until an issue requires them.
+Keep the product focused on table reordering. Do not broaden it into unrelated editor tools or add REST endpoints, custom HMR, persistence, telemetry, external services, or new distribution flows until an issue requires them.
 
 ## Stable identifiers
 
@@ -18,19 +18,18 @@ Use these identifiers consistently:
 
 | Surface | Form |
 | --- | --- |
-| Plugin slug and text domain | `yamabiko-editor-tools` |
-| PHP namespace | `YamabikoLab\EditorTools\` |
-| Global PHP function prefix | `yamabiko_editor_tools_` |
-| PHP constant prefix | `YAMABIKO_EDITOR_TOOLS_` |
-| Action and filter prefix | `yamabiko-editor-tools/` |
-| REST namespace | `yamabiko-editor-tools/v1` |
-| Script and style handle prefix | `yamabiko-editor-tools-` |
-| Block namespace | `yamabiko-editor-tools/` |
-| CSS class prefix | `yamabiko-editor-tools-` |
+| Plugin slug and text domain | `yamabiko-table-reorder` |
+| PHP namespace | `YamabikoLab\\TableReorder\\` |
+| Global PHP function prefix | `yamabiko_table_reorder_` |
+| PHP constant prefix | `YAMABIKO_TABLE_REORDER_` |
+| Action and filter prefix | `yamabiko-table-reorder/` |
+| REST namespace | `yamabiko-table-reorder/v1` |
+| Script and style handle prefix | `yamabiko-table-reorder-` |
+| CSS class prefix | `yamabiko-table-reorder-` |
 
-Project-owned CSS class names follow the Gutenberg naming convention. Use the `yamabiko-editor-tools-` prefix, lowercase kebab-case within each segment, `__` for child elements, and `--` for modifiers. Use separate `is-` or `has-` classes for state. Do not rename classes owned by WordPress or third-party dependencies. When an external class does not satisfy the configured Stylelint naming rule, disable only the affected selector with a short explanation.
+Project-owned CSS class names follow the Gutenberg naming convention. Use the `yamabiko-table-reorder-` prefix, lowercase kebab-case within each segment, `__` for child elements, and `--` for modifiers. Use separate `is-` or `has-` classes for state. Do not rename classes owned by WordPress or third-party dependencies. When an external class does not satisfy the configured Stylelint naming rule, disable only the affected selector with a short explanation.
 
-Released block names, attributes, saved markup, persisted keys, and public hooks are compatibility contracts. Change them only with an explicit migration or compatibility decision.
+Released identifiers, saved markup, persisted keys, and public hooks are compatibility contracts. Change them only with an explicit migration or compatibility decision.
 
 ## WordPress lifecycle
 
@@ -53,7 +52,7 @@ Released block names, attributes, saved markup, persisted keys, and public hooks
 
 ## Internationalization and accessibility
 
-- Translate user-visible strings with the `yamabiko-editor-tools` text domain.
+- Translate user-visible strings with the `yamabiko-table-reorder` text domain.
 - Put dynamic values in placeholders and escape output for its final context.
 - Prefer semantic HTML and WordPress UI primitives.
 - Support keyboard operation and visible focus.
