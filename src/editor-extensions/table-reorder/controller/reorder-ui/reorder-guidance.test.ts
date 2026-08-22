@@ -35,6 +35,19 @@ const createTable = () => {
 	return { table, tableRect, tbody };
 };
 
+const makeScrollable = ( element: HTMLElement, top = 100, bottom = 500 ) => {
+	element.style.overflowY = 'auto';
+	Object.defineProperty( element, 'clientHeight', {
+		configurable: true,
+		value: bottom - top,
+	} );
+	Object.defineProperty( element, 'scrollHeight', {
+		configurable: true,
+		value: bottom - top + 500,
+	} );
+	jest.spyOn( element, 'getBoundingClientRect' ).mockReturnValue( createRect( top, bottom ) );
+};
+
 const dispatchTouchPointer = ( type: string, pointerId: number, clientY: number ) => {
 	const event = new Event( type, { bubbles: true } );
 	Object.defineProperties( event, {
@@ -112,6 +125,25 @@ describe( 'reorder-guidance', () => {
 		guidance.cleanup();
 	} );
 
+	it( 'uses the visible scroll container intersection for table visibility', () => {
+		const container = document.createElement( 'div' );
+		document.body.append( container );
+		makeScrollable( container, 100, window.innerHeight + 7000 );
+		const { table, tableRect, tbody } = createTable();
+		container.append( table );
+		tableRect.mockReturnValue( createRect( 150, 350 ) );
+		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
+
+		expect( guidance.element.style.top ).toBe( `${ window.innerHeight - 8 }px` );
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( false );
+
+		tableRect.mockReturnValue( createRect( 20, 80 ) );
+		window.dispatchEvent( new Event( 'scroll' ) );
+		expect( guidance.element.classList.contains( 'is-hidden' ) ).toBe( true );
+
+		guidance.cleanup();
+	} );
+
 	it( 'keeps explicitly hidden guidance hidden after the table returns to the viewport', () => {
 		const { tableRect, tbody } = createTable();
 		const guidance = createReorderGuidance( document, tbody, getTouchModeMessage() );
@@ -131,6 +163,9 @@ describe( 'reorder-guidance', () => {
 		( message ) => {
 			const { tbody } = createTable();
 			const guidance = createReorderGuidance( document, tbody, message );
+			const bottomPosition = `${ window.innerHeight - 8 }px`;
+
+			expect( guidance.element.style.top ).toBe( bottomPosition );
 
 			dispatchTouchPointer( 'pointerdown', 1, 108 );
 			expect( guidance.element.style.top ).toBe( '124px' );
@@ -145,10 +180,28 @@ describe( 'reorder-guidance', () => {
 			expect( guidance.element.style.top ).toBe( '84px' );
 
 			dispatchTouchPointer( 'pointerdown', 2, 100 );
+			expect( guidance.element.style.top ).toBe( '84px' );
+
+			dispatchTouchPointer( 'pointermove', 2, 106 );
+			expect( guidance.element.style.top ).toBe( '90px' );
+
 			dispatchTouchPointer( 'pointermove', 2, 108 );
 			expect( guidance.element.style.top ).toBe( '124px' );
 
 			guidance.cleanup();
 		}
 	);
+
+	it( 'uses the focused control as the initial anchor for touch pointer guidance', () => {
+		const { tbody } = createTable();
+		const control = document.createElement( 'button' );
+		document.body.append( control );
+		jest.spyOn( control, 'getBoundingClientRect' ).mockReturnValue( createRect( 200, 240 ) );
+		control.focus();
+
+		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
+
+		expect( guidance.element.style.top ).toBe( '236px' );
+		guidance.cleanup();
+	} );
 } );
