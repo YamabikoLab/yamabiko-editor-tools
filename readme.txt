@@ -77,5 +77,5 @@ The generated archive is `yamabiko-table-reorder.zip`.
 
 = 0.1.0 =
 
-* Initial release of Yamabiko Table Reorder.
+* Initial release of Yamabiko Editor Tools.
 * Add Table Reorder for reordering Core Table body rows in the block editor.
