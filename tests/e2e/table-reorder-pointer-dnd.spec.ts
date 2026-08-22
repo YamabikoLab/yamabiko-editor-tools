@@ -87,42 +87,11 @@ async function waitForVerticalScrollToStop(
 		)
 		.toBeGreaterThanOrEqual( 2 );
 }
-
-async function moveMouseBeforeTarget(
-	page: Page,
-	target: Locator,
-	insertionIndicator: Locator
-): Promise< void > {
-	await expect
-		.poll(
-			async () => {
-				const targetBox = await target.boundingBox();
-				if ( ! targetBox ) {
-					return false;
-				}
-
-				await page.mouse.move( targetBox.x + targetBox.width / 2, targetBox.y + 2, { steps: 2 } );
-
-				const [ currentTargetBox, indicatorBox ] = await Promise.all( [
-					target.boundingBox(),
-					insertionIndicator.boundingBox(),
-				] );
-
-				return Boolean(
-					currentTargetBox && indicatorBox && Math.abs( indicatorBox.y - currentTargetBox.y ) <= 2
-				);
-			},
-			{ intervals: [ 50 ] }
-		)
-		.toBe( true );
-}
-
 async function dragWithMouseAndAutoScroll(
 	page: Page,
 	source: Locator,
 	target: Locator,
 	scrollSource: Locator,
-	insertionIndicator: Locator,
 	duringAutoScroll: () => Promise< void >,
 	duringDrop?: () => Promise< void >
 ): Promise< void > {
@@ -158,7 +127,6 @@ async function dragWithMouseAndAutoScroll(
 			targetBox.y + targetBox.height * 0.25,
 			{ steps: 10 }
 		);
-		await moveMouseBeforeTarget( page, target, insertionIndicator );
 		await duringDrop?.();
 	} finally {
 		await page.mouse.up();
@@ -265,7 +233,6 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 			sourceHandle,
 			rowAfterTarget,
 			tableBlock,
-			insertionIndicator,
 			async () => {
 				await expect
 					.poll( () => getVerticalScrollPosition( tableBlock ) )
