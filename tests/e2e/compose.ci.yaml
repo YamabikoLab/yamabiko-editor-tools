@@ -20,7 +20,7 @@ services:
       start_period: 10s
 
   wordpress:
-    image: wordpress:7.1.0-php8.3-apache
+    image: ${E2E_WORDPRESS_IMAGE:-wordpress:7.1.0-php8.3-apache}
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: wordpress
