@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="Yamabiko Editor Tools">
-	<description>WordPress Coding Standards for Yamabiko Editor Tools.</description>
+<ruleset name="Yamabiko Table Reorder">
+	<description>WordPress Coding Standards for Yamabiko Table Reorder.</description>
 
 	<file>.</file>
 
@@ -18,7 +18,7 @@
 	<rule ref="WordPress.WP.I18n">
 		<properties>
 			<property name="text_domain" type="array">
-				<element value="yamabiko-editor-tools"/>
+				<element value="yamabiko-table-reorder"/>
 			</property>
 		</properties>
 	</rule>
@@ -26,7 +26,7 @@
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
 			<property name="prefixes" type="array">
-				<element value="yamabiko_editor_tools"/>
+				<element value="yamabiko_table_reorder"/>
 				<element value="YamabikoLab"/>
 			</property>
 		</properties>
