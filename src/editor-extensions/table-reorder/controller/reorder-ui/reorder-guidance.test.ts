@@ -145,7 +145,7 @@ describe( 'reorder-guidance', () => {
 			expect( guidance.element.style.top ).toBe( '84px' );
 
 			dispatchTouchPointer( 'pointerdown', 2, 100 );
-		dispatchTouchPointer( 'pointermove', 2, 108 );
+			dispatchTouchPointer( 'pointermove', 2, 108 );
 			expect( guidance.element.style.top ).toBe( '124px' );
 
 			guidance.cleanup();
