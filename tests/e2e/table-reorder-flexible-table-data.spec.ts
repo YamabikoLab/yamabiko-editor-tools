@@ -51,7 +51,7 @@ async function savePostThroughEditorStore( page: Page ): Promise< number > {
 					};
 				};
 			}
-		).wp.data;
+		 ).wp.data;
 
 		await data.dispatch( 'core/editor' ).savePost();
 
