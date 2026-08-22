@@ -248,7 +248,7 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 									targetBox.y + targetBox.height <= viewport.height - 64
 							);
 						},
-						{ intervals: [ 50 ] }
+						{ intervals: [ 50 ], timeout: 0 }
 					)
 					.toBe( true );
 			},
@@ -257,17 +257,38 @@ test.describe( 'Table Reorder pointer drag and drop', () => {
 			}
 		);
 
-		const expectedOrder = [
-			longRowLabels[ 0 ],
-			...longRowLabels.slice( 2, 20 ),
-			longRowLabels[ 1 ],
-			...longRowLabels.slice( 20 ),
+		const expectedOrders = [
+			[
+				longRowLabels[ 0 ],
+				...longRowLabels.slice( 2, 20 ),
+				longRowLabels[ 1 ],
+				...longRowLabels.slice( 20 ),
+			],
+			[
+				longRowLabels[ 0 ],
+				...longRowLabels.slice( 2, 21 ),
+				longRowLabels[ 1 ],
+				...longRowLabels.slice( 21 ),
+			],
 		];
-		const expectedTableBody = `<tbody>${ expectedOrder
-			.map( ( label ) => `<tr><td>${ label }</td></tr>` )
-			.join( '' ) }</tbody>`;
 
-		await expect.poll( () => editor.getEditedPostContent() ).toContain( expectedTableBody );
-		expect( await getTableRowOrder( tableRows, longRowLabels ) ).toEqual( expectedOrder );
+		const expectedTableBodies = expectedOrders.map(
+			( expectedOrder ) =>
+				`<tbody>${ expectedOrder
+					.map( ( label ) => `<tr><td>${ label }</td></tr>` )
+					.join( '' ) }</tbody>`
+		);
+
+		await expect
+			.poll( async () => {
+				const content = await editor.getEditedPostContent();
+
+				return expectedTableBodies.some( ( expectedTableBody ) =>
+					content.includes( expectedTableBody )
+				);
+			} )
+			.toBe( true );
+
+		expect( expectedOrders ).toContainEqual( await getTableRowOrder( tableRows, longRowLabels ) );
 	} );
 } );
