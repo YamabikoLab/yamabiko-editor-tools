@@ -15,6 +15,29 @@ function requiredEnvironment( name: string ): string {
 	return value;
 }
 
+async function verifyEditorMode( page: Parameters< Parameters< typeof setup >[ 1 ] >[ 0 ][ 'page' ] ): Promise< void > {
+	const expectedMode = process.env.E2E_EDITOR_MODE;
+
+	if ( expectedMode === undefined || expectedMode === '' ) {
+		return;
+	}
+
+	if ( expectedMode !== 'iframe' && expectedMode !== 'non-iframe' ) {
+		throw new Error( `Unsupported E2E_EDITOR_MODE: ${ expectedMode }` );
+	}
+
+	await page.goto( '/wp-admin/post-new.php' );
+
+	const editorCanvas = page.locator( 'iframe[name="editor-canvas"]' );
+
+	if ( expectedMode === 'iframe' ) {
+		await expect( editorCanvas ).toHaveCount( 1 );
+		return;
+	}
+
+	await expect( editorCanvas ).toHaveCount( 0 );
+}
+
 setup( 'authenticate as the WordPress administrator', async ( { page } ) => {
 	const username = requiredEnvironment( 'WP_USERNAME' );
 	const password = requiredEnvironment( 'WP_PASSWORD' );
@@ -25,6 +48,7 @@ setup( 'authenticate as the WordPress administrator', async ( { page } ) => {
 	await page.getByRole( 'button', { name: /log in|ログイン/i } ).click();
 
 	await expect( page ).toHaveURL( /\/wp-admin(?:\/|$|\?)/ );
+	await verifyEditorMode( page );
 
 	await mkdir( dirname( authFile ), { recursive: true } );
 	await page.context().storageState( { path: authFile } );
