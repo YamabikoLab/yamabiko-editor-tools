@@ -1,16 +1,13 @@
-# Yamabiko Editor Tools
+# Yamabiko Table Reorder
 
-サイト制作者向けのWordPressプラグインです。
-
-**Gutenbergをちょっと便利にする機能やブロックを開発しています。**  
-現在は **Tableブロックの行ドラッグ＆ドロップ（Table Reorder）** を中心に開発しています。
+WordPressのブロックエディターで、対応するTableブロックの本文行を並べ替えるためのプラグインです。
 
 > [!WARNING]
 > 現在開発中です。仕様や動作は今後変更される可能性があります。
 
 ## Table Reorder
 
-対応するTableブロックの本文行をドラッグ＆ドロップで並べ替える機能です。
+対応するTableブロックの本文行をドラッグ＆ドロップ、キーボード、移動先選択で並べ替えられます。
 
 <img width="1240" height="724" alt="demo" src="https://github.com/user-attachments/assets/09adfced-6d43-46a1-97d4-adb1ac2eba18" />
 
@@ -18,7 +15,7 @@
 
 WordPress Playground で、インストール不要で行の並べ替えを体験できます。
 
-[▶ 行の並べ替えを試す](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/YamabikoLab/yamabiko-editor-tools/main/demo/blueprint.json)
+[▶ 行の並べ替えを試す](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/YamabikoLab/yamabiko-table-reorder/main/demo/blueprint.json)
 
 - PCでは行の左端に表示されるハンドルからドラッグして並べ替え
 - タッチ端末では並べ替えモード中の行ハンドルをドラッグして並べ替え、タップで移動先を選択
@@ -39,13 +36,13 @@ WordPress Playground で、インストール不要で行の並べ替えを体�
 
 ## インストール
 
-1. [GitHub Releases](https://github.com/YamabikoLab/yamabiko-editor-tools/releases)から、配布用の `yamabiko-editor-tools.zip` をダウンロードします。
+1. [GitHub Releases](https://github.com/YamabikoLab/yamabiko-table-reorder/releases)から、配布用の `yamabiko-table-reorder.zip` をダウンロードします。
 2. WordPress管理画面の「プラグイン」→「新規プラグインを追加」→「プラグインのアップロード」からZIPをアップロードします。
-3. **Yamabiko Editor Tools** を有効化します。
+3. **Yamabiko Table Reorder** を有効化します。
 
 ## 不具合・要望の報告
 
-不具合報告と機能要望は、[GitHub Issues](https://github.com/YamabikoLab/yamabiko-editor-tools/issues)で受け付けています。
+不具合報告と機能要望は、[GitHub Issues](https://github.com/YamabikoLab/yamabiko-table-reorder/issues)で受け付けています。
 
 セキュリティ上の問題は公開Issueへ投稿せず、[セキュリティポリシー](SECURITY.md)に従って非公開で報告してください。
 
@@ -114,7 +111,7 @@ composer format:php
 [YamabikoLab/wp-dev](https://github.com/YamabikoLab/wp-dev) が提供するWordPress環境にPlugin Checkをインストールしている場合は、補助チェックとして次も実行できます。
 
 ```bash
-wp plugin check yamabiko-editor-tools
+wp plugin check yamabiko-table-reorder
 ```
 
 Plugin Checkは、上記のコーディング標準チェックの代替ではありません。
@@ -126,4 +123,3 @@ Plugin Checkは、上記のコーディング標準チェックの代替では�
 - [検証方法](docs/development/testing.md)
 - [GitHub CLI](docs/development/github-cli.md)
 - [リリース方法](docs/development/releasing.md)
-
