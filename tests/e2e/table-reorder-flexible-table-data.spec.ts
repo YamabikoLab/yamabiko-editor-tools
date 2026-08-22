@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import type { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
@@ -36,11 +36,28 @@ async function dismissKeyboardCoachmark( requestUtils: RequestUtils ): Promise< 
 	} );
 }
 
+async function savePostThroughEditorStore( page: Page ): Promise< void > {
+	await page.evaluate( async () => {
+		const data = (
+			window as unknown as {
+				wp: {
+					data: {
+						dispatch: ( store: string ) => {
+							savePost: () => Promise< void >;
+						};
+					};
+				};
+			}
+		).wp.data;
+
+		await data.dispatch( 'core/editor' ).savePost();
+	} );
+}
+
 async function expectRichBravoData( tableRows: Locator ): Promise< void > {
 	const richBravoRow = getTableRow( tableRows, 'Rich Bravo' );
-	const richBravoCell = richBravoRow.getByRole( 'rowheader', {
-		name: 'Rich Bravo',
-		exact: true,
+	const richBravoCell = richBravoRow.locator( 'th' ).filter( {
+		hasText: 'Rich Bravo',
 	} );
 
 	await expect( richBravoCell ).toHaveAttribute( 'scope', 'row' );
@@ -151,7 +168,7 @@ test.describe( 'Table Reorder Flexible Table Block merged cells and persistence'
 			.poll( () => getTableRowOrder( tableRows, richRowLabels ) )
 			.toEqual( [ 'Alpha', 'Charlie', 'Rowspan start', 'Rowspan covered', 'Delta', 'Rich Bravo' ] );
 
-		await editor.saveDraft();
+		await savePostThroughEditorStore( page );
 		await page.reload();
 
 		editorContext = await getEditorContext( page, editor.canvas );
