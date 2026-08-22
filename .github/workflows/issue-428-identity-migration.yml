@@ -1,0 +1,129 @@
+name: Issue 428 identity migration
+
+on:
+  push:
+    branches:
+      - issue/428-plugin-identity-migration
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.5.0
+          cache: npm
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+
+      - name: Apply plugin identity migration
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          excluded_prefixes = (
+              'docs/plans/',
+              'docs/design/table-reorder/archive/',
+          )
+          replacements = (
+              ('yamabiko-editor-tools-table-reorder-index', 'yamabiko-table-reorder-index'),
+              ('yamabiko-editor-tools-table-reorder-style', 'yamabiko-table-reorder-style'),
+              ('yamabikoEditorToolsTableReorder', 'yamabikoTableReorder'),
+              ('YamabikoLab\\EditorTools', 'YamabikoLab\\TableReorder'),
+              ('YamabikoEditorTools', 'YamabikoTableReorder'),
+              ('YAMABIKO_EDITOR_TOOLS', 'YAMABIKO_TABLE_REORDER'),
+              ('yamabiko_editor_tools', 'yamabiko_table_reorder'),
+              ('Yamabiko Editor Tools', 'Yamabiko Table Reorder'),
+              ('yamabiko-editor-tools', 'yamabiko-table-reorder'),
+              (
+                  'WordPress editor tools for intuitive content structure editing.',
+                  'Accessible table row reordering for supported blocks in the WordPress block editor.',
+              ),
+              (
+                  'Editor tools for intuitive content structure editing.',
+                  'Accessible table row reordering for supported blocks in the WordPress block editor.',
+              ),
+          )
+
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          for name in tracked:
+              if not name or name.startswith(excluded_prefixes):
+                  continue
+              path = Path(name)
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except (UnicodeDecodeError, IsADirectoryError):
+                  continue
+              updated = text
+              for old, new in replacements:
+                  updated = updated.replace(old, new)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+          PY
+
+          git mv yamabiko-editor-tools.php yamabiko-table-reorder.php
+          git mv \
+            languages/yamabiko-editor-tools-ja-yamabiko-editor-tools-table-reorder-index.json \
+            languages/yamabiko-table-reorder-ja-yamabiko-table-reorder-index.json
+
+          rm .github/workflows/issue-428-identity-migration.yml
+
+      - name: Refresh npm lock metadata
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run Node quality gate
+        run: npm test
+
+      - name: Build production assets
+        run: npm run build
+
+      - name: Validate Composer metadata
+        run: composer validate --strict
+
+      - name: Check PHP syntax
+        run: php -l yamabiko-table-reorder.php
+
+      - name: Check repository diff
+        shell: bash
+        run: |
+          git diff --check
+          if git grep -n -E 'yamabiko-editor-tools|Yamabiko Editor Tools|yamabikoEditorTools|YamabikoEditorTools|EditorTools|YAMABIKO_EDITOR_TOOLS|yamabiko_editor_tools' -- . ':(exclude)docs/plans/**' ':(exclude)docs/design/table-reorder/archive/**'; then
+            echo 'Unexpected active old-identity reference remains.' >&2
+            exit 1
+          fi
+
+      - name: Build plugin ZIP
+        shell: bash
+        run: |
+          npm run plugin-zip
+          test -f yamabiko-table-reorder.zip
+          unzip -l yamabiko-table-reorder.zip | grep -q 'yamabiko-table-reorder.php'
+          if unzip -l yamabiko-table-reorder.zip | grep -q 'yamabiko-editor-tools.php'; then
+            echo 'Obsolete plugin entry file is still packaged.' >&2
+            exit 1
+          fi
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: migrate plugin identity'
+          git push origin HEAD:issue/428-plugin-identity-migration
