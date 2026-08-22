@@ -4,7 +4,7 @@ This document defines the cross-cutting rules for Yamabiko Table Reorder. Workin
 
 ## Product boundary
 
-Yamabiko Table Reorder is a WordPress plugin for site creators. It adds accessible row reordering to supported Gutenberg table blocks, with pointer, touch, and keyboard operation.
+Yamabiko Table Reorder is a WordPress plugin for site creators. It adds accessible table reordering to supported table blocks in the WordPress block editor, with pointer, touch, and keyboard operation.
 
 The repository root is the WordPress plugin root. Published minimum versions must stay aligned with the metadata in `yamabiko-table-reorder.php`.
 
