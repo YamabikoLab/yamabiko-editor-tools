@@ -1,6 +1,6 @@
 # Source organization
 
-Yamabiko Editor Tools keeps each editor feature in one owning directory. Keep metadata, entry code, UI, styles, focused logic, and tests close to the feature that owns them.
+Yamabiko Table Reorder keeps each editor feature in one owning directory. Keep metadata, entry code, UI, styles, focused logic, and tests close to the feature that owns them.
 
 Keep the structure concrete and small. Add a directory only when current implementation requires it.
 
@@ -16,7 +16,7 @@ The repository root is the WordPress plugin root.
 ├── build/              # generated, not committed
 ├── package.json
 ├── composer.json
-└── yamabiko-editor-tools.php
+└── yamabiko-table-reorder.php
 ```
 
 `src/editor-extensions/table-reorder/` is the current reference implementation. It keeps the Table Reorder entry point, editor UI, SortableJS integration, focused modules, styles, and tests together under one feature directory.
