@@ -15,38 +15,50 @@ Core Table を対象に整備済みの Playwright E2E を PR Validation の品�
 ### Included
 
 - PR Validation に独立した E2E job を追加する。
+- E2E job を `WP 7.1.0 / iframe` と `WP 6.8.3 / non-iframe` の matrix で並列実行する。
 - CI 専用の最小 WordPress / MariaDB 環境を Docker Compose で起動する。
 - WordPress を WP-CLI で初期化し、Yamabiko Editor Tools を有効化する。
+- WordPress 6.8.3 job だけに E2E 専用 API v2 block fixture を登録して non-iframe 条件を作る。
+- E2E suite の開始前に `iframe[name="editor-canvas"]` の有無を assert し、期待する editor mode を担保する。
 - Playwright 1.62.1 の公式 Docker image で既存 E2E を実行する。
-- 失敗時の Playwright report / trace / screenshot / video を artifact として保存する。
+- 失敗時の Playwright report / trace / screenshot / video を matrix ごとに一意な artifact として保存する。
 - CI とローカル開発環境の責務を開発ドキュメントへ反映する。
 
 ### Not included
 
 - Flexible Table Block E2E の追加。
 - Android E2E の追加。
-- 複数 WordPress バージョンや iframe / non-iframe の常時 matrix 化。
+- 2環境を超える WordPress バージョン matrix の拡張。
 - `wp-dev` の CI 用 image 配布基盤の追加。
-- 製品コードや既存 E2E シナリオの変更。
+- 製品コードや既存 E2E シナリオの二重管理。
 
 ## Approach
 
 ローカル WordPress 環境の正本は引き続き `YamabikoLab/wp-dev` とする。一方、GitHub-hosted Actions では外部リポジトリの Dev Container を build せず、CI に必要な最小構成だけをこのリポジトリの `tests/e2e/compose.ci.yaml` に定義する。
 
-WordPress 7.1.0 / PHP 8.3、MariaDB 12.3、WP-CLI 2.12.0 を固定する。Playwright は `package.json` の `@playwright/test` 1.62.1 と一致する `mcr.microsoft.com/playwright:v1.62.1-noble` を使い、CI ごとの `playwright install --with-deps chromium` を避ける。
+E2E job は `WP 7.1.0 / iframe` と `WP 6.8.3 / non-iframe` の2環境を `strategy.fail-fast: false` の matrix で実行する。6.8.3 側だけ E2E 専用 MU-plugin fixture を配置して API v2 block を登録し、製品コードや通常の plugin 構成には含めない。両環境とも認証 setup 中に editor canvas iframe の有無を明示的に assert し、WordPress バージョンだけから editor mode を推測しない。
+
+MariaDB 12.3、WP-CLI 2.12.0 を固定する。Playwright は `package.json` の `@playwright/test` 1.62.1 と一致する `mcr.microsoft.com/playwright:v1.62.1-noble` を使い、CI ごとの `playwright install --with-deps chromium` を避ける。
 
 ## Architecture
 
 - `.github/workflows/pr-validation.yml`
-  - Node / PHP と独立した E2E job を起動する。
+  - Node / PHP と独立した E2E matrix job を起動する。
   - npm dependencies と production build を準備する。
+  - matrix で WordPress image と期待 editor mode を切り替える。
   - Docker Compose で WordPress / DB を起動する。
   - WP-CLI で WordPress 初期化と plugin activation を行う。
-  - Playwright 公式 image から E2E を実行する。
-  - 失敗 artifact を保存し、最後に Docker resources を破棄する。
+  - non-iframe job だけ E2E 専用 fixture を MU-plugin として配置する。
+  - Playwright 公式 image から同じ E2E suite を実行する。
+  - 失敗 artifact を matrix ごとに一意な名前で保存し、最後に Docker resources を破棄する。
 - `tests/e2e/compose.ci.yaml`
   - MariaDB、WordPress、WP-CLI の CI 専用最小構成を定義する。
+  - WordPress image は matrix から渡された値を使用する。
   - repository root を plugin directory へ read-only bind mount する。
+- `tests/e2e/fixtures/non-iframe-block.php`
+  - WordPress 6.8.3 CI job 専用の API v2 block fixture を登録する。
+- `tests/e2e/auth.setup.ts`
+  - CI で `E2E_EDITOR_MODE` が指定された場合、E2E suite の開始前に iframe / non-iframe を明示的に assert する。
 - `docs/development/testing.md`
   - GitHub-hosted PR Validation の E2E 実行境界を記録する。
 
@@ -54,22 +66,27 @@ WordPress 7.1.0 / PHP 8.3、MariaDB 12.3、WP-CLI 2.12.0 を固定する。Playw
 
 ### Phase 1: CI WordPress environment
 
-- Outcome: GitHub Actions runner 上で再現可能な WordPress 環境を起動できる。
+- Outcome: GitHub Actions runner 上で再現可能な WordPress 7.1.0 / 6.8.3 環境を起動できる。
 - Tasks:
   - CI 用 Docker Compose を追加する。
+  - WordPress image を matrix から切り替えられるようにする。
   - DB healthcheck と HTTP readiness polling を利用する。
   - WP-CLI で WordPress を初期化し plugin を有効化する。
+  - non-iframe job のみ E2E fixture を配置する。
 - Validation:
   - Docker Compose の構文と service 定義を確認する。
 
-### Phase 2: Playwright E2E job
+### Phase 2: Playwright E2E matrix job
 
-- Outcome: PR Validation から既存 E2E を実行できる。
+- Outcome: PR Validation から同一 E2E suite を iframe / non-iframe の両方で実行できる。
 - Tasks:
   - E2E job を Node / PHP と独立して追加する。
+  - `WP 7.1.0 / iframe` と `WP 6.8.3 / non-iframe` を matrix 化する。
+  - `strategy.fail-fast: false` を設定する。
+  - editor mode を認証 setup で assert する。
   - Playwright 1.62.1 公式 image を利用する。
   - `workers: 1` の既存設定を維持する。
-  - 失敗 artifact と cleanup を追加する。
+  - 失敗 artifact を matrix ごとに一意な名前で保存し、cleanup を追加する。
 - Validation:
   - GitHub-hosted Actions を最終的な CI 判定とする。
 
@@ -88,12 +105,14 @@ WordPress 7.1.0 / PHP 8.3、MariaDB 12.3、WP-CLI 2.12.0 を固定する。Playw
 - Playwright browser は独自 cache ではなく公式 Docker image を使う。
 - CI WordPress 環境は `wp-dev` image の都度 build ではなく公式 image の組み合わせで構成する。
 - E2E job は Node / PHP job から独立させる。
-- 最初の CI 対象は代表 WordPress 環境 1 つに限定する。
+- iframe / non-iframe の代表2環境を常時実行し、同じ suite を共有する。
+- non-iframe 用 API v2 block は E2E 専用 fixture として隔離する。
 
 ### Validate during implementation
 
 - Docker image pull を含む E2E job の総実行時間が許容範囲か。
-- GitHub-hosted runner 上で WordPress readiness と WP-CLI 初期化が安定するか。
+- GitHub-hosted runner 上で両 WordPress 環境の readiness と WP-CLI 初期化が安定するか。
+- WordPress 7.1.0 で iframe、WordPress 6.8.3 で non-iframe が明示的な assertion により確認できるか。
 - 失敗時 artifact が調査に十分か。
 
 ## Issue breakdown
@@ -105,17 +124,19 @@ WordPress 7.1.0 / PHP 8.3、MariaDB 12.3、WP-CLI 2.12.0 を固定する。Playw
 - `git diff --check origin/main...HEAD`
 - `npm test`
 - `npm run build`
-- GitHub-hosted PR Validation の E2E job
+- GitHub-hosted PR Validation の E2E matrix job
 
 実際の E2E 実行検証は GitHub-hosted Actions を正とし、利用者が実施する。
 
 ## Completion criteria
 
-- PR Validation に独立 E2E job がある。
+- PR Validation に独立 E2E matrix job がある。
+- `WP 7.1.0 / iframe` と `WP 6.8.3 / non-iframe` の両方で同じ E2E suite を実行する。
+- editor mode が iframe の有無を使って明示的に検証される。
+- non-iframe 条件を作る API v2 block が E2E 専用 fixture に隔離されている。
 - WordPress / DB / WP-CLI の CI 環境が再現可能である。
 - Playwright browser の毎回 install を行わない。
-- 既存 Core Table E2E を実行する構成になっている。
-- 失敗 artifact と cleanup が定義されている。
+- 失敗 artifact と cleanup が定義され、artifact 名が matrix ごとに競合しない。
 - 開発ドキュメントが構成と一致している。
 
 ## Notes
