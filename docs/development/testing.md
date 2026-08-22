@@ -172,7 +172,7 @@ UI Mode listens on `0.0.0.0:9323` inside the Dev Container so VS Code can forwar
 
 PR Validation uses a separate, CI-only environment defined in `tests/e2e/compose.ci.yaml`. It starts the pinned WordPress, MariaDB, and WP-CLI images needed by the E2E job, activates the checked-out plugin, and runs the existing suite with the official Playwright Docker image whose version matches `@playwright/test`. This CI Compose file does not replace `wp-dev` as the local development environment.
 
-The CI E2E job does not run `playwright install --with-deps chromium`. Chromium and its Linux dependencies come from the pinned Playwright image. Failed runs upload `playwright-report/` and `test-results/`; the latter also includes Docker Compose logs captured by the workflow when available.
+The CI E2E job does not run `playwright install --with-deps chromium`. Chromium and its Linux dependencies come from the pinned Playwright image. Failed runs upload `playwright-report/`, `test-results/`, and `docker-compose.log` when available.
 
 Playwright writes authentication state to `.playwright/`, HTML reports to `playwright-report/`, and test artifacts to `test-results/`. Failed tests retain trace, screenshot, and video artifacts for investigation. All of these paths are excluded from Git.
 
@@ -246,6 +246,10 @@ The manually triggered `.github/workflows/pr-validation.yml` workflow runs the d
 - PHP or Composer changes: Composer validation, PHP syntax, PHP coding standards, and PHPStan.
 - npm or Composer dependency manifest / lock-file changes: run the relevant dependency security audit in addition to the applicable checks above.
 - Mixed changes: combine the applicable groups.
+
+For checks that require a local WordPress environment, follow the commands documented in the separate `YamabikoLab/wp-dev` repository.
+
+Do not claim checks were run when they were skipped or unavailable. Record the reason when an applicable check cannot be executed.
 
 For checks that require a local WordPress environment, follow the commands documented in the separate `YamabikoLab/wp-dev` repository.
 
