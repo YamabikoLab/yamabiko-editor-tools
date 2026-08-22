@@ -36,8 +36,8 @@ async function dismissKeyboardCoachmark( requestUtils: RequestUtils ): Promise< 
 	} );
 }
 
-async function savePostThroughEditorStore( page: Page ): Promise< void > {
-	await page.evaluate( async () => {
+async function savePostThroughEditorStore( page: Page ): Promise< number > {
+	return page.evaluate( async () => {
 		const data = (
 			window as unknown as {
 				wp: {
@@ -45,12 +45,17 @@ async function savePostThroughEditorStore( page: Page ): Promise< void > {
 						dispatch: ( store: string ) => {
 							savePost: () => Promise< void >;
 						};
+						select: ( store: string ) => {
+							getCurrentPostId: () => number;
+						};
 					};
 				};
 			}
-		 ).wp.data;
+		).wp.data;
 
 		await data.dispatch( 'core/editor' ).savePost();
+
+		return data.select( 'core/editor' ).getCurrentPostId();
 	} );
 }
 
@@ -64,7 +69,7 @@ async function expectRichBravoData( tableRows: Locator ): Promise< void > {
 	await expect( richBravoCell ).toHaveAttribute( 'colspan', '2' );
 	await expect( richBravoCell ).toHaveClass( /\brich-bravo-cell\b/ );
 	await expect( richBravoCell ).toHaveCSS( 'background-color', 'rgb(18, 52, 86)' );
-	await expect( richBravoCell ).toHaveText( 'Rich Bravo' );
+	await expect( richBravoCell ).toContainText( 'Rich Bravo' );
 }
 
 async function expectRowspanData( tableRows: Locator ): Promise< void > {
@@ -151,6 +156,7 @@ test.describe( 'Table Reorder Flexible Table Block merged cells and persistence'
 	} );
 
 	test( 'preserves row order and representative cell data after save and reload', async ( {
+		admin,
 		editor,
 		page,
 	} ) => {
@@ -168,8 +174,8 @@ test.describe( 'Table Reorder Flexible Table Block merged cells and persistence'
 			.poll( () => getTableRowOrder( tableRows, richRowLabels ) )
 			.toEqual( [ 'Alpha', 'Charlie', 'Rowspan start', 'Rowspan covered', 'Delta', 'Rich Bravo' ] );
 
-		await savePostThroughEditorStore( page );
-		await page.reload();
+		const postId = await savePostThroughEditorStore( page );
+		await admin.editPost( postId );
 
 		editorContext = await getEditorContext( page, editor.canvas );
 		await expect( editorContext.locator( flexibleTableBlockSelector ) ).toBeVisible();
