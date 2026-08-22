@@ -161,7 +161,7 @@ jobs:
       - name: Install WordPress and activate plugin
         run: |
           docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
-            core install \
+            wp core install \
             --url="${WP_BASE_URL}" \
             --title="Yamabiko Editor Tools E2E" \
             --admin_user="${WP_USERNAME}" \
@@ -170,7 +170,7 @@ jobs:
             --skip-email
 
           docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
-            plugin activate yamabiko-editor-tools
+            wp plugin activate yamabiko-editor-tools
 
       - name: Run Playwright E2E
         run: |
