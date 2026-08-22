@@ -17,7 +17,7 @@ import { resolveTableContext } from './table-context';
 
 /** SortableJS runtime URLを公開するeditor windowの設定。 */
 type TableReorderConfigWindow = Window & {
-	yamabikoEditorToolsTableReorder?: {
+	yamabikoTableReorder?: {
 		runtimeUrl?: string;
 	};
 };
@@ -77,8 +77,7 @@ export const useTableReorderController = (
 			return;
 		}
 
-		const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoEditorToolsTableReorder
-			?.runtimeUrl;
+		const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoTableReorder?.runtimeUrl;
 		if ( ! runtimeUrl ) {
 			return;
 		}
