@@ -158,50 +158,48 @@ describe( 'reorder-guidance', () => {
 		guidance.cleanup();
 	} );
 
-	it.each( [ getTouchModeMessage(), getTouchPointerActiveMessage() ] )(
-		'moves touch guidance near the pointer and switches sides with swipe direction for %s',
-		( message ) => {
-			const { tbody } = createTable();
-			const guidance = createReorderGuidance( document, tbody, message );
-			const bottomPosition = `${ window.innerHeight - 8 }px`;
-
-			expect( guidance.element.style.top ).toBe( bottomPosition );
-
-			dispatchTouchPointer( 'pointerdown', 1, 108 );
-			expect( guidance.element.style.top ).toBe( '124px' );
-
-			dispatchTouchPointer( 'pointermove', 1, 102 );
-			expect( guidance.element.style.top ).toBe( '118px' );
-
-			dispatchTouchPointer( 'pointermove', 1, 100 );
-			expect( guidance.element.style.top ).toBe( '84px' );
-
-			dispatchTouchPointer( 'pointerup', 1, 100 );
-			expect( guidance.element.style.top ).toBe( '84px' );
-
-			dispatchTouchPointer( 'pointerdown', 2, 100 );
-			expect( guidance.element.style.top ).toBe( '84px' );
-
-			dispatchTouchPointer( 'pointermove', 2, 106 );
-			expect( guidance.element.style.top ).toBe( '90px' );
-
-			dispatchTouchPointer( 'pointermove', 2, 108 );
-			expect( guidance.element.style.top ).toBe( '124px' );
-
-			guidance.cleanup();
-		}
-	);
-
-	it( 'uses the focused control as the initial anchor for touch pointer guidance', () => {
+	it( 'moves touch mode guidance near the pointer and switches sides with swipe direction', () => {
 		const { tbody } = createTable();
-		const control = document.createElement( 'button' );
-		document.body.append( control );
-		jest.spyOn( control, 'getBoundingClientRect' ).mockReturnValue( createRect( 200, 240 ) );
-		control.focus();
+		const guidance = createReorderGuidance( document, tbody, getTouchModeMessage() );
+		const bottomPosition = `${ window.innerHeight - 8 }px`;
 
+		expect( guidance.element.style.top ).toBe( bottomPosition );
+
+		dispatchTouchPointer( 'pointerdown', 1, 108 );
+		expect( guidance.element.style.top ).toBe( '124px' );
+
+		dispatchTouchPointer( 'pointermove', 1, 102 );
+		expect( guidance.element.style.top ).toBe( '118px' );
+
+		dispatchTouchPointer( 'pointermove', 1, 100 );
+		expect( guidance.element.style.top ).toBe( '84px' );
+
+		dispatchTouchPointer( 'pointerup', 1, 100 );
+		expect( guidance.element.style.top ).toBe( '84px' );
+
+		dispatchTouchPointer( 'pointerdown', 2, 100 );
+		expect( guidance.element.style.top ).toBe( '84px' );
+
+		dispatchTouchPointer( 'pointermove', 2, 106 );
+		expect( guidance.element.style.top ).toBe( '90px' );
+
+		dispatchTouchPointer( 'pointermove', 2, 108 );
+		expect( guidance.element.style.top ).toBe( '124px' );
+
+		guidance.cleanup();
+	} );
+
+	it( 'keeps touch pointer selection guidance fixed while pointer events move', () => {
+		const { tbody } = createTable();
 		const guidance = createReorderGuidance( document, tbody, getTouchPointerActiveMessage() );
+		const bottomPosition = `${ window.innerHeight - 8 }px`;
 
-		expect( guidance.element.style.top ).toBe( '236px' );
+		expect( guidance.element.style.top ).toBe( bottomPosition );
+
+		dispatchTouchPointer( 'pointerdown', 1, 108 );
+		dispatchTouchPointer( 'pointermove', 1, 100 );
+		expect( guidance.element.style.top ).toBe( bottomPosition );
+
 		guidance.cleanup();
 	} );
 } );
