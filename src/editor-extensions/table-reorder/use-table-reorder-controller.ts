@@ -20,6 +20,9 @@ type TableReorderConfigWindow = Window & {
 	yamabikoTableReorder?: {
 		runtimeUrl?: string;
 	};
+	yamabikoEditorToolsTableReorder?: {
+		runtimeUrl?: string;
+	};
 };
 
 /** controller lifecycle hookへ渡すReact側の入力。 */
@@ -77,7 +80,10 @@ export const useTableReorderController = (
 			return;
 		}
 
-		const runtimeUrl = ( window as TableReorderConfigWindow ).yamabikoTableReorder?.runtimeUrl;
+		const configWindow = window as TableReorderConfigWindow;
+		const runtimeUrl =
+			configWindow.yamabikoTableReorder?.runtimeUrl ??
+			configWindow.yamabikoEditorToolsTableReorder?.runtimeUrl;
 		if ( ! runtimeUrl ) {
 			return;
 		}
