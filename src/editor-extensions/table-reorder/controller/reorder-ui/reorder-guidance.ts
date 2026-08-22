@@ -87,12 +87,12 @@ const isRightAlignedGuidance = ( message: string ) =>
  *
  * row control tap直後などpointer eventが終了してから案内を生成する場合の初期位置に利用する。
  *
- * @param document 案内を生成するeditor document。
+ * @param target 案内対象Table要素。
  * @return focus要素の中央Y座標。利用できない場合はnull。
  */
-const getFocusedTouchAnchorY = ( document: Document ): number | null => {
-	const activeElement = document.activeElement;
-	if ( ! activeElement || activeElement === document.body ) {
+const getFocusedTouchAnchorY = ( target: Element ): number | null => {
+	const { activeElement, body } = target.ownerDocument;
+	if ( ! activeElement || activeElement === body ) {
 		return null;
 	}
 
@@ -148,7 +148,7 @@ export const createReorderGuidance = (
 	let explicitlyHidden = false;
 	const trackTouchSwipe = isTouchSwipeGuidance( message );
 	const alignRight = isRightAlignedGuidance( message );
-	let touchAnchorY = trackTouchSwipe ? getFocusedTouchAnchorY( document ) : null;
+	let touchAnchorY = trackTouchSwipe ? getFocusedTouchAnchorY( guidanceTarget ) : null;
 	let position: ReorderGuidancePosition = trackTouchSwipe ? 'bottom' : 'top';
 
 	const updatePosition = () => {
