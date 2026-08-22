@@ -73,18 +73,17 @@ async function expectRichBravoData( tableRows: Locator ): Promise< void > {
 }
 
 async function expectRowspanData( tableRows: Locator ): Promise< void > {
-	const rowspanCell = getTableRow( tableRows, 'Rowspan start' ).getByRole( 'cell', {
-		name: 'Rowspan start',
-		exact: true,
-	} );
+	const rowspanCell = getTableRow( tableRows, 'Rowspan start' )
+		.locator( 'td' )
+		.filter( { hasText: 'Rowspan start' } );
 
 	await expect( rowspanCell ).toHaveAttribute( 'rowspan', '2' );
-	await expect(
-		getTableRow( tableRows, 'Rowspan covered' ).getByRole( 'cell', {
-			name: 'Rowspan covered',
-			exact: true,
-		} )
-	).toBeVisible();
+
+	const coveredCell = getTableRow( tableRows, 'Rowspan covered' )
+		.locator( 'td' )
+		.filter( { hasText: 'Rowspan covered' } );
+
+	await expect( coveredCell ).toBeVisible();
 }
 
 test.describe( 'Table Reorder Flexible Table Block merged cells and persistence', () => {
