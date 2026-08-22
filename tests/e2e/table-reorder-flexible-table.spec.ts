@@ -19,7 +19,7 @@ import {
 } from './table-reorder-touch';
 
 const flexibleTableContent = `<!-- wp:flexible-table-block/table -->
-<figure class="wp-block-flexible-table-block-table"><table><tbody><tr><td>Alpha</td></tr><tr><td>Bravo</td></tr><tr><td>Charlie</td></tr><tr><td>Delta</td></tr></tbody></table></figure>
+<figure class="wp-block-flexible-table-block-table"><table class="has-fixed-layout"><tbody><tr><td>Alpha</td></tr><tr><td>Bravo</td></tr><tr><td>Charlie</td></tr><tr><td>Delta</td></tr></tbody></table></figure>
 <!-- /wp:flexible-table-block/table -->`;
 const expectedRowOrder = [ 'Alpha', 'Charlie', 'Delta', 'Bravo' ];
 const flexibleTableBlockSelector = '[data-type="flexible-table-block/table"][data-block]';
