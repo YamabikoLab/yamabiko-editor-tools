@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Yamabiko Editor Tools E2E Non-Iframe Fixture
+ * Plugin Name: Yamabiko Table Reorder E2E Non-Iframe Fixture
  * Description: Registers an API v2 block only for the WordPress 6.8.3 CI E2E environment.
  *
- * @package YamabikoEditorTools
+ * @package YamabikoTableReorder
  */
 
 add_action(
@@ -11,7 +11,7 @@ add_action(
 	static function (): void {
 		wp_add_inline_script(
 			'wp-blocks',
-			"wp.blocks.registerBlockType( 'yamabiko-editor-tools/e2e-api-v2', { apiVersion: 2, title: 'YET E2E API v2', category: 'text', edit: function () { return null; }, save: function () { return null; } } );",
+			"wp.blocks.registerBlockType( 'yamabiko-table-reorder/e2e-api-v2', { apiVersion: 2, title: 'Yamabiko Table Reorder E2E API v2', category: 'text', edit: function () { return null; }, save: function () { return null; } } );",
 			'after'
 		);
 	}

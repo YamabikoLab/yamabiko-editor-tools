@@ -17,7 +17,7 @@ Core Table を対象に整備済みの Playwright E2E を PR Validation の品�
 - PR Validation に独立した E2E job を追加する。
 - E2E job を `WP 7.1.0 / iframe` と `WP 6.8.3 / non-iframe` の matrix で並列実行する。
 - CI 専用の最小 WordPress / MariaDB 環境を Docker Compose で起動する。
-- WordPress を WP-CLI で初期化し、Yamabiko Editor Tools を有効化する。
+- WordPress を WP-CLI で初期化し、Yamabiko Table Reorder を有効化する。
 - WordPress 6.8.3 job だけに E2E 専用 API v2 block fixture を登録して non-iframe 条件を作る。
 - E2E suite の開始前に `iframe[name="editor-canvas"]` の有無を assert し、期待する editor mode を担保する。
 - Playwright 1.62.1 の公式 Docker image で既存 E2E を実行する。

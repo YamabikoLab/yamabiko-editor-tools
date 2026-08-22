@@ -41,7 +41,7 @@ $core_rows = [
 	[ 30, '鹿島槍ヶ岳', '2,889 m', '長野県・富山県' ],
 ];
 
-function yet_demo_build_core_table_rows( array $rows ) {
+function yamabiko_table_reorder_demo_build_core_table_rows( array $rows ) {
 	$table_rows = '';
 
 	foreach ( $rows as $row ) {
@@ -91,7 +91,7 @@ function yet_demo_build_core_table_rows( array $rows ) {
 	return $table_rows;
 }
 
-$core_table_rows = yet_demo_build_core_table_rows( $core_rows );
+$core_table_rows = yamabiko_table_reorder_demo_build_core_table_rows( $core_rows );
 $core_table      =
 	'<!-- wp:table {"align":"wide"} -->' .
 	'<figure class="wp-block-table alignwide"><table class="has-fixed-layout">' .
@@ -133,7 +133,7 @@ $flexible_rows = [
 	[ 30, 'Kamet', '7,756 m', 'インド' ],
 ];
 
-function yet_demo_build_flexible_table_rows( array $rows ) {
+function yamabiko_table_reorder_demo_build_flexible_table_rows( array $rows ) {
 	$table_rows = '';
 
 	foreach ( $rows as $row ) {
@@ -205,7 +205,7 @@ function yet_demo_build_flexible_table_rows( array $rows ) {
 	return $table_rows;
 }
 
-$flexible_table_rows = yet_demo_build_flexible_table_rows( $flexible_rows );
+$flexible_table_rows = yamabiko_table_reorder_demo_build_flexible_table_rows( $flexible_rows );
 $flexible_table      =
 	'<!-- wp:flexible-table-block/table {"align":"wide"} -->' .
 	'<figure class="wp-block-flexible-table-block-table alignwide">' .
@@ -230,9 +230,9 @@ $content = implode(
 		'<!-- wp:heading --><h2 class="wp-block-heading">Flexible Table Block：世界の山30座</h2><!-- /wp:heading -->',
 		'<!-- wp:paragraph --><p>書式付きセルや結合セルなどを試せる実験的なエリアです。標高順の30座で、7〜8行目の所在地は縦結合、14行目の山名＋標高は横結合です。RichText、リンク、インラインコード、改行、scope、class、セルスタイルも含めています。</p><!-- /wp:paragraph -->',
 		$flexible_table,
-		'<!-- wp:paragraph --><p>不具合や気づいた点があれば、<a href="https://github.com/YamabikoLab/yamabiko-editor-tools/issues">GitHub Issues</a> からお知らせください。</p><!-- /wp:paragraph -->',
+		'<!-- wp:paragraph --><p>不具合や気づいた点があれば、<a href="https://github.com/YamabikoLab/yamabiko-table-reorder/issues">GitHub Issues</a> からお知らせください。</p><!-- /wp:paragraph -->',
 		sprintf(
-			'<!-- wp:paragraph {"align":"right","fontSize":"small"} --><p class="has-text-align-right has-small-font-size">Yamabiko Editor Tools v%s</p><!-- /wp:paragraph -->',
+			'<!-- wp:paragraph {"align":"right","fontSize":"small"} --><p class="has-text-align-right has-small-font-size">Yamabiko Table Reorder v%s</p><!-- /wp:paragraph -->',
 			esc_html( $demo_version )
 		),
 	]

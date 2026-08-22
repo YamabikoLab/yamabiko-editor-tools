@@ -55,4 +55,4 @@ gh workflow run "PR Validation" --ref <branch-name>
 gh run list --workflow "PR Validation" --limit 10
 ```
 
-必要な場合は`--repo YamabikoLab/yamabiko-editor-tools`を付けて対象リポジトリを明示します。
+必要な場合は`--repo YamabikoLab/yamabiko-table-reorder`を付けて対象リポジトリを明示します。

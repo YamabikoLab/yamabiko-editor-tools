@@ -2,7 +2,7 @@
 
 Releases use semantic versions and tags in the form `v<version>`, such as `v0.2.0`.
 
-The plugin header in `yamabiko-editor-tools.php` is the single source of truth for the release version.
+The plugin header in `yamabiko-table-reorder.php` is the single source of truth for the release version.
 
 ## Version rules
 
@@ -18,7 +18,7 @@ Only stable `x.y.z` versions can be released. Pre-release versions such as `1.0.
 
 For a release, update these values together in the release pull request:
 
-- `yamabiko-editor-tools.php` `Version` to the release version
+- `yamabiko-table-reorder.php` `Version` to the release version
 - `readme.txt` `Stable tag` to the same version
 - `readme.txt` `== Changelog ==` with a section for the same version
 
@@ -58,7 +58,7 @@ The workflow then:
 5. verifies that the tag and GitHub Release do not already exist;
 6. installs dependencies with `npm ci`;
 7. runs `npm test`;
-8. builds `yamabiko-editor-tools.zip` with `npm run plugin-zip` and verifies that the ZIP contains `readme.txt`;
+8. builds `yamabiko-table-reorder.zip` with `npm run plugin-zip` and verifies that the ZIP contains `readme.txt`;
 9. creates `v<version>` at the exact `main` commit validated by the workflow;
 10. creates the GitHub Release using the matching `readme.txt` Changelog section as the release notes and attaches the ZIP.
 

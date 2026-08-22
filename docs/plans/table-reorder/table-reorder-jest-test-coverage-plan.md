@@ -162,7 +162,7 @@
 理由:
 
 - percentage は低いが、Gutenberg 内部実装まで Jest で再現することは目的にしない。
-- enabled / selection / block support / body commit など、Yamabiko Editor Tools 側の局所 contract として意味のある分岐だけを補強する。
+- enabled / selection / block support / body commit など、Yamabiko Table Reorder 側の局所 contract として意味のある分岐だけを補強する。
 - 複雑な WordPress mock が必要になる分岐は、80% の数値合わせだけを理由に追加しない。
 
 ### Low: すでに十分な coverage の領域
@@ -286,7 +286,7 @@ Tasks:
 - iframe / non-iframe の最終統合挙動: Jest は context 解決ロジックまで、統合は E2E とするため。
 - SortableJS 本体の挙動: 外部ライブラリ自身を再テストしないため。
 - CSS の見た目・viewport 上の最終配置: Jest では layout engine を保証できないため。
-- Gutenberg 内部実装の詳細: Yamabiko Editor Tools 側の contract だけをテストするため。
+- Gutenberg 内部実装の詳細: Yamabiko Table Reorder 側の contract だけをテストするため。
 - `reorder-ui/index.ts` の再公開 facade: 実装ロジックを持たず、数値合わせのテスト価値が低いため。
 - 到達させるためだけに不自然な mock が必要な defensive branch: 数値合わせを避けるため。
 

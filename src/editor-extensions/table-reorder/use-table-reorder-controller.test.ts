@@ -129,14 +129,14 @@ beforeEach( () => {
 	resolveTableContextMock.mockReturnValue( createContext() );
 	createSortableControllerMock.mockImplementation( () => createMockController() );
 	Object.assign( window, {
-		yamabikoEditorToolsTableReorder: { runtimeUrl: '/sortable.js' },
+		yamabikoTableReorder: { runtimeUrl: '/sortable.js' },
 	} );
 } );
 
 afterEach( () => {
 	jest.runOnlyPendingTimers();
 	jest.useRealTimers();
-	Reflect.deleteProperty( window, 'yamabikoEditorToolsTableReorder' );
+	Reflect.deleteProperty( window, 'yamabikoTableReorder' );
 	document.body.replaceChildren();
 } );
 
@@ -151,7 +151,7 @@ describe( 'useTableReorderController', () => {
 	} );
 
 	it( 'does not create a controller when the runtime URL is unavailable', () => {
-		Object.assign( window, { yamabikoEditorToolsTableReorder: {} } );
+		Object.assign( window, { yamabikoTableReorder: {} } );
 		const harness = mountHook( createOptions() );
 		flushLifecycleMicrotasks();
 

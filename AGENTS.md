@@ -1,4 +1,4 @@
-# Yamabiko Editor Tools repository instructions
+# Yamabiko Table Reorder repository instructions
 
 These instructions apply to the entire repository.
 

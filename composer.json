@@ -1,6 +1,6 @@
 {
-	"name": "yamabikolab/yamabiko-editor-tools",
-	"description": "WordPress editor tools for intuitive content structure editing.",
+	"name": "yamabikolab/yamabiko-table-reorder",
+	"description": "Accessible table row reordering for supported blocks in the WordPress block editor.",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
 	"require-dev": {

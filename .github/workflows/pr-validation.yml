@@ -90,7 +90,7 @@ jobs:
         run: composer run audit:security
 
       - name: Check PHP syntax
-        run: php -l yamabiko-editor-tools.php
+        run: php -l yamabiko-table-reorder.php
 
       - name: Check PHP coding standards
         run: composer lint:php
@@ -177,7 +177,7 @@ jobs:
           docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
             wp core install \
             --url="${WP_BASE_URL}" \
-            --title="Yamabiko Editor Tools E2E" \
+            --title="Yamabiko Table Reorder E2E" \
             --admin_user="${WP_USERNAME}" \
             --admin_password="${WP_PASSWORD}" \
             --admin_email="admin@example.test" \
@@ -189,7 +189,7 @@ jobs:
             --activate
 
           docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
-            wp plugin activate yamabiko-editor-tools
+            wp plugin activate yamabiko-table-reorder
 
       - name: Install non-iframe E2E fixture
         if: matrix.editor_mode == 'non-iframe'
@@ -197,8 +197,8 @@ jobs:
           docker compose -f "${E2E_COMPOSE_FILE}" run --rm cli \
             sh -c '
               mkdir -p /var/www/html/wp-content/mu-plugins &&
-              cp /var/www/html/wp-content/plugins/yamabiko-editor-tools/tests/e2e/fixtures/non-iframe-block.php \
-                /var/www/html/wp-content/mu-plugins/yet-e2e-non-iframe.php
+              cp /var/www/html/wp-content/plugins/yamabiko-table-reorder/tests/e2e/fixtures/non-iframe-block.php \
+                /var/www/html/wp-content/mu-plugins/yamabiko-table-reorder-e2e-non-iframe.php
             '
 
       - name: Run Playwright E2E
@@ -206,8 +206,8 @@ jobs:
           docker run --rm \
             --network host \
             --ipc=host \
-            --volume "${GITHUB_WORKSPACE}:/workspaces/yet" \
-            --workdir /workspaces/yet \
+            --volume "${GITHUB_WORKSPACE}:/workspaces/yamabiko-table-reorder" \
+            --workdir /workspaces/yamabiko-table-reorder \
             --env E2E_EDITOR_MODE \
             --env WP_BASE_URL \
             --env WP_USERNAME \

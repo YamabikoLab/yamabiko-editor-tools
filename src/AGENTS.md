@@ -1,4 +1,4 @@
-# Yamabiko Editor Tools plugin instructions
+# Yamabiko Table Reorder plugin instructions
 
 These instructions apply to plugin source files under `src/`.
 
@@ -27,7 +27,7 @@ These instructions apply to plugin source files under `src/`.
 
 ## Internationalization and accessibility
 
-- Translate user-visible strings with the `yamabiko-editor-tools` text domain.
+- Translate user-visible strings with the `yamabiko-table-reorder` text domain.
 - Use semantic HTML and WordPress UI primitives where practical.
 - Support keyboard operation and visible focus for interactive controls.
 - Do not communicate meaning through color alone.

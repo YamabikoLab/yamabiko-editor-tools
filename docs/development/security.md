@@ -1,6 +1,6 @@
 # Security QA
 
-This document records the current security boundary of Yamabiko Editor Tools and the minimum checks that belong in the development flow. Keep the scope proportional to the plugin's actual attack surface; do not add speculative controls for features that do not exist.
+This document records the current security boundary of Yamabiko Table Reorder and the minimum checks that belong in the development flow. Keep the scope proportional to the plugin's actual attack surface; do not add speculative controls for features that do not exist.
 
 ## Current attack surface
 

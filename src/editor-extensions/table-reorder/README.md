@@ -92,7 +92,7 @@ The extension entry is:
 src/editor-extensions/table-reorder/index.tsx
 ```
 
-`webpack.config.js` emits the npm-provided `sortablejs/Sortable.min.js` runtime into the Table Reorder build directory. `yamabiko-editor-tools.php` enqueues the editor entry and exposes the local runtime URL to the editor script.
+`webpack.config.js` emits the npm-provided `sortablejs/Sortable.min.js` runtime into the Table Reorder build directory. `yamabiko-table-reorder.php` enqueues the editor entry and exposes the local runtime URL to the editor script.
 
 Run:
 

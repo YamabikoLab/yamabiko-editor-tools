@@ -1,5 +1,5 @@
 {
-	"name": "yamabiko-editor-tools",
+	"name": "yamabiko-table-reorder",
 	"version": "0.0.0",
 	"private": true,
 	"files": [
@@ -7,7 +7,7 @@
 		"languages/",
 		"THIRD_PARTY_NOTICES.md",
 		"readme.txt",
-		"yamabiko-editor-tools.php"
+		"yamabiko-table-reorder.php"
 	],
 	"scripts": {
 		"start": "wp-scripts start --hot",
@@ -27,9 +27,9 @@
 		"test:e2e": "npm run build && playwright test",
 		"test:e2e:auth": "playwright test --project=setup",
 		"test:e2e:ui": "npm run test:e2e:auth && playwright test --project=chromium --ui --ui-host=0.0.0.0 --ui-port=9323",
-		"i18n:pot": "wp i18n make-pot . languages/yamabiko-editor-tools.pot --domain=yamabiko-editor-tools --include=src",
-		"i18n:po": "wp i18n update-po languages/yamabiko-editor-tools.pot languages/yamabiko-editor-tools-ja.po",
-		"i18n:json": "wp i18n make-json languages/yamabiko-editor-tools-ja.po languages --domain=yamabiko-editor-tools --extensions=js,jsx,ts,tsx --no-purge --pretty-print",
+		"i18n:pot": "npm run build && wp i18n make-pot . languages/yamabiko-table-reorder.pot --domain=yamabiko-table-reorder --include=yamabiko-table-reorder.php,build/editor-extensions/table-reorder/index.js",
+		"i18n:po": "wp i18n update-po languages/yamabiko-table-reorder.pot languages/yamabiko-table-reorder-ja.po",
+		"i18n:json": "wp i18n make-json languages/yamabiko-table-reorder-ja.po languages --domain=yamabiko-table-reorder --no-purge --pretty-print",
 		"i18n": "npm run i18n:pot && npm run i18n:po && npm run i18n:json"
 	},
 	"devDependencies": {

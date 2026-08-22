@@ -1,21 +1,21 @@
 <?php
 /**
- * Plugin Name: Yamabiko Editor Tools
- * Description: Editor tools for intuitive content structure editing.
+ * Plugin Name: Yamabiko Table Reorder
+ * Description: Accessible table row reordering for supported blocks in the WordPress block editor.
  * Version: 0.3.3
  * Requires at least: 6.8
  * Requires PHP: 8.1
  * Author: YamabikoLab
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: yamabiko-editor-tools
+ * Text Domain: yamabiko-table-reorder
  *
- * @package YamabikoEditorTools
+ * @package YamabikoTableReorder
  */
 
 declare(strict_types=1);
 
-namespace YamabikoLab\EditorTools;
+namespace YamabikoLab\TableReorder;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -52,7 +52,7 @@ final class Plugin {
 
 		wp_set_script_translations(
 			$handle,
-			'yamabiko-editor-tools',
+			'yamabiko-table-reorder',
 			__DIR__ . '/languages'
 		);
 		self::add_table_reorder_runtime_config( $handle );
@@ -72,7 +72,7 @@ final class Plugin {
 		}
 
 		wp_enqueue_style(
-			'yamabiko-editor-tools-table-reorder-style',
+			'yamabiko-table-reorder-style',
 			plugins_url( 'build/editor-extensions/table-reorder/index.css', __FILE__ ),
 			array( 'wp-components' ),
 			(string) filemtime( $file_path )
@@ -98,7 +98,7 @@ final class Plugin {
 			return null;
 		}
 
-		$handle       = 'yamabiko-editor-tools-table-reorder-index';
+		$handle       = 'yamabiko-table-reorder-index';
 		$dependencies = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
 			? $asset['dependencies']
 			: array();
@@ -134,7 +134,7 @@ final class Plugin {
 			return null;
 		}
 
-		$handle = 'yamabiko-editor-tools-webpack-runtime';
+		$handle = 'yamabiko-table-reorder-webpack-runtime';
 
 		wp_register_script(
 			$handle,
@@ -174,7 +174,7 @@ final class Plugin {
 
 		wp_add_inline_script(
 			$handle,
-			"window.yamabikoEditorToolsTableReorder = {$config};",
+			"window.yamabikoTableReorder = {$config};",
 			'before'
 		);
 	}

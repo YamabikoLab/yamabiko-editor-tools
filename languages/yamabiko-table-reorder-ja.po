@@ -1,0 +1,142 @@
+# Japanese translations for Yamabiko Table Reorder.
+# Copyright (C) 2026 YamabikoLab
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Yamabiko Table Reorder 0.3.3\n"
+"PO-Revision-Date: 2026-08-20 06:05+0900\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: yamabiko-table-reorder\n"
+
+#: yamabiko-table-reorder.php
+msgid "Yamabiko Table Reorder"
+msgstr "Yamabiko Table Reorder"
+
+#: yamabiko-table-reorder.php
+msgid "Accessible table row reordering for supported blocks in the WordPress block editor."
+msgstr "WordPressブロックエディターで、対応する表の行をアクセシブルに並べ替えます。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Empty row"
+msgstr "空の行"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Drag to move, or click to choose a destination."
+msgstr "ドラッグで移動　クリックで移動先を選択"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Enter / Space: start moving"
+msgstr "Enter / Space: 移動開始"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "↑↓ Move　Enter / Space Confirm　Esc Cancel"
+msgstr "↑↓ 移動　Enter / Space 決定　Esc キャンセル"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Click destination　Esc Cancel"
+msgstr "移動先をクリック　Esc キャンセル"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Handle: drag to move / tap to choose destination　Cell: tap to edit"
+msgstr "ハンドル: ドラッグで移動 / タップで移動先選択　セル: タップで編集"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Tap destination"
+msgstr "移動先をタップ"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Reorder rows with the keyboard. Select “Reorder rows” in the toolbar, then use Tab / Shift+Tab to choose a row to reorder."
+msgstr "キーボードで行を並べ替えられます。ツールバーの「行を並べ替え」を選択し、Tab / Shift+Tab で並べ替える行を選べます。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Tap “Reorder rows” in the toolbar to begin."
+msgstr "ツールバーの「行を並べ替え」をタップして開始"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Reorder row %1$d: %2$s"
+msgstr "%1$d行目「%2$s」を並べ替え"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Drag to move this row, or activate to choose a destination."
+msgstr "ドラッグして行を移動できます。実行すると移動先を選択できます。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Press Enter or Space to start moving this row."
+msgstr "EnterまたはSpaceキーで、この行の移動を開始します。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Move before row %1$d: %2$s"
+msgstr "%1$d行目「%2$s」の前へ移動"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Move to the end of the table."
+msgstr "表の末尾へ移動"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Close guidance"
+msgstr "案内を閉じる"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Reorder rows"
+msgstr "行を並べ替え"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Move table rows using drag and drop, the keyboard, or destination selection."
+msgstr "ドラッグ、キーボード、または移動先の選択で表の行を移動します。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "This row is in a row-spanning cell and can’t be moved."
+msgstr "この行は縦結合セル内のため移動できません。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "No rows can be reordered."
+msgstr "並べ替えできる行がありません。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Moving %1$s, row %2$d of %3$d."
+msgstr "%1$s、全%3$d行中%2$d行目の移動を開始しました。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "%1$s selected. Choose a destination."
+msgstr "%1$sを選択しました。移動先を選んでください。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Move %1$s to position %2$d of %3$d."
+msgstr "%1$sを全%3$d行中%2$d行目へ移動します。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Moved %1$s from position %2$d to %3$d."
+msgstr "%1$sを%2$d行目から%3$d行目へ移動しました。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "Canceled moving %1$s. It remains at position %2$d."
+msgstr "%1$sの移動をキャンセルしました。位置は%2$d行目のままです。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "up"
+msgstr "上"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "down"
+msgstr "下"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "%1$s cannot move any farther %2$s."
+msgstr "%1$sは、これ以上%2$sへ移動できません。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "%1$s cannot be moved because it is within a cell that spans multiple rows."
+msgstr "%1$sは、複数行にまたがる結合セルの範囲内にあるため移動できません。"
+
+#: build/editor-extensions/table-reorder/index.js:1
+msgid "There are no rows that can be reordered in this table."
+msgstr "この表には並べ替えできる行がありません。"

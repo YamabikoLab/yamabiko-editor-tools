@@ -249,7 +249,7 @@ beforeEach( () => {
 		return controller;
 	} );
 	Object.assign( window, {
-		yamabikoEditorToolsTableReorder: { runtimeUrl: '/sortable.js' },
+		yamabikoTableReorder: { runtimeUrl: '/sortable.js' },
 	} );
 } );
 
@@ -261,7 +261,7 @@ afterEach( () => {
 	}
 	flushLifecycleMicrotasks();
 	jest.useRealTimers();
-	Reflect.deleteProperty( window, 'yamabikoEditorToolsTableReorder' );
+	Reflect.deleteProperty( window, 'yamabikoTableReorder' );
 	document.body.replaceChildren();
 } );
 
