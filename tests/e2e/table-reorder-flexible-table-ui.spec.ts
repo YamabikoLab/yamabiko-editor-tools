@@ -3,12 +3,7 @@ import type { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 import { getEditorContext, type EditorContext } from './editor-context';
-import {
-	getRowControl,
-	getRowHandle,
-	getTableRow,
-	getTableRows,
-} from './table-reorder';
+import { getRowControl, getRowHandle, getTableRow, getTableRows } from './table-reorder';
 import { dismissTouchCoachmark, enterTouchReorderMode } from './table-reorder-touch';
 
 const flexibleTableContent = `<!-- wp:flexible-table-block/table -->
