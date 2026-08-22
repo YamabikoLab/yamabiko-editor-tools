@@ -66,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          plugin_version="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' yamabiko-editor-tools.php | head -n 1)"
+          plugin_version="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' yamabiko-table-reorder.php | head -n 1)"
 
           if [[ ! "${plugin_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::Plugin Version must be a stable x.y.z version. Found: ${plugin_version:-<missing>}."
@@ -148,12 +148,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ ! -f yamabiko-editor-tools.zip ]; then
-            echo "::error::yamabiko-editor-tools.zip was not generated."
+          if [ ! -f yamabiko-table-reorder.zip ]; then
+            echo "::error::yamabiko-table-reorder.zip was not generated."
             exit 1
           fi
 
-          if ! unzip -Z1 yamabiko-editor-tools.zip | grep -Eq '(^|/)readme\.txt$'; then
+          if ! unzip -Z1 yamabiko-table-reorder.zip | grep -Eq '(^|/)readme\.txt$'; then
             echo "::error::Release ZIP does not contain readme.txt."
             exit 1
           fi
@@ -191,7 +191,7 @@ jobs:
           set -euo pipefail
 
           gh release create "${TAG_NAME}" \
-            yamabiko-editor-tools.zip \
+            yamabiko-table-reorder.zip \
             --verify-tag \
             --notes-file release-notes.md \
             --title "${TAG_NAME}"
