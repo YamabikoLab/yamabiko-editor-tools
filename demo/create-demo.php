@@ -232,7 +232,7 @@ $content = implode(
 		$flexible_table,
 		'<!-- wp:paragraph --><p>不具合や気づいた点があれば、<a href="https://github.com/YamabikoLab/yamabiko-editor-tools/issues">GitHub Issues</a> からお知らせください。</p><!-- /wp:paragraph -->',
 		sprintf(
-			'<!-- wp:paragraph {"align":"right","fontSize":"small"} --><p class="has-text-align-right has-small-font-size">Yamabiko Editor Tools v%s</p><!-- /wp:paragraph -->',
+			'<!-- wp:paragraph {"align":"right","fontSize":"small"} --><p class="has-text-align-right has-small-font-size">Yamabiko Table Reorder v%s</p><!-- /wp:paragraph -->',
 			esc_html( $demo_version )
 		),
 	]
