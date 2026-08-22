@@ -276,7 +276,7 @@ test.describe( 'Table Reorder accessibility integration', () => {
 		);
 		await expect( toolbarButton ).toBeFocused();
 		await expect(
-			editorContext.getByRole( 'button', { name: /^(Reorder row|\d+行目「)/ } )
+			editorContext.getByRole( 'button', { name: /^(Reorder row \d+:|\d+行目「)/ } )
 		).toHaveCount( 0 );
 	} );
 } );
